@@ -1160,10 +1160,13 @@ function startDbPolling(){
       markConnOk();
       flushPendingSync(); // navbatda kutayotgan (offline) natijalar bolsa - shu yerda ham urinib koramiz
       var local=localGetDB();
-      if(remoteV <= (local.v||0)) return; // ozgarish yoq - butun bazani tortmaymiz
+      // 2026-10-01: SERVER - HAQIQAT MANBAI. Lokal v bilan emas, oxirgi ko'rilgan
+      // SERVER versiyasi bilan solishtiramiz (aks holda serverga yetmagan lokal
+      // o'zgarishlar v ni oshirib, serverdagi haqiqiy bazani "ko'rmay" qolardi).
+      if(remoteV === serverV()) return; // serverda o'zgarish yo'q
       var remote=await sbPull(); // FAQAT haqiqatan ozgargan bolsa, tolik blokni tortamiz
       if(!remote) return;
-      if((remote.v||0) > (local.v||0)){
+      if(true){
         if(mergeLocalAdds(remote,local)){ remote.v=(remote.v||0)+1; localStorage.setItem(SK, JSON.stringify(remote)); sbPush(remote); }
         else localStorage.setItem(SK, JSON.stringify(remote));
         rememberSyncedIds(remote);
@@ -1261,7 +1264,8 @@ var _resolvingConflict=false;
 var SYNC_COLLS=['users','userQs','decks','results','collaborations'];
 var SYNCED_IDS_KEY='bt_synced_ids';
 function _collIds(db,c){ return (db[c]||[]).map(function(x){return x&&x.id!=null?String(x.id):null;}).filter(Boolean); }
-function rememberSyncedIds(db){ try{ var o={}; SYNC_COLLS.forEach(function(c){o[c]=_collIds(db,c);}); localStorage.setItem(SYNCED_IDS_KEY,JSON.stringify(o)); }catch(e){} }
+function serverV(){ try{ return parseInt(localStorage.getItem('bt_server_v'),10)||0; }catch(e){ return 0; } }
+function rememberSyncedIds(db){ try{ localStorage.setItem('bt_server_v', String(db.v||0)); }catch(e){} try{ var o={}; SYNC_COLLS.forEach(function(c){o[c]=_collIds(db,c);}); localStorage.setItem(SYNCED_IDS_KEY,JSON.stringify(o)); }catch(e){} }
 function mergeLocalAdds(remote,local){
   var synced={}; try{ synced=JSON.parse(localStorage.getItem(SYNCED_IDS_KEY)||'{}'); }catch(e){}
   var added=0;
@@ -2410,7 +2414,7 @@ async function syncFromCloud() {
     // remote.v ham 0 bo'lishi mumkin — natijada hech narsa yuklanmasdi.
     // Endi: remote ma'lumot bor va local bo'sh bo'lsa HAR DOIM yuklaymiz.
     var localEmpty = !(local.users && local.users.length > 1);
-    if ((remote.v||0) > (local.v||0) || localEmpty) {
+    if (true) { // 2026-10-01: ochilishda har doim server nusxasi olinadi (server - haqiqat manbai)
       var _adds = localEmpty ? 0 : mergeLocalAdds(remote, local);
       if (_adds) remote.v = (remote.v||0) + 1;
       try { localStorage.setItem(SK, JSON.stringify(remote)); } catch(e) {}
