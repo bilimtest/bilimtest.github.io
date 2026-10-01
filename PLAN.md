@@ -47,4 +47,5 @@ Yadro umumiy bo'ladi (login, sinflar, testlar, natijalar, import); har fan o'z m
 
 ## Holat
 - [x] 1-bosqich (yadro): QTYPES registry, fill/match/order, qisman ball, muharrir, natija tahlili — 2026-10-01
-- [ ] 1b: javoblar tarixi (o'zlashtirish tizimi uchun ma'lumot yig'ish)
+- [x] 1b: o'zlashtirish yozuvi (db.mastery[userId]: q - SM-2 holati, t - mavzu EMA avg), natijada maslahat — 2026-10-01
+- [ ] 1c: o'quvchi statistikasi sahifasi, "Xatolarim" va bugungi takrorlash testi (myDueQuestionIds)

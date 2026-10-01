@@ -3077,6 +3077,60 @@ function _refreshQNav(){
 }
 function qDetailHtml(d){ var T=QTYPES[d.type]; return T?T.detail(d):''; }
 
+// ═══════════════════════════════════════════════════════════════════════
+// O'ZLASHTIRISH TIZIMI (2026-10-01, PLAN.md 1b)
+// db.mastery[userId] = {
+//   q: { "<savolId>": {n, ok, last, ef, int, rep, due} }   // SM-2 takrorlash
+//   t: { "<mavzu>": {n, avg, last, subj} }                   // mavzu o'zlashtirishi
+// }
+// avg - eksponensial o'rtacha (yangi urinish og'irligi 0.35), shuning uchun
+// o'quvchi yaxshilansa, eski xatolar uni abadiy "zaif" qilib qo'ymaydi.
+// ═══════════════════════════════════════════════════════════════════════
+var MASTERY_WEAK=0.6, MASTERY_ALPHA=0.35, DAY_MS=86400000;
+function sm2(st,score,now){
+  // score 0..1 -> SM-2 sifat bahosi (0..5)
+  var qv=score>=1?5:score>=0.75?4:score>=0.5?3:score>0?2:1;
+  st.ef=Math.max(1.3,(st.ef||2.5)+0.1-(5-qv)*(0.08+(5-qv)*0.02));
+  if(qv<3){ st.rep=0; st.int=1; }
+  else { st.rep=(st.rep||0)+1; st.int=st.rep===1?1:st.rep===2?3:Math.round((st.int||1)*st.ef); }
+  st.due=now+st.int*DAY_MS;
+  return st;
+}
+function recordMastery(db,res,testQs){
+  if(!ME||ME.role!=='student'||!res||!res.details) return;
+  db.mastery=db.mastery||{}; var m=db.mastery[ME.id]=db.mastery[ME.id]||{q:{},t:{}};
+  var now=Date.now(), sum=0, cnt=0;
+  res.details.forEach(function(d,i){
+    var q=testQs[i]; if(!q||q.id==null) return;
+    var sc=typeof d.score==='number'?d.score:(d.ok?1:0);
+    var st=m.q[String(q.id)]=m.q[String(q.id)]||{n:0,ok:0};
+    st.n++; if(sc>=1) st.ok++; st.last=now; sm2(st,sc,now);
+    sum+=sc; cnt++;
+  });
+  if(!cnt) return;
+  var tp=m.t[res.topic]=m.t[res.topic]||{n:0,avg:sum/cnt};
+  tp.avg=tp.n?tp.avg*(1-MASTERY_ALPHA)+(sum/cnt)*MASTERY_ALPHA:sum/cnt;
+  tp.n++; tp.last=now; if(testQs[0]&&testQs[0].subject) tp.subj=testQs[0].subject;
+}
+function myMastery(){ var db=getDB(); return (db.mastery&&ME&&db.mastery[ME.id])||{q:{},t:{}}; }
+function myWeakTopics(){ var t=myMastery().t; return Object.keys(t).filter(function(k){return t[k].avg<MASTERY_WEAK;}).sort(function(a,b){return t[a].avg-t[b].avg;}); }
+function myDueQuestionIds(){ var q=myMastery().q, now=Date.now(); return Object.keys(q).filter(function(id){return q[id].due&&q[id].due<=now;}); }
+function renderMasteryAdvice(r){
+  var el=document.getElementById('r-advice');
+  if(!el){ var sn=document.getElementById('r-synote'); if(!sn) return; el=document.createElement('div'); el.id='r-advice'; sn.parentNode.insertBefore(el,sn.nextSibling); }
+  if(!ME||ME.role!=='student'){ el.style.display='none'; return; }
+  var tp=myMastery().t[r.topic], wrong=(r.details||[]).filter(function(d){return !d.ok;}).length;
+  if(!tp){ el.style.display='none'; return; }
+  var pct=Math.round(tp.avg*100), weak=tp.avg<MASTERY_WEAK;
+  el.style.cssText='display:block;margin:12px 0;padding:12px 14px;border-radius:12px;text-align:left;font-size:14px;line-height:1.5;'+(weak?'background:#fff7ed;border:1px solid #fed7aa;color:#9a3412':'background:#f0fdf4;border:1px solid #bbf7d0;color:#166534');
+  var improving=weak&&r.pct>=80;
+  if(improving) el.style.cssText=el.style.cssText.replace('background:#fff7ed;border:1px solid #fed7aa;color:#9a3412','background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af');
+  el.innerHTML=(improving?'&#x1F4C8; <b>Bu safar zo\'r! Mavzuni mustahkamlash uchun yana 1-2 marta takrorlang.</b> '
+      :weak?'&#x1F4DA; <b>Bu mavzuni ko\'proq tayyorlang.</b> ':'&#x1F4AA; <b>Yaxshi o\'zlashtiryapsiz.</b> ')+
+    '"'+_qEsc(r.topic)+'" bo\'yicha o\'zlashtirishingiz: <b>'+pct+'%</b> ('+tp.n+' ta urinish).'+
+    (wrong?'<br>Xato qilingan '+wrong+' ta savol takrorlash ro\'yxatiga qo\'shildi - ular ertaga qayta so\'raladi.':'');
+}
+
 function startTest(mode){
   if(!selTopic){alert("Mavzu tanlang!");return;}
   var rawQs=getQsByTopic(selTopic);
@@ -3657,10 +3711,12 @@ async function doSubmitTest(){
   var res={id:'res'+Date.now()+'_'+Math.random().toString(36).slice(2,8),student:ME.name,cls:ME.cls,topic:selTopic,mode:S.mode,correct:correct,total:S.test.length,pct:pct,date:new Date().toLocaleDateString('uz-UZ'),time:new Date().toLocaleTimeString('uz-UZ'),details:details};
   S.lastRes=res;
   var isExam=(S.mode==='exam');
+  if(!isExam && ME && ME.role==='student'){ var pdb=getDB(); recordMastery(pdb,res,S.test); saveDB(pdb); }
   if(isExam){
     // MUHIM: avval HAR DOIM lokal (qurilmada) saqlaymiz - internet bormi
     // yoqmi, bundan qatiy nazar natija hech qachon yoqolmaydi.
     var db=getDB();
+    recordMastery(db,res,S.test);
     db.results.push(res);
     db.v=(db.v||0)+1;
     try{ localStorage.setItem(SK, JSON.stringify(db)); }catch(e){}
@@ -3729,6 +3785,7 @@ function showResult(r,syncState){
   requestAnimationFrame(tick);
   // A'lo natijada konfetti portlaydi
   if(r.pct>=70){setTimeout(function(){fireConfetti(r.pct>=90?70:40);},250);}
+  try{ renderMasteryAdvice(r); }catch(e){ console.warn('mastery advice',e); }
 }
 function fireConfetti(count){
   if(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
