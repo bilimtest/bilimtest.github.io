@@ -333,6 +333,7 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#f8fafc}
   <div class="tabs">
     <button class="tab on" onclick="switchTab('st-test',this)">&#x1F4DD; Test yechish</button>
     <button class="tab" onclick="switchTab('st-battle',this)">&#x1F3AE; O'yinlar</button>
+    <button class="tab" onclick="switchTab('st-cards',this);renderStudentDecks()">&#x1F0CF; So'z yodlash</button>
     <button class="tab" onclick="switchTab('st-results',this);loadMyHist()">&#x1F4CA; Natijalarim</button>
   </div>
 
@@ -419,6 +420,13 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#f8fafc}
     </div>
   </div>
 
+  <div class="tc" id="st-cards">
+    <div class="card">
+      <h2 style="margin:0 0 4px">&#x1F0CF; So'z yodlash</h2>
+      <p class="ts tm" style="margin:0 0 14px">Kartani bosing — tarjimasi chiqadi. Bilgan so'zlaringiz kamroq, bilmaganlaringiz ko'proq takrorlanadi.</p>
+      <div id="st-deck-list"></div>
+    </div>
+  </div>
   <div class="tc" id="st-results">
     <div class="card" id="my-hist">
       <h3 style="margin-bottom:11px">&#x1F4CA; Mening natijalarim</h3>
@@ -509,6 +517,7 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#f8fafc}
 <div class="pg" id="pg-teacher">
   <div class="tabs">
     <button class="tab on" onclick="switchTab('tc-q',this)">&#x1F4DD; Savollar</button>
+    <button class="tab" onclick="switchTab('tc-k',this);renderTeacherDecks()">&#x1F0CF; Kartochkalar</button>
     <button class="tab" onclick="switchTab('tc-r',this);loadResults()">&#x1F4CA; Natijalar</button>
     <button class="tab" onclick="switchTab('tc-c',this);loadClasses()">&#x1F3EB; Sinflar</button>
     <button class="tab" id="tc-review-tab" onclick="switchTab('tc-v',this);loadReviewQueue()">&#x1F50D; Tekshirish<span id="review-count-badge" style="display:none;background:var(--err);color:#fff;border-radius:99px;padding:1px 6px;font-size:11px;margin-left:4px"></span></button>
@@ -648,6 +657,15 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#f8fafc}
     </div>
   </div>
 
+  <div class="tc" id="tc-k">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+        <div><h2 style="margin:0">&#x1F0CF; So'z kartochkalari</h2><p class="ts tm" style="margin:4px 0 0">O'quvchilar so'zlarni karta orqali yodlaydi. Har bir karta: so'z va tarjimasi.</p></div>
+        <button class="btn bpu" onclick="openDeckEditor()">+ Yangi to'plam</button>
+      </div>
+      <div id="tc-deck-list" style="margin-top:14px"></div>
+    </div>
+  </div>
   <div class="tc" id="tc-s">
     <div class="card" id="usage-card">
       <div class="ch"><h3 style="margin:0">&#x1F4CA; Oylik imkoniyatingiz</h3><span class="bdg bpu2" id="usage-plan-badge">Bepul</span></div>
@@ -7943,6 +7961,174 @@ history.pushState(null, '', location.href);
       <button class="btn bpu blg mt12" onclick="location.reload()">&#x1F504; Qayta urinish</button>
     </div>
   </div>
+<!-- SO'Z KARTOCHKALARI (2026-10-01) -->
+<style>
+.fc-ov{position:fixed;inset:0;background:rgba(10,15,40,.6);z-index:300;display:none;align-items:flex-start;justify-content:center;padding:16px;overflow:auto}
+.fc-ov.on{display:flex}
+.fc-box{background:#fff;color:#1e2a3a;border-radius:18px;max-width:560px;width:100%;padding:20px;margin:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.fc-row{display:flex;gap:8px;margin-bottom:8px;align-items:center}
+.fc-row input{flex:1;min-width:0;padding:10px;border:1px solid #cbd5e1;border-radius:10px;font:inherit}
+.fc-card{perspective:1000px;width:100%;height:260px;cursor:pointer;margin:14px 0}
+.fc-inner{position:relative;width:100%;height:100%;transition:transform .5s;transform-style:preserve-3d}
+.fc-card.flip .fc-inner{transform:rotateY(180deg)}
+.fc-face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;text-align:center;font-size:34px;font-weight:800;box-shadow:0 10px 30px rgba(37,49,109,.18);word-break:break-word}
+.fc-front{background:linear-gradient(135deg,#25316d,#5b3ea6);color:#fff}
+.fc-back{background:#fff;color:#25316d;border:3px solid #22c55e;transform:rotateY(180deg)}
+.fc-hint{font-size:13px;font-weight:500;opacity:.75;margin-top:14px}
+.fc-btns{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.fc-btns button{border:none;border-radius:14px;padding:14px 6px;font:inherit;font-weight:700;font-size:15px;cursor:pointer;color:#fff}
+.fc-deck{display:flex;align-items:center;gap:12px;padding:14px;border:1px solid #e2e8f0;border-radius:14px;margin-bottom:10px;background:#fff}
+.fc-deck .fc-ico{width:48px;height:48px;border-radius:12px;background:#eef2ff;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0}
+.fc-bar{height:8px;background:#e2e8f0;border-radius:99px;overflow:hidden;margin-top:6px}
+.fc-bar>div{height:100%;background:#22c55e;transition:width .3s}
+</style>
+<div class="fc-ov" id="fc-edit-ov" onclick="if(event.target===this)closeDeckEditor()">
+  <div class="fc-box">
+    <h3 style="margin:0 0 12px" id="fc-edit-title">Yangi to'plam</h3>
+    <div class="fg"><label>To'plam nomi</label><input type="text" id="fc-name" placeholder="Masalan: Hayvonlar, Unit 3, Mevalar" style="width:100%;box-sizing:border-box"></div>
+    <div class="fg"><label>Fan</label><select id="fc-subj"></select></div>
+    <div style="display:flex;gap:8px;font-weight:700;font-size:13px;color:#64748b;margin:6px 0"><div style="flex:1">So'z</div><div style="flex:1">Tarjimasi</div><div style="width:36px"></div></div>
+    <div id="fc-rows"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 14px">
+      <button class="btn bg bsm" onclick="fcAddRow()">+ So'z qo'shish</button>
+      <button class="btn bg bsm" onclick="fcTogglePaste()">&#x1F4CB; Ro'yxatdan qo'yish</button>
+    </div>
+    <div id="fc-paste-box" style="display:none;margin-bottom:12px">
+      <div class="ts tm" style="margin-bottom:6px">Har qatorga bitta so'z va tarjimasi. Masalan: <b>apple - olma</b></div>
+      <textarea id="fc-paste" rows="5" style="width:100%;box-sizing:border-box;padding:10px;border-radius:10px;border:1px solid #cbd5e1;font:inherit" placeholder="apple - olma&#10;book - kitob&#10;cat - mushuk"></textarea>
+      <button class="btn bs bsm mt8" onclick="fcApplyPaste()">Qo'shish</button>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn bg bsm" onclick="closeDeckEditor()">Bekor</button>
+      <button class="btn bpu" onclick="saveDeck()">&#x1F4BE; Saqlash</button>
+    </div>
+  </div>
+</div>
+<div class="fc-ov" id="fc-study-ov">
+  <div class="fc-box" style="max-width:480px">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <b id="fc-study-name"></b>
+      <button class="btn bg bsm" onclick="closeStudy()">&#x2715;</button>
+    </div>
+    <div class="fc-bar"><div id="fc-study-prog" style="width:0"></div></div>
+    <div class="ts tm" id="fc-study-count" style="margin-top:4px"></div>
+    <div id="fc-study-body"></div>
+  </div>
+</div>
+<script>
+var _fcEditId=null, _fcRows=[], FC={};
+function fcDecks(){ return getDB().decks||[]; }
+function fcDeckVisible(d){
+  if(!ME) return false; if(ME.role!=='student') return true;
+  var db=getDB(), t=(db.users||[]).find(function(u){return u.id===d.teacherId;}); if(!t) return true;
+  var ms=normSchool(ME.maktab), ts=normSchool(t.maktab);
+  var schoolOk=!(ms&&ts&&ms!==ts), classOk=!(t.teachClasses&&t.teachClasses.length)||(ME.cls&&t.teachClasses.indexOf(ME.cls)>=0);
+  return schoolOk&&classOk;
+}
+function fcCardState(deckId,i){ var m=myMastery(); return (m.c||{})[deckId+':'+i]; }
+function fcStats(d){ var now=Date.now(), learned=0, due=0, fresh=0;
+  (d.cards||[]).forEach(function(c,i){ var st=fcCardState(d.id,i); if(!st) fresh++; else { if(st.rep>=1) learned++; if(st.due<=now) due++; } });
+  return {learned:learned,due:due,fresh:fresh,total:(d.cards||[]).length}; }
+function renderStudentDecks(){
+  var el=document.getElementById('st-deck-list'); if(!el) return;
+  var ds=fcDecks().filter(fcDeckVisible);
+  if(!ds.length){ el.innerHTML='<div class="alt ai">Hozircha so\'z to\'plamlari yo\'q. Ustozingiz qo\'shganda shu yerda paydo bo\'ladi.</div>'; return; }
+  el.innerHTML=ds.map(function(d){ var s=fcStats(d), pct=s.total?Math.round(s.learned/s.total*100):0, todo=s.due+Math.min(s.fresh,10);
+    return '<div class="fc-deck"><div class="fc-ico">&#x1F0CF;</div><div style="flex:1;min-width:0"><div style="font-weight:800">'+_qEsc(d.title)+'</div>'+
+      '<div class="ts tm">'+s.total+' ta so\'z &middot; yodlangan: '+s.learned+'</div><div class="fc-bar"><div style="width:'+pct+'%"></div></div></div>'+
+      '<button class="btn bpu" onclick="startStudy(\''+d.id+'\')">'+(todo?'Boshlash ('+todo+')':'Takrorlash')+'</button></div>'; }).join('');
+}
+function startStudy(id){
+  var d=fcDecks().find(function(x){return x.id===id;}); if(!d) return;
+  var now=Date.now(), due=[], fresh=[];
+  (d.cards||[]).forEach(function(c,i){ var st=fcCardState(d.id,i); if(!st) fresh.push(i); else if(st.due<=now) due.push(i); });
+  var q=shuf(due).concat(fresh.slice(0,10));
+  if(!q.length) q=shuf((d.cards||[]).map(function(_,i){return i;})).slice(0,10); // hammasi yodlangan - erkin takrorlash
+  FC={deck:d,queue:q,done:0,total:q.length,known:0};
+  document.getElementById('fc-study-name').textContent=d.title;
+  document.getElementById('fc-study-ov').classList.add('on');
+  fcShow();
+}
+function fcSpeak(i){ try{ var c=FC.deck.cards[i]; var u=new SpeechSynthesisUtterance(c.f); var sj=FC.deck.subject; u.lang=sj==='rus'?'ru-RU':'en-US'; u.rate=.85; speechSynthesis.cancel(); speechSynthesis.speak(u);}catch(e){} }
+function fcShow(){
+  var body=document.getElementById('fc-study-body');
+  document.getElementById('fc-study-prog').style.width=(FC.total?Math.round(FC.done/FC.total*100):0)+'%';
+  document.getElementById('fc-study-count').textContent=FC.done+' / '+FC.total;
+  if(!FC.queue.length){
+    body.innerHTML='<div style="text-align:center;padding:30px 10px"><div style="font-size:60px">&#x1F389;</div><h2>Barakalla!</h2><p class="tm">'+FC.total+' ta so\'zdan '+FC.known+' tasini darhol bildingiz.</p><button class="btn bpu" onclick="closeStudy()">Tayyor</button></div>';
+    return;
+  }
+  var i=FC.queue[0], c=FC.deck.cards[i];
+  body.innerHTML='<div class="fc-card" id="fc-card" onclick="fcFlip()"><div class="fc-inner">'+
+    '<div class="fc-face fc-front">'+_qEsc(c.f)+'<div class="fc-hint">Kartani bosing</div></div>'+
+    '<div class="fc-face fc-back">'+_qEsc(c.b)+'<div class="fc-hint" style="color:#64748b">'+_qEsc(c.f)+'</div></div></div></div>'+
+    '<div style="text-align:center;margin-bottom:12px"><button class="btn bg bsm" onclick="fcSpeak('+i+')">&#x1F50A; Eshitish</button></div>'+
+    '<div class="fc-btns" id="fc-btns" style="visibility:hidden">'+
+      '<button style="background:#ef4444" onclick="fcAnswer(0)">&#x1F61F;<br>Bilmadim</button>'+
+      '<button style="background:#f59e0b" onclick="fcAnswer(0.6)">&#x1F610;<br>Qiynaldim</button>'+
+      '<button style="background:#22c55e" onclick="fcAnswer(1)">&#x1F60A;<br>Bildim</button></div>';
+}
+function fcFlip(){ document.getElementById('fc-card').classList.toggle('flip'); document.getElementById('fc-btns').style.visibility='visible'; }
+function fcAnswer(score){
+  var i=FC.queue.shift();
+  if(ME&&ME.role==='student'){
+    var db=getDB(); db.mastery=db.mastery||{}; var m=db.mastery[ME.id]=db.mastery[ME.id]||{q:{},t:{}}; m.c=m.c||{};
+    var key=FC.deck.id+':'+i, st=m.c[key]=m.c[key]||{n:0,ok:0}; st.n++; if(score>=1) st.ok++; st.last=Date.now(); sm2(st,score,Date.now());
+    saveDB(db);
+  }
+  if(score<0.5){ FC.queue.push(i); } else { FC.done++; if(score>=1&&!FC['seen'+i]) FC.known++; }
+  FC['seen'+i]=1;
+  fcShow();
+}
+function closeStudy(){ document.getElementById('fc-study-ov').classList.remove('on'); try{speechSynthesis.cancel();}catch(e){} renderStudentDecks(); }
+// --- Ustoz tomoni ---
+function renderTeacherDecks(){
+  var el=document.getElementById('tc-deck-list'); if(!el) return;
+  var ds=fcDecks().filter(function(d){return ME&&(ME.role==='admin'||d.teacherId===ME.id);});
+  el.innerHTML=ds.length?ds.map(function(d){ return '<div class="fc-deck"><div class="fc-ico">&#x1F0CF;</div><div style="flex:1;min-width:0"><div style="font-weight:800">'+_qEsc(d.title)+'</div><div class="ts tm">'+(d.cards||[]).length+' ta so\'z &middot; '+subjName(d.subject)+'</div></div>'+
+      '<button class="btn bs bsm" onclick="openDeckEditor(\''+d.id+'\')">&#x270F;&#xFE0F;</button><button class="btn bd bsm" onclick="deleteDeck(\''+d.id+'\')">&#x1F5D1;&#xFE0F;</button></div>'; }).join('')
+    :'<div class="alt ai">Hali to\'plam yo\'q. "+ Yangi to\'plam" tugmasini bosing.</div>';
+}
+function openDeckEditor(id){
+  var d=id?fcDecks().find(function(x){return x.id===id;}):null; _fcEditId=d?d.id:null;
+  document.getElementById('fc-edit-title').textContent=d?'To\'plamni tahrirlash':'Yangi to\'plam';
+  document.getElementById('fc-name').value=d?d.title:'';
+  var ss=document.getElementById('fc-subj'); ss.innerHTML=SUBJECTS.map(function(s){return '<option value="'+s.v+'">'+s.n+'</option>';}).join('');
+  ss.value=d?d.subject:((ME&&ME.subject)||'eng'); if(!ss.value) ss.selectedIndex=0;
+  _fcRows=d?(d.cards||[]).map(function(c){return {f:c.f,b:c.b};}):[{f:'',b:''},{f:'',b:''},{f:'',b:''}];
+  document.getElementById('fc-paste-box').style.display='none'; document.getElementById('fc-paste').value='';
+  fcRenderRows(); document.getElementById('fc-edit-ov').classList.add('on');
+}
+function closeDeckEditor(){ document.getElementById('fc-edit-ov').classList.remove('on'); }
+function fcRenderRows(){
+  document.getElementById('fc-rows').innerHTML=_fcRows.map(function(r,i){ return '<div class="fc-row"><input value="'+_qEsc(r.f)+'" placeholder="apple" oninput="_fcRows['+i+'].f=this.value"><input value="'+_qEsc(r.b)+'" placeholder="olma" oninput="_fcRows['+i+'].b=this.value"><button class="btn bg bsm" style="width:36px;padding:6px 0" onclick="_fcRows.splice('+i+',1);fcRenderRows()">&#x2715;</button></div>'; }).join('');
+}
+function fcAddRow(){ _fcRows.push({f:'',b:''}); fcRenderRows(); var ins=document.querySelectorAll('#fc-rows input'); if(ins.length>1) ins[ins.length-2].focus(); }
+function fcTogglePaste(){ var b=document.getElementById('fc-paste-box'); b.style.display=b.style.display==='none'?'block':'none'; }
+function fcApplyPaste(){
+  var add=[];
+  document.getElementById('fc-paste').value.split(/\r?\n/).forEach(function(l){
+    l=l.trim(); if(!l) return;
+    var k=l.search(/\t|\s[-–—=:]\s|[-–—=:]/); if(k<1) return;
+    var sep=l.slice(k).match(/^(\t|\s[-–—=:]\s|[-–—=:])/)[0];
+    var f=l.slice(0,k).trim(), b=l.slice(k+sep.length).trim(); if(f&&b) add.push({f:f,b:b});
+  });
+  if(!add.length){ alert("Ro'yxatda so'z topilmadi. Har qatorga \"apple - olma\" ko'rinishida yozing."); return; }
+  _fcRows=_fcRows.filter(function(r){return String(r.f).trim()||String(r.b).trim();}).concat(add);
+  document.getElementById('fc-paste').value=''; document.getElementById('fc-paste-box').style.display='none'; fcRenderRows();
+}
+function saveDeck(){
+  var title=document.getElementById('fc-name').value.trim(); if(!title){ alert("To'plam nomini yozing"); return; }
+  var cards=_fcRows.map(function(r){return {f:String(r.f).trim(),b:String(r.b).trim()};}).filter(function(r){return r.f&&r.b;});
+  if(cards.length<2){ alert("Kamida 2 ta so'z va tarjimasini yozing"); return; }
+  var db=getDB(); db.decks=db.decks||[];
+  var d=_fcEditId?db.decks.find(function(x){return x.id===_fcEditId;}):null;
+  if(d){ d.title=title; d.subject=document.getElementById('fc-subj').value; d.cards=cards; }
+  else db.decks.push({id:'dk'+Date.now(),title:title,subject:document.getElementById('fc-subj').value,teacherId:ME.id,cards:cards,created:Date.now()});
+  saveDB(db); closeDeckEditor(); renderTeacherDecks();
+}
+function deleteDeck(id){ if(!confirm("Bu to'plamni o'chirasizmi?")) return; var db=getDB(); db.decks=(db.decks||[]).filter(function(d){return d.id!==id;}); saveDB(db); renderTeacherDecks(); }
+</script>
 <!-- MUAMMO YOZISH (2026-10-01): xabar shu saytning serveri orqali admin Telegram'i va emailiga ketadi -->
 <style>
 #rep-fab{position:fixed;left:14px;bottom:14px;z-index:150;background:#fff;color:var(--pri,#25316d);border:1px solid rgba(37,49,109,.18);border-radius:999px;padding:8px 14px;font-size:13px;font-weight:700;box-shadow:0 4px 16px rgba(0,0,0,.12);cursor:pointer}
