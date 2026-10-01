@@ -167,6 +167,12 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#f8fafc}
 .ms-tn{flex:0 0 42%;min-width:0;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ms-bar{flex:1;height:10px;border-radius:6px;background:#eef2f7;overflow:hidden}.ms-bar>div{height:100%;border-radius:6px}
 .ms-p{flex:0 0 40px;text-align:right;font-weight:800;font-size:13px}
+#pg-topic.no-subj .tabs,#pg-topic.no-subj .tc.on{display:none}
+.sg-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.sg-card{display:flex;flex-direction:column;align-items:center;gap:6px;padding:20px 8px;border:2px solid var(--bdr);border-radius:14px;background:#fff;cursor:pointer;font:inherit;font-size:16px;color:var(--txt)}
+.sg-card:hover{border-color:var(--pri);background:#eef1ff}
+.sg-bar{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 10px;padding:10px 14px;border-radius:14px;background:rgba(255,255,255,.92);flex-wrap:wrap}
+.sg-cur{font-weight:800;font-size:17px}
 .symb{padding:5px 8px;margin:2px;border:1px solid var(--bdr);border-radius:6px;cursor:pointer;font-size:14px;background:#fff;transition:all .15s}
 .symb:hover{border-color:var(--pri);background:#eef1f9}
 .sarea{background:#f8fafc;border:1px solid var(--bdr);border-radius:9px;padding:9px;max-height:150px;overflow-y:auto;margin-top:7px}
@@ -355,6 +361,8 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#f8fafc}
     </div>
   </div>
 
+  <div id="subj-gate" style="display:none"></div>
+  <div id="subj-bar" class="sg-bar" style="display:none"></div>
   <div class="tabs">
     <button class="tab on" onclick="switchTab('st-test',this)">&#x1F4DD; Test yechish</button>
     <button class="tab" onclick="switchTab('st-battle',this)">&#x1F3AE; O'yinlar</button>
@@ -366,7 +374,6 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#f8fafc}
   <div class="tc on" id="st-test">
     <div class="card">
       <div class="fg">
-        <label>Fan</label>
         <div id="subj-filter" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px"></div>
         <label>Qaysi mavzuni ishlaysiz?</label>
         <div class="tgrid" id="topic-grid"></div>
@@ -1942,7 +1949,7 @@ var SUBJECTS=[
   {v:'rus',n:'Rus tili'},{v:'info',n:'Informatika'},{v:'other',n:'Boshqa fan'}
 ];
 function subjName(v){var s=SUBJECTS.find(function(x){return x.v===v;});return s?s.n:v;}
-var SUBJECT_EMOJI={math:'&#x1F4D0;',phys:'&#x269B;&#xFE0F;',chem:'&#x1F9EA;',bio:'&#x1F9EC;',hist:'&#x1F4DC;',geo:'&#x1F30D;',lit:'&#x1F4D6;',lang:'&#x270D;&#xFE0F;',eng:'&#x1F1EC;&#x1F1E7;',rus:'&#x1F1F7;&#x1F1FA;',info:'&#x1F4BB;',other:'&#x1F4DA;'};
+var SUBJECT_EMOJI={math:'&#x1F4D0;',phys:'&#x269B;&#xFE0F;',chem:'&#x1F9EA;',bio:'&#x1F9EC;',hist:'&#x1F4DC;',geo:'&#x1F30D;',lit:'&#x1F4D6;',lang:'&#x270D;&#xFE0F;',eng:'&#x1F524;',rus:'&#x1F4DD;',info:'&#x1F4BB;',other:'&#x1F4DA;'};
 function subjEmoji(v){return SUBJECT_EMOJI[v]||'&#x1F4DA;';}
 
 // ── FANGA QARAB DIZAYN (RANG) O'ZGARISHI ───────────────────────────────────
@@ -2900,7 +2907,7 @@ function afterLogin(){
   renderNotifBell();
   if(ME.role==='admin'){resetTheme();showPg('pg-admin');initAdmin();}
   else if(ME.role==='teacher'){applySubjectTheme(ME.subject);showPg('pg-teacher');renderQT();}
-  else{resetTheme();selTopic=null;_curFolder=null;showPg('pg-topic');renderTopics();loadMyHist();var bjb=document.getElementById('battle-join-box');if(bjb)bjb.style.display='block';}
+  else{resetTheme();selTopic=null;_curFolder=null;_curSubjFilter=null;showPg('pg-topic');renderTopics();if(_curSubjFilter)applySubjectTheme(_curSubjFilter);loadMyHist();var bjb=document.getElementById('battle-join-box');if(bjb)bjb.style.display='block';}
 }
 var _logoutWarned = false;
 function safeLogout(){
@@ -2947,38 +2954,14 @@ function renderTopics(){
   document.getElementById('tp-sub').textContent='Qaysi mavzuni ishlaysiz?';
   selTopic=null;document.getElementById('mode-card').style.display='none';
   var allQs=getAllQs();
-  var subjSet=[];
-  allQs.forEach(function(q){if(q.subject&&subjSet.indexOf(q.subject)<0)subjSet.push(q.subject);});
   var filterHost=document.getElementById('subj-filter');
   var grid=document.getElementById('topic-grid');
-
-  if(subjSet.length<=1){
-    // Faqat bitta fan bor - tanlash shart emas, avtomatik shu fan tanlangan
-    // hisoblanadi.
-    filterHost.innerHTML='';
-    _curSubjFilter=subjSet[0]||'';
-  } else if(!_curSubjFilter){
-    // MUHIM (2026-08-30): endi bir nechta fan bo'lsa, mavzular RO'YXATI
-    // birinchi navbatda umuman KO'RSATILMAYDI - avval FAN tanlash MAJBURIY.
-    // Sabab: ustozlar endi ro'yxatdan o'tishda o'z fanini tanlaydi, va
-    // turli fanlardan bir xil nomli yoki oxshash mavzular aralashib,
-    // o'quvchi uchun qaysi fan ekanini ajratish qiyin bo'lib qolgan edi.
-    // "Barchasi" (hammasini birga korish) variant ENDI YO'Q - aynan shu
-    // aralashib ketishning oldini olish uchun.
-    filterHost.innerHTML='';
-    document.getElementById('tp-sub').textContent="Avval fanni tanlang";
-    grid.innerHTML=subjSet.map(function(s){
-      return '<div class="tbtn" style="padding:22px 12px" onclick="filterBySubj(\''+s+'\')"><div style="font-size:28px;margin-bottom:6px">'+subjEmoji(s)+'</div><div style="font-weight:700">'+subjName(s)+'</div></div>';
-    }).join('');
+  filterHost.innerHTML='';
+  initStudentSubject();
+  if(!_curSubjFilter){
+    if(document.getElementById('pg-topic').classList.contains('no-subj')) return;
+    grid.innerHTML='<div class="alt ai">Hozircha sinfingizga ustoz biriktirilmagan. Ustozingiz ro\'yxatdan o\'tib, savol qo\'shganda shu yerda chiqadi.</div>';
     return;
-  } else {
-    // Fan allaqachon tanlangan - kichik "fanni almashtirish" tugmasi
-    // korsatiladi (pastda), "Barchasi" esa YO'Q.
-    var pills=subjSet.map(function(s){
-      return '<button class="tab'+(_curSubjFilter===s?' on':'')+'" style="flex:none;padding:6px 14px" onclick="filterBySubj(\''+s+'\')">'+subjName(s)+'</button>';
-    });
-    pills.push('<button class="tab" style="flex:none;padding:6px 14px;background:#f1f5f9" onclick="filterBySubj(null)">&#x1F504; Fanni almashtirish</button>');
-    filterHost.innerHTML=pills.join('');
   }
   var topics=getTopics().filter(function(t){
     return allQs.some(function(q){return q.topic===t&&q.subject===_curSubjFilter;});
@@ -3028,9 +3011,61 @@ function renderTopics(){
     var tEsc=t.replace(/'/g,"\\'");
     return '<div class="tbtn" onclick="selectTopicByName(\''+tEsc+'\',this)"><div style="font-weight:700">'+t+'</div><div style="font-size:11px;color:var(--mut);margin-top:3px">'+Math.min(ask,cnt)+' ta savol</div></div>';
   }).join('');
-  grid.innerHTML=html||'<p class="ts tm">Mavzular yo\'q</p>';
+  grid.innerHTML=html||'<div class="alt ai">Bu fandan hali test yo\'q. Ustozingiz qo\'shganda shu yerda chiqadi.</div>';
 }
-function filterBySubj(s){_curSubjFilter=s;_curFolder=null;renderTopics();applySubjectTheme(s);}
+// ═══════════════════════════════════════════════════════════════════════
+// O'QUVCHI FANI (2026-10-02): o'quvchi o'z sinfiga dars beradigan ustozlar
+// fanlaridan birini tanlaydi - keyin testlar, kartochkalar, o'yinlar va
+// statistika faqat shu fan bo'yicha ishlaydi.
+// ═══════════════════════════════════════════════════════════════════════
+function _teacherTeachesMe(t){
+  if(!t||t.role!=='teacher'||t.approved===false||!ME) return false;
+  var ms=normSchool(ME.maktab), ts=normSchool(t.maktab);
+  var schoolOk=!(ms&&ts&&ms!==ts), classOk=!(t.teachClasses&&t.teachClasses.length)||(ME.cls&&t.teachClasses.indexOf(ME.cls)>=0);
+  return schoolOk&&classOk;
+}
+function myStudentSubjects(){
+  var set={}, db=getDB();
+  (db.users||[]).forEach(function(u){ if(u.subject&&_teacherTeachesMe(u)) set[u.subject]=1; });
+  getAllQs().forEach(function(q){ if(q.subject) set[q.subject]=1; }); // hamkorlik / eski savollar
+  fcDecks().filter(function(d){return fcDeckVisible(d,true);}).forEach(function(d){ if(d.subject) set[d.subject]=1; });
+  return SUBJECTS.map(function(s){return s.v;}).filter(function(v){return set[v];});
+}
+function _subjKey(){ return 'bt_subj_'+(ME&&ME.id); }
+function initStudentSubject(){
+  var list=myStudentSubjects(), saved=null;
+  try{ saved=localStorage.getItem(_subjKey()); }catch(e){}
+  if(_curSubjFilter&&list.indexOf(_curSubjFilter)<0) _curSubjFilter=null;
+  if(!_curSubjFilter&&saved&&list.indexOf(saved)>=0) _curSubjFilter=saved;
+  if(!_curSubjFilter&&list.length===1) _curSubjFilter=list[0];
+  renderSubjGate(list);
+}
+function renderSubjGate(list){
+  list=list||myStudentSubjects();
+  var pg=document.getElementById('pg-topic'), gate=document.getElementById('subj-gate'), bar=document.getElementById('subj-bar');
+  var need=!_curSubjFilter&&list.length>1;
+  pg.classList.toggle('no-subj',need);
+  gate.style.display=need?'':'none';
+  if(need){
+    gate.innerHTML='<div class="card"><h2 style="margin:0 0 4px">Qaysi fanni o\'qiymiz?</h2><p class="ts tm" style="margin:0 0 14px">Fanni tanlang — testlar, kartochkalar va o\'yinlar shu fan bo\'yicha chiqadi.</p>'+
+      '<div class="sg-grid">'+list.map(function(s){return '<button class="sg-card" onclick="setStudentSubject(\''+s+'\')"><span style="font-size:34px">'+subjEmoji(s)+'</span><b>'+_qEsc(subjName(s))+'</b></button>';}).join('')+'</div></div>';
+  }
+  bar.style.display=(_curSubjFilter&&!need)?'':'none';
+  if(_curSubjFilter) bar.innerHTML='<span class="sg-cur">'+subjEmoji(_curSubjFilter)+' '+_qEsc(subjName(_curSubjFilter))+'</span>'+
+    (list.length>1?'<button class="btn bg bsm" onclick="setStudentSubject(null)">&#x1F504; Fanni almashtirish</button>':'');
+}
+function setStudentSubject(s){
+  _curSubjFilter=s; _curFolder=null;
+  try{ if(s) localStorage.setItem(_subjKey(),s); else localStorage.removeItem(_subjKey()); }catch(e){}
+  applySubjectTheme(s);
+  renderTopics();
+  try{ updateCardsTab(); updateStatsTab(); }catch(e){}
+  var g1=document.getElementById('games-hub'), g2=document.getElementById('games-sinfjangi'); if(g1) g1.style.display='none'; if(g2) g2.style.display='none';
+  var on=document.querySelector('#pg-topic .tc.on');
+  if(on&&on.id==='st-cards') renderStudentDecks(); if(on&&on.id==='st-stats') renderMyStats();
+}
+function filterBySubj(s){ setStudentSubject(s); }
+
 function selectTopicByName(t,el){
   selTopic=t;
   document.querySelectorAll('.tbtn').forEach(function(b){b.classList.remove('on');});
@@ -3273,17 +3308,20 @@ function updateStatsTab(){
 function _pctColor(p){ return p>=80?'#16a34a':p>=60?'#d97706':'#dc2626'; }
 function renderMyStats(){
   var el=document.getElementById('st-stats-body'); if(!el) return;
-  var m=myMastery(), byId=_myQsById();
+  var m=myMastery(), byId=_myQsById(), cs=_curSubjFilter;
+  if(cs) Object.keys(byId).forEach(function(k){ if(byId[k].subject&&byId[k].subject!==cs) delete byId[k]; });
   var due=myDueQuestionIds().filter(function(id){return byId[id];}), wrong=myMistakeIds().filter(function(id){return byId[id];});
-  var learned=Object.keys(m.c||{}).filter(function(k){return m.c[k].rep>=1;}).length, streak=myStreak();
+  var deckSubj={}; fcDecks().forEach(function(d){deckSubj[d.id]=d.subject;});
+  var learned=Object.keys(m.c||{}).filter(function(k){return m.c[k].rep>=1&&(!cs||!deckSubj[k.split(':')[0]]||deckSubj[k.split(':')[0]]===cs);}).length, streak=myStreak();
+  var doneQ=Object.keys(m.q||{}).filter(function(id){return byId[id];}).length;
   var tile=function(ic,num,txt){ return '<div class="ms-tile"><div style="font-size:24px">'+ic+'</div><div class="ms-num">'+num+'</div><div class="ts tm">'+txt+'</div></div>'; };
-  var h='<div class="ms-tiles">'+tile('&#x1F525;',streak,'kun ketma-ket')+tile('&#x1F0CF;',learned,'karta yodlandi')+tile('&#x2705;',Object.keys(m.q||{}).length,'savol ishlandi')+'</div>';
+  var h='<div class="ms-tiles">'+tile('&#x1F525;',streak,'kun ketma-ket')+tile('&#x1F0CF;',learned,'karta yodlandi')+tile('&#x2705;',doneQ,'savol ishlandi')+'</div>';
   h+='<div class="ms-acts">'+
     '<button class="ms-act" style="background:linear-gradient(135deg,#4f46e5,#7c3aed)" '+(due.length?'':'disabled')+' onclick="startReviewTest(\'due\')"><span style="font-size:28px">&#x1F501;</span><b>Bugungi takrorlash</b><small>'+(due.length?due.length+' ta savol vaqti keldi':'Bugun takrorlash yo\'q — barakalla!')+'</small></button>'+
     '<button class="ms-act" style="background:linear-gradient(135deg,#f97316,#dc2626)" '+(wrong.length?'':'disabled')+' onclick="startReviewTest(\'wrong\')"><span style="font-size:28px">&#x1F4DD;</span><b>Xatolarim</b><small>'+(wrong.length?wrong.length+' ta savolda xato qilgansiz':'Xato qilingan savol yo\'q')+'</small></button></div>';
   // fanlar va mavzular
   var t=m.t||{}, subj={};
-  Object.keys(t).forEach(function(k){ var s=t[k].subj||'other'; (subj[s]=subj[s]||[]).push(k); });
+  Object.keys(t).forEach(function(k){ var s=t[k].subj||'other'; if(cs&&s!==cs) return; (subj[s]=subj[s]||[]).push(k); });
   var subs=Object.keys(subj);
   if(subs.length){
     h+='<div style="font-weight:800;margin:18px 0 4px">Mavzular bo\'yicha o\'zlashtirish</div><div class="ts tm" style="margin-bottom:8px">&#x1F7E2; yaxshi &nbsp; &#x1F7E1; o\'rtacha &nbsp; &#x1F534; ko\'proq tayyorlaning</div>';
@@ -3299,7 +3337,8 @@ function renderMyStats(){
   el.innerHTML=h;
 }
 function startReviewTest(kind){
-  var byId=_myQsById(), ids=kind==='due'?myDueQuestionIds():myMistakeIds();
+  var byId=_myQsById(); if(_curSubjFilter) Object.keys(byId).forEach(function(k){ if(byId[k].subject&&byId[k].subject!==_curSubjFilter) delete byId[k]; });
+  var ids=kind==='due'?myDueQuestionIds():myMistakeIds();
   var qs=ids.map(function(id){return byId[id];}).filter(Boolean);
   if(!qs.length){ alert("Hozircha savol yo'q."); return; }
   qs=shuf(qs).slice(0,20);
@@ -7636,6 +7675,7 @@ function closeDuelModal(){
   DL={mode:'',subject:'',level:'',topic:'',questions:[],idx:0,answers:[],startTs:0,matchId:null,queueId:null,isP1:false,chan:null,timerIv:null,botScore:0,botDone:false,myDone:false};
 }
 function renderDuelSubjectPick(){
+  if(ME&&ME.role==='student'&&_curSubjFilter){ DL.subject=_curSubjFilter; renderDuelTopicPick(); return; }
   var allQs=getAllQs();
   var subjSet=[];
   allQs.forEach(function(q){if(q.subject&&subjSet.indexOf(q.subject)<0)subjSet.push(q.subject);});
@@ -7677,7 +7717,7 @@ function renderDuelTopicPick(){
   folderNames.sort(function(a,b){return a.localeCompare(b,'uz');});
   var unfoldered=topics.filter(function(t){return !folderOf[t];});
 
-  var html='<button class="btn bg bsm" onclick="renderDuelSubjectPick()" style="margin-bottom:10px">&#8592; Orqaga</button>'+
+  var html=(ME&&ME.role==='student'&&_curSubjFilter?'':'<button class="btn bg bsm" onclick="renderDuelSubjectPick()" style="margin-bottom:10px">&#8592; Orqaga</button>')+
     '<p class="ts tm" style="margin-bottom:8px">Mavzuni tanlang:</p>'+
     '<div style="display:flex;flex-direction:column;gap:5px;max-height:360px;overflow-y:auto">';
   folderNames.forEach(function(fn){
@@ -8293,8 +8333,9 @@ function fcApplySubj(){
   fcRenderRows();
 }
 function fcDecks(){ return getDB().decks||[]; }
-function fcDeckVisible(d){
+function fcDeckVisible(d,anySubj){
   if(!ME) return false; if(ME.role!=='student') return true;
+  if(!anySubj&&_curSubjFilter&&d.subject&&d.subject!==_curSubjFilter) return false;
   var db=getDB(), t=(db.users||[]).find(function(u){return u.id===d.teacherId;}); if(!t) return true;
   var ms=normSchool(ME.maktab), ts=normSchool(t.maktab);
   var schoolOk=!(ms&&ts&&ms!==ts), classOk=!(t.teachClasses&&t.teachClasses.length)||(ME.cls&&t.teachClasses.indexOf(ME.cls)>=0);
