@@ -3436,13 +3436,14 @@ async function enGenerate(){
   var text=document.getElementById('en-text').value.trim(), n=parseInt(document.getElementById('en-n').value)||5, msg=document.getElementById('en-msg');
   if(EN.kind==='reading'&&text.length<40){ msg.innerHTML='<div class="alt ar">Matn juda qisqa — kamida 2-3 gap joylang.</div>'; return; }
   if(!text){ msg.innerHTML='<div class="alt ar">Grammatika mavzusini yozing.</div>'; return; }
-  msg.innerHTML='<div class="alt ai">&#x23F3; AI savollar tuzmoqda... (10-30 soniya)</div>';
+  msg.innerHTML='<div class="alt ai">&#x23F3; AI savollar tuzmoqda va har birini tekshirmoqda... (20-60 soniya)</div>';
   try{
     var r=await fetchVM(pickServer(),'/eng_generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind:EN.kind,level:EN.level,text:text,n:n})});
     var j=await r.json();
     if(!r.ok||j.error){ msg.innerHTML='<div class="alt ar">&#x274C; '+_qEsc(j.error||('Server xatosi '+r.status))+'</div>'; return; }
     EN.qs=EN.qs.concat(j.questions||[]);
-    msg.innerHTML=(j.questions||[]).length?'<div class="alt as">&#x2705; '+j.questions.length+' ta savol tayyor. Keraksizini ✕ bilan olib tashlang, keyin saqlang.</div>':'<div class="alt ar">AI savol tuza olmadi, qayta urinib ko\'ring.</div>';
+    var rj=j.rejected>0?' '+j.rejected+' ta shubhali savol tekshiruvdan o\'tmadi va olib tashlandi.':'';
+    msg.innerHTML=(j.questions||[]).length?'<div class="alt as">&#x2705; '+j.questions.length+' ta tekshirilgan savol tayyor.'+rj+(j.questions.length<n?' Yana kerak bo\'lsa, tugmani qayta bosing.':'')+'</div>':'<div class="alt ar">Ishonchli savol chiqmadi'+(EN.kind==='reading'?' — matn uzunroq bo\'lsa yaxshi natija beradi':'')+'. Qayta urinib ko\'ring.</div>';
     enRender();
   }catch(e){ msg.innerHTML='<div class="alt ar">&#x274C; Server bilan bog\'lanib bo\'lmadi.</div>'; }
 }
