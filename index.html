@@ -333,7 +333,7 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#f8fafc}
   <div class="tabs">
     <button class="tab on" onclick="switchTab('st-test',this)">&#x1F4DD; Test yechish</button>
     <button class="tab" onclick="switchTab('st-battle',this)">&#x1F3AE; O'yinlar</button>
-    <button class="tab" onclick="switchTab('st-cards',this);renderStudentDecks()">&#x1F0CF; Yodlash</button>
+    <button class="tab" id="st-cards-tab" style="display:none" onclick="switchTab('st-cards',this);renderStudentDecks()">&#x1F0CF; Yodlash</button>
     <button class="tab" onclick="switchTab('st-results',this);loadMyHist()">&#x1F4CA; Natijalarim</button>
   </div>
 
@@ -1170,7 +1170,7 @@ function startDbPolling(){
         if(mergeLocalAdds(remote,local)){ remote.v=(remote.v||0)+1; localStorage.setItem(SK, JSON.stringify(remote)); sbPush(remote); }
         else localStorage.setItem(SK, JSON.stringify(remote));
         rememberSyncedIds(remote);
-        renderNotifBell();
+        renderNotifBell(); try{ updateCardsTab(); }catch(e){}
         // Ustoz "Natijalar" tabida bolsa - jadval avtomatik yangilanadi
         if(ME && ME.role==='teacher' && document.getElementById('tc-r') && document.getElementById('tc-r').classList.contains('on')) { loadResults(); }
         // Admin "Natijalar" tabida bolsa - xuddi shunday
@@ -2827,6 +2827,7 @@ async function doRegister(){
   ME=nu;afterLogin();
 }
 function afterLogin(){
+  setTimeout(function(){ try{ updateCardsTab(); }catch(e){} },0);
   try{ sessionStorage.setItem('et_sess', JSON.stringify({id:ME.id, t:_authToken||null})); }catch(e){}
   // Agar oldingi sessiyada test yarim qolgan bo'lsa (masalan brauzer yopilgan,
   // blur eventi ishlamagan) - kirish paytida holat to'liq tozalansin.
@@ -8085,12 +8086,21 @@ function fcCardState(deckId,i){ var m=myMastery(); return (m.c||{})[deckId+':'+i
 function fcStats(d){ var now=Date.now(), learned=0, due=0, fresh=0;
   (d.cards||[]).forEach(function(c,i){ var st=fcCardState(d.id,i); if(!st) fresh++; else { if(st.rep>=1) learned++; if(st.due<=now) due++; } });
   return {learned:learned,due:due,fresh:fresh,total:(d.cards||[]).length}; }
+// "Yodlash" tabi faqat o'quvchiga mos to'plam bo'lsa ko'rinadi (bo'sh tab chalg'itadi)
+function updateCardsTab(){
+  var b=document.getElementById('st-cards-tab'); if(!b) return;
+  var has=!!(ME&&ME.role==='student'&&fcDecks().filter(fcDeckVisible).length);
+  b.style.display=has?'':'none';
+  if(!has&&b.classList.contains('on')){ var t=document.querySelector('#pg-topic .tab'); if(t) t.click(); }
+}
 function renderStudentDecks(){
   var el=document.getElementById('st-deck-list'); if(!el) return;
-  var ds=fcDecks().filter(fcDeckVisible);
+  var ds=fcDecks().filter(fcDeckVisible).sort(function(a,b){return String(subjName(a.subject)).localeCompare(subjName(b.subject));});
   if(!ds.length){ el.innerHTML='<div class="alt ai">Hozircha kartochka to\'plamlari yo\'q. Ustozingiz qo\'shganda shu yerda paydo bo\'ladi.</div>'; return; }
+  var _lastSubj=null;
   el.innerHTML=ds.map(function(d){ var s=fcStats(d), pct=s.total?Math.round(s.learned/s.total*100):0, todo=s.due+Math.min(s.fresh,10);
-    return '<div class="fc-deck"><div class="fc-ico">&#x1F0CF;</div><div style="flex:1;min-width:0"><div style="font-weight:800">'+_qEsc(d.title)+'</div>'+
+    var head=''; if(d.subject!==_lastSubj){ _lastSubj=d.subject; head='<div style="font-weight:800;color:#64748b;font-size:13px;text-transform:uppercase;letter-spacing:.04em;margin:14px 0 8px">'+_qEsc(subjName(d.subject))+'</div>'; }
+    return head+'<div class="fc-deck"><div class="fc-ico">&#x1F0CF;</div><div style="flex:1;min-width:0"><div style="font-weight:800">'+_qEsc(d.title)+'</div>'+
       '<div class="ts tm">'+subjName(d.subject)+' &middot; '+s.total+' ta karta &middot; yodlangan: '+s.learned+'</div><div class="fc-bar"><div style="width:'+pct+'%"></div></div></div>'+
       '<button class="btn bpu" onclick="startStudy(\''+d.id+'\')">'+(todo?'Boshlash ('+todo+')':'Takrorlash')+'</button></div>'; }).join('');
 }
