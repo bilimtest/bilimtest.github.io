@@ -142,6 +142,19 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#f8fafc}
 .rring{width:130px;height:130px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;margin:0 auto 14px;border:6px solid;font-family:'JetBrains Mono',monospace}
 .darea{border:2px dashed var(--bdr);border-radius:var(--r);padding:22px;text-align:center;cursor:pointer;transition:all .18s}
 .darea:hover{border-color:var(--pri);background:#f5f6fb}
+.aqt-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.aqt-card{display:flex;flex-direction:column;align-items:center;gap:3px;padding:12px 8px;border:2px solid var(--bdr);border-radius:12px;background:#fff;cursor:pointer;font:inherit;text-align:center;color:var(--txt)}
+.aqt-card b{font-size:15px}.aqt-card small{font-size:11.5px;color:#64748b;line-height:1.3}
+.aqt-ic{font-size:26px;line-height:1}
+.aqt-card.on{border-color:var(--pri);background:#eef1ff;box-shadow:0 0 0 3px rgba(79,70,229,.15)}
+.aqf-words{display:flex;flex-wrap:wrap;gap:6px;min-height:44px;padding:10px;border:1.5px dashed var(--bdr);border-radius:10px;background:#fafbff}
+.aqf-w{padding:7px 11px;border:1.5px solid var(--bdr);border-radius:8px;background:#fff;cursor:pointer;font:inherit;font-size:16px}
+.aqf-w.on{background:var(--pri);color:#fff;border-color:var(--pri)}
+.aqf-row{display:flex;gap:6px;align-items:center;margin-bottom:6px}
+.aqf-row input{flex:1;min-width:0;padding:9px 10px;border:1.5px solid var(--bdr);border-radius:9px;font:inherit;font-size:15px}
+.aqf-row .aqf-n{flex-shrink:0;width:24px;text-align:center;font-weight:700;color:var(--pri)}
+.aqf-row button{flex-shrink:0;padding:7px 9px}
+.aqf-ans{margin-bottom:10px;padding:9px;border-radius:10px;background:#f8fafc;border:1px solid #e2e8f0}
 .symb{padding:5px 8px;margin:2px;border:1px solid var(--bdr);border-radius:6px;cursor:pointer;font-size:14px;background:#fff;transition:all .15s}
 .symb:hover{border-color:var(--pri);background:#eef1f9}
 .sarea{background:#f8fafc;border:1px solid var(--bdr);border-radius:9px;padding:9px;max-height:150px;overflow-y:auto;margin-top:7px}
@@ -943,7 +956,7 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#f8fafc}
       <select id="aq-subj" onchange="refreshSyms();refreshTopicList()"></select>
     </div>
     <div class="fg"><label>Berilishi kerak bo'lgan savol soni</label><input type="number" id="aq-qcount" placeholder="20" min="1" style="width:120px"></div>
-    <div class="fg">
+    <div class="fg" id="aq-text-box">
       <label>Savol matni</label>
       <div id="aq-text" class="mathedit" contenteditable="true" data-placeholder="Savolni yozing..."></div>
       <div class="sarea" id="aq-syms"></div>
@@ -963,17 +976,41 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#f8fafc}
     </div>
     <div class="fg">
       <label>Savol turi</label>
-      <select id="aq-qtype" onchange="onAQTypeChange()">
-        <option value="choice">Variantli test</option>
-        <option value="fill">Bo'sh joyni to'ldirish</option>
-        <option value="match">Moslashtirish</option>
-        <option value="order">Tartiblash</option>
-      </select>
+      <input type="hidden" id="aq-qtype" value="choice">
+      <div class="aqt-grid" id="aq-tcards">
+        <button type="button" class="aqt-card" data-t="choice" onclick="setAQType('choice')"><span class="aqt-ic">🔘</span><b>Variantli</b><small>Bir nechta javobdan to'g'risini tanlaydi</small></button>
+        <button type="button" class="aqt-card" data-t="fill" onclick="setAQType('fill')"><span class="aqt-ic">✏️</span><b>Bo'sh joy</b><small>Gapdagi tushib qolgan so'zni yozadi</small></button>
+        <button type="button" class="aqt-card" data-t="match" onclick="setAQType('match')"><span class="aqt-ic">🔗</span><b>Moslashtirish</b><small>Chap va o'ng tomonni juftlaydi</small></button>
+        <button type="button" class="aqt-card" data-t="order" onclick="setAQType('order')"><span class="aqt-ic">🔢</span><b>Tartiblash</b><small>Narsalarni to'g'ri tartibga qo'yadi</small></button>
+      </div>
     </div>
-    <div class="fg" id="aq-xtra-box" style="display:none">
-      <label id="aq-xtra-label"></label>
-      <div class="ts tm" id="aq-xtra-help" style="margin-bottom:6px;line-height:1.5"></div>
-      <textarea id="aq-xtra" rows="6" style="width:100%;box-sizing:border-box;font:inherit;padding:10px;border-radius:10px;border:1px solid #cbd5e1"></textarea>
+    <div id="aq-fill-box" style="display:none">
+      <div class="fg">
+        <label>1. Gapni to'liq yozing</label>
+        <textarea id="aq-fill-sent" rows="3" placeholder="Masalan: Quyosh sharqdan chiqadi." oninput="aqFillSentChanged()" style="width:100%;box-sizing:border-box;font:inherit;font-size:16px;padding:10px;border-radius:10px;border:1.5px solid var(--bdr)"></textarea>
+      </div>
+      <div class="fg">
+        <label>2. Bo'sh qoladigan so'zni bosing</label>
+        <div class="ts tm" style="margin-bottom:6px">Bosilgan so'z o'quvchiga bo'sh joy bo'lib ko'rinadi. Yana bossangiz — qaytadi.</div>
+        <div id="aq-fill-words" class="aqf-words"></div>
+      </div>
+      <div class="fg" id="aq-fill-ans-box" style="display:none">
+        <label>3. To'g'ri javoblar</label>
+        <div class="ts tm" style="margin-bottom:6px">Boshqacha yozilsa ham to'g'ri bo'ladigan javob bo'lsa, qo'shing (ixtiyoriy).</div>
+        <div id="aq-fill-ans"></div>
+      </div>
+    </div>
+    <div id="aq-match-box" style="display:none" class="fg">
+      <label>Juftlar</label>
+      <div class="ts tm" style="margin-bottom:6px">Har qatorda bir-biriga mos ikkita narsa. O'quvchiga o'ng tomon aralashtirib ko'rsatiladi.</div>
+      <div id="aq-match-rows"></div>
+      <button type="button" class="btn bg bsm mt8" onclick="aqMatchAdd()">+ Juft qo'shish</button>
+    </div>
+    <div id="aq-order-box" style="display:none" class="fg">
+      <label>To'g'ri tartib</label>
+      <div class="ts tm" style="margin-bottom:6px">Birinchidan oxirigacha yozing. ↑ ↓ bilan joyini almashtiring. O'quvchiga aralashtirib beriladi.</div>
+      <div id="aq-order-rows"></div>
+      <button type="button" class="btn bg bsm mt8" onclick="aqOrderAdd()">+ Qator qo'shish</button>
     </div>
     <div id="aq-choice-box">
     <div class="fg">
@@ -4244,47 +4281,126 @@ function openAddQ(editQ){
   refreshTopicList();
   refreshSyms();
   renderAQO();
-  document.getElementById('aq-qtype').value='choice'; document.getElementById('aq-xtra').value='';
-  if(editQ&&qType(editQ)!=='choice'){ _aqEditId=editQ.id;
+  aqLoadData('choice',{},'');
+  var t0='choice';
+  if(editQ&&qType(editQ)!=='choice'){ _aqEditId=editQ.id; t0=qType(editQ);
     document.getElementById('aq-topic').value=editQ.topic||''; if(editQ.subject) subjSel.value=editQ.subject;
-    mathEditSetValue(document.getElementById('aq-text'), editQ.text||'');
-    document.getElementById('aq-qtype').value=qType(editQ); document.getElementById('aq-xtra').value=aqXtraFromData(qType(editQ),editQ.data||{}); }
-  onAQTypeChange();
+    mathEditSetValue(document.getElementById('aq-text'), t0==='fill'?'':(editQ.text||''));
+    aqLoadData(t0,editQ.data||{},editQ.text||''); }
+  setAQType(t0);
   document.getElementById('aq-modal').style.display='flex';
 }
 var _aqEditId=null;
-var AQ_HELP={
-  fill:["To'g'ri javoblar","Savol matnida har bo'sh joy o'rniga ___ (3 ta pastki chiziq) yozing. Bu yerga har bo'sh joy uchun BITTA qator. Bir nechta to'g'ri variant bo'lsa | bilan ajrating.<br>Masalan matn: <i>She ___ to school every day.</i> &nbsp; Javob: <i>goes</i>"],
-  match:["Juftlar","Har qatorga bitta juft: <b>chap = o'ng</b>. O'quvchiga o'ng tomon aralashtirib ko'rsatiladi.<br>Masalan: <i>Toshkent = O'zbekiston</i>"],
-  order:["Elementlar (to'g'ri tartibda)","Har qatorga bitta element, TO'G'RI tartibda yozing. O'quvchiga aralashtirib ko'rsatiladi.<br>Masalan: tarixiy voqealar xronologiyasi"]
-};
+// SAVOL TURLARI MUHARRIRI (2026-10-02): maxsus sintaksis (___ , "chap = o'ng")
+// o'rniga oddiy formalar. Saqlanadigan format o'zgarmagan: q.text ichida ___,
+// q.data.answers | pairs | items.
+var _aqFill={toks:[],sel:{},alts:{}}, _aqPairs=[], _aqItems=[];
+function setAQType(t){
+  document.getElementById('aq-qtype').value=t;
+  document.querySelectorAll('#aq-tcards .aqt-card').forEach(function(c){c.classList.toggle('on',c.getAttribute('data-t')===t);});
+  onAQTypeChange();
+}
 function onAQTypeChange(){
-  var t=document.getElementById('aq-qtype').value, h=AQ_HELP[t];
+  var t=document.getElementById('aq-qtype').value;
   document.getElementById('aq-choice-box').style.display=t==='choice'?'':'none';
-  document.getElementById('aq-xtra-box').style.display=h?'':'none';
-  if(h){ document.getElementById('aq-xtra-label').textContent=h[0]; document.getElementById('aq-xtra-help').innerHTML=h[1]; }
+  document.getElementById('aq-fill-box').style.display=t==='fill'?'':'none';
+  document.getElementById('aq-match-box').style.display=t==='match'?'':'none';
+  document.getElementById('aq-order-box').style.display=t==='order'?'':'none';
+  document.getElementById('aq-text-box').style.display=t==='fill'?'none':'';
+  if(t==='fill') aqFillRender(); if(t==='match') aqMatchRender(); if(t==='order') aqOrderRender();
 }
-function aqXtraFromData(t,d){
-  if(t==='fill') return (d.answers||[]).map(function(l){return l.join(' | ');}).join('\n');
-  if(t==='match') return (d.pairs||[]).map(function(p){return p[0]+' = '+p[1];}).join('\n');
-  if(t==='order') return (d.items||[]).join('\n');
-  return '';
-}
-function aqParseXtra(t,text){
-  var lines=document.getElementById('aq-xtra').value.split('\n').map(function(l){return l.trim();}).filter(Boolean);
+function _aqTok(str){ return String(str||'').match(/\s+|[.,!?;:"«»“”()]|[^\s.,!?;:"«»“”()]+/g)||[]; }
+function _aqIsWord(w){ return !/^\s+$/.test(w) && !/^[.,!?;:"«»“”()]$/.test(w); }
+function aqLoadData(t,d,text){
+  _aqFill={toks:[],sel:{},alts:{}}; _aqPairs=[['',''],['',''],['','']]; _aqItems=['','',''];
+  document.getElementById('aq-fill-sent').value='';
   if(t==='fill'){
-    var nb=(String(text).match(BLANK_RE)||[]).length;
-    if(!nb){alert("Savol matnida bo'sh joy yo'q! Bo'sh joy o'rniga ___ yozing.");return null;}
-    if(lines.length!==nb){alert("Matnda "+nb+" ta bo'sh joy bor, lekin "+lines.length+" ta javob qatori yozilgan. Ular teng bo'lishi kerak.");return null;}
-    return {answers:lines.map(function(l){return l.split('|').map(function(x){return x.trim();}).filter(Boolean);})};
+    var parts=String(text||'').split(/_{3,}/), ans=d.answers||[], toks=[];
+    parts.forEach(function(p,k){
+      _aqTok(p).forEach(function(w){toks.push(w);});
+      if(k<parts.length-1){
+        var a=ans[k]||[''], first=null;
+        _aqTok(a[0]||'?').forEach(function(w){ if(_aqIsWord(w)){ if(first===null) first=toks.length; _aqFill.sel[toks.length]=true; } toks.push(w); });
+        if(first!==null&&a.length>1) _aqFill.alts[first]=a.slice(1);
+      }
+    });
+    _aqFill.toks=toks; document.getElementById('aq-fill-sent').value=toks.join('');
+  }
+  if(t==='match'&&(d.pairs||[]).length) _aqPairs=d.pairs.map(function(p){return [p[0],p[1]];});
+  if(t==='order'&&(d.items||[]).length) _aqItems=d.items.slice();
+}
+// --- Bo'sh joy ---
+function aqFillSentChanged(){
+  var old=_aqFill.toks, toks=_aqTok(document.getElementById('aq-fill-sent').value), sel={}, alts={};
+  toks.forEach(function(w,i){ if(_aqFill.sel[i]&&old[i]===w) sel[i]=true; if(_aqFill.alts[i]&&old[i]===w) alts[i]=_aqFill.alts[i]; });
+  _aqFill={toks:toks,sel:sel,alts:alts}; aqFillRender();
+}
+function aqFillGroups(){ // ketma-ket tanlangan so'zlar bitta bo'sh joy
+  var g=[], cur=null, t=_aqFill.toks;
+  for(var i=0;i<t.length;i++){
+    if(!_aqIsWord(t[i])){ if(/^\s+$/.test(t[i])&&cur&&_aqFill.sel[i+1]) continue; cur=null; continue; }
+    if(_aqFill.sel[i]){ if(!cur){cur={start:i,words:[]};g.push(cur);} cur.words.push(t[i]); cur.end=i; } else cur=null;
+  }
+  return g;
+}
+function aqFillToggle(i){ if(_aqFill.sel[i]) delete _aqFill.sel[i]; else _aqFill.sel[i]=true; aqFillRender(); }
+function aqFillRender(){
+  var box=document.getElementById('aq-fill-words'), t=_aqFill.toks;
+  var words=t.map(function(w,i){return _aqIsWord(w)?'<button type="button" class="aqf-w'+(_aqFill.sel[i]?' on':'')+'" onclick="aqFillToggle('+i+')">'+_qEsc(_aqFill.sel[i]?w:w)+'</button>':'';}).join('');
+  box.innerHTML=words||'<span class="ts tm">Avval yuqoriga gapni yozing — so\'zlari shu yerda chiqadi.</span>';
+  var g=aqFillGroups();
+  document.getElementById('aq-fill-ans-box').style.display=g.length?'':'none';
+  document.getElementById('aq-fill-ans').innerHTML=g.map(function(gr,k){
+    var alts=_aqFill.alts[gr.start]||[];
+    return '<div class="aqf-ans"><div style="margin-bottom:6px"><b>'+(k+1)+'-bo\'sh joy:</b> '+_qEsc(gr.words.join(' '))+'</div>'+
+      alts.map(function(a,j){return '<div class="aqf-row"><input value="'+_qEsc(a)+'" placeholder="Boshqa to\'g\'ri javob" oninput="aqFillAlt('+gr.start+','+j+',this.value)"><button type="button" class="btn bg bsm" onclick="aqFillAltRm('+gr.start+','+j+')">✕</button></div>';}).join('')+
+      '<button type="button" class="btn bg bsm" onclick="aqFillAltAdd('+gr.start+')">+ Boshqa to\'g\'ri javob</button></div>';
+  }).join('');
+}
+function aqFillAlt(s,j,v){ _aqFill.alts[s][j]=v; }
+function aqFillAltAdd(s){ (_aqFill.alts[s]=_aqFill.alts[s]||[]).push(''); aqFillRender(); var b=document.querySelectorAll('#aq-fill-ans input'); }
+function aqFillAltRm(s,j){ _aqFill.alts[s].splice(j,1); aqFillRender(); }
+function aqFillText(){
+  var g=aqFillGroups(), t=_aqFill.toks, out='', gi=0;
+  for(var i=0;i<t.length;i++){
+    if(gi<g.length&&i===g[gi].start){ out+='___'; i=g[gi].end; gi++; continue; }
+    out+=t[i];
+  }
+  return out.trim();
+}
+// --- Moslashtirish ---
+function aqMatchRender(){
+  document.getElementById('aq-match-rows').innerHTML=_aqPairs.map(function(p,i){
+    return '<div class="aqf-row"><span class="aqf-n">'+(i+1)+'</span><input value="'+_qEsc(p[0])+'" placeholder="Chap" oninput="_aqPairs['+i+'][0]=this.value"><span style="flex-shrink:0">↔</span><input value="'+_qEsc(p[1])+'" placeholder="O\'ng" oninput="_aqPairs['+i+'][1]=this.value">'+
+      (_aqPairs.length>2?'<button type="button" class="btn bg bsm" onclick="_aqPairs.splice('+i+',1);aqMatchRender()">✕</button>':'')+'</div>';
+  }).join('');
+}
+function aqMatchAdd(){ _aqPairs.push(['','']); aqMatchRender(); var r=document.querySelectorAll('#aq-match-rows input'); if(r.length) r[r.length-2].focus(); }
+// --- Tartiblash ---
+function aqOrderRender(){
+  var n=_aqItems.length;
+  document.getElementById('aq-order-rows').innerHTML=_aqItems.map(function(v,i){
+    return '<div class="aqf-row"><span class="aqf-n">'+(i+1)+'</span><input value="'+_qEsc(v)+'" placeholder="'+(i+1)+'-o\'rinda" oninput="_aqItems['+i+']=this.value">'+
+      '<button type="button" class="btn bg bsm" '+(i?'':'disabled')+' onclick="aqOrderMove('+i+',-1)">↑</button><button type="button" class="btn bg bsm" '+(i<n-1?'':'disabled')+' onclick="aqOrderMove('+i+',1)">↓</button>'+
+      (n>2?'<button type="button" class="btn bg bsm" onclick="_aqItems.splice('+i+',1);aqOrderRender()">✕</button>':'')+'</div>';
+  }).join('');
+}
+function aqOrderMove(i,d){ var j=i+d, x=_aqItems[i]; _aqItems[i]=_aqItems[j]; _aqItems[j]=x; aqOrderRender(); }
+function aqOrderAdd(){ _aqItems.push(''); aqOrderRender(); var r=document.querySelectorAll('#aq-order-rows input'); r[r.length-1].focus(); }
+function aqParseXtra(t,text){
+  if(t==='fill'){
+    var g=aqFillGroups();
+    if(!g.length){alert("Bo'sh qoladigan so'zni bosib tanlang!");return null;}
+    return {answers:g.map(function(gr){ var a=[gr.words.join(' ')]; (_aqFill.alts[gr.start]||[]).forEach(function(x){x=x.trim(); if(x&&a.indexOf(x)<0) a.push(x);}); return a; })};
   }
   if(t==='match'){
     var pairs=[];
-    for(var i=0;i<lines.length;i++){ var k=lines[i].indexOf('='); if(k<1||k===lines[i].length-1){alert((i+1)+"-qatorda '=' belgisi yo'q yoki bir tomoni bo'sh:\n"+lines[i]);return null;} pairs.push([lines[i].slice(0,k).trim(),lines[i].slice(k+1).trim()]); }
+    for(var i=0;i<_aqPairs.length;i++){ var l=_aqPairs[i][0].trim(), r=_aqPairs[i][1].trim();
+      if(!l&&!r) continue; if(!l||!r){alert((i+1)+"-juftning bir tomoni bo'sh!");return null;} pairs.push([l,r]); }
     if(pairs.length<2){alert("Kamida 2 ta juft kerak!");return null;}
     return {pairs:pairs};
   }
-  if(t==='order'){ if(lines.length<2){alert("Kamida 2 ta element kerak!");return null;} return {items:lines}; }
+  if(t==='order'){ var items=_aqItems.map(function(x){return x.trim();}).filter(Boolean); if(items.length<2){alert("Kamida 2 ta qator kerak!");return null;} return {items:items}; }
   return null;
 }
 function refreshTopicList(){
@@ -4357,8 +4473,9 @@ function rmO(i){aqOpts.splice(i,1);aqCorr=aqCorr.filter(function(c){return c!==i
 // "bosib" qo'yib, eski xatoni qaytarardi.)
 function saveQ(){
   var topic=document.getElementById('aq-topic').value.trim(),text=mathEditGetLatexString(document.getElementById('aq-text')).trim(),subj=document.getElementById('aq-subj').value,qcount=parseInt(document.getElementById('aq-qcount').value)||null;
-  if(!topic){alert("Mavzu kiriting!");return;}if(!text){alert("Savol matnini kiriting!");return;}
   var qt=document.getElementById('aq-qtype').value;
+  if(qt==='fill') text=aqFillText();
+  if(!topic){alert("Mavzu kiriting!");return;}if(!text){alert(qt==='fill'?"Gapni yozing!":"Savol matnini kiriting!");return;}
   if(qt!=='choice'){ var data=aqParseXtra(qt,text); if(!data) return;
     var db0=getDB();db0.userQs=db0.userQs||[];
     var old=_aqEditId?db0.userQs.find(function(x){return x.id===_aqEditId&&x.teacherId===ME.id;}):null;
