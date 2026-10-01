@@ -960,7 +960,7 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#f8fafc}
       <label>Savol matni</label>
       <div id="aq-text" class="mathedit" contenteditable="true" data-placeholder="Savolni yozing..."></div>
       <div class="sarea" id="aq-syms"></div>
-      <div class="ts tm" style="margin-top:4px">💡 <b>a/b</b> — kasr, <b>√</b> — ildiz, <b>xⁿ</b> — daraja. Formula bo'sh joy (to'rtburchak) bilan chiqadi — <b>o'sha quticha ustiga bosib</b>, keyin yozing. Ichma-ich kasr/ildiz uchun: kursorni formula ichiga qo'yib, tugmani yana bosing.</div>
+      <div class="ts tm" id="aq-math-hint" style="margin-top:4px">💡 <b>a/b</b> — kasr, <b>√</b> — ildiz, <b>xⁿ</b> — daraja. Formula bo'sh joy (to'rtburchak) bilan chiqadi — <b>o'sha quticha ustiga bosib</b>, keyin yozing. Ichma-ich kasr/ildiz uchun: kursorni formula ichiga qo'yib, tugmani yana bosing.</div>
     </div>
     <div class="fg">
       <label>Savol rasmi (ixtiyoriy)</label>
@@ -972,7 +972,7 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#f8fafc}
         📷 Rasm yuklash
         <input type="file" id="aq-img-inp" accept="image/*" style="display:none" onchange="onAQImgChange(this)">
       </label>
-      <span class="ts tm" style="margin-left:8px">Shakllar, formulalar uchun</span>
+      <span class="ts tm" style="margin-left:8px">Chizma, xarita, sxema uchun</span>
     </div>
     <div class="fg">
       <label>Savol turi</label>
@@ -2007,9 +2007,9 @@ var SYMBOLS_BY_SUBJECT={
     'α','β','γ','µm','mm','cm','×10',
     'n','2n','ДНК','РНК','ATP',
     '₀','₁','₂','₃','₄','₅','₆','₇','₈','₉'],
-  hist:['№','§','—','–','«','»','...','†','гг.','в.','аср','йил','э.а.','эрамиздан аввал','эрамиз','↔','→','≈','°'],
-  geo:['°','′','″','≈','→','↔','↑','↓','%','²','³','км²','км','м','м/сек','±',
-    'Ш','Ж','Ш.к.','Ж.к.','Ш.у.','Ш.д.','денгиз сатҳидан'],
+  hist:['№','§','—','–','«','»','...','†','asr','yil','mil. avv.','milodiy','↔','→','≈','°'],
+  geo:['°','′','″','≈','→','↔','↑','↓','%','²','³','km²','km','m','m/s','±',
+    'sh.k.','j.k.','sh.u.','g\'.u.','dengiz sathidan'],
   lit:['«','»','—','–','...','№','!','?','?!','ʻ','ʼ'],
   lang:['«','»','—','–','...','№','?!','ʻ','ʼ'],
   eng:['«','»','...','?!','–','—',"'",'"','ʼ'],
@@ -4415,7 +4415,8 @@ function refreshTopicList(){
 }
 function refreshSyms(){
   var subj=document.getElementById('aq-subj').value||'math';
-  var syms=SYMBOLS_BY_SUBJECT[subj]||SYMBOLS_BY_SUBJECT.math;
+  var syms=SYMBOLS_BY_SUBJECT[subj]||SYMBOLS_BY_SUBJECT.other;
+  var mh=document.getElementById('aq-math-hint'); if(mh) mh.style.display=syms.indexOf('a/b')>=0?'':'none';
   var special={
     'a/b':['insFraction()','Kasr (surat/mahraj) - chizig\'i avtomatik cho\'ziladi'],
     'ⁿ√':['insNthRoot()','Ildiz darajasini o\'zingiz kiriting'],
@@ -6224,11 +6225,8 @@ async function saveImportedQs(parsed,msg){
     q.id=Date.now()+'_'+idx+'_'+Math.random().toString(36).slice(2,8);
     q.teacherId=ME.id;
     q.topic=parsed.topic;
-    if(window._fpOverrideSubject){
-      q.subject=window._fpOverrideSubject;
-    } else if(!q.subject){
-      q.subject=ME.subject||'math';
-    }
+    // Server har savolga 'math' qo'yadi - shuning uchun ustozning o'z fani ustun
+    q.subject=window._fpOverrideSubject||ME.subject||q.subject||'math';
   });
 
   // Rasm-asosli savollarni ANIQ farqlash uchun - har biriga tez (perceptual)
@@ -6287,7 +6285,7 @@ async function saveImportedQs(parsed,msg){
   db.topicsMeta=db.topicsMeta||[];
   var f=false;
   db.topicsMeta.forEach(function(m){if(m.topic===parsed.topic&&m.teacherId===ME.id){if(_pendingImportFolder)m.folder=_pendingImportFolder;f=true;}});
-  if(!f)db.topicsMeta.push({topic:parsed.topic,questionsToAsk:parsed.questionsToAsk,teacherId:ME.id,subject:ME.subject||'math',folder:_pendingImportFolder||undefined});
+  if(!f)db.topicsMeta.push({topic:parsed.topic,questionsToAsk:parsed.questionsToAsk,teacherId:ME.id,subject:window._fpOverrideSubject||ME.subject||'math',folder:_pendingImportFolder||undefined});
   saveDB(db);renderQT();
 
   if(existingTopicQs.length){
@@ -7189,7 +7187,8 @@ function aiCheckTopic(topic) {
     var batch = batches[batchIdx];
     updateProgress();
 
-    var lines = ['Sen matematika ustozisan. Har bir savolni tekshir: avval o\'zing qisqacha hisoblab chiq (1-2 qator), keyin albatta "ANSWER:" so\'zidan keyin "OK" yoki "XATO: qisqa sabab" deb yoz. Har savol javobini "ANSWER:" bilan tugat, formatga qatiy amal qil:', ''];
+    var _sj=(batch[0]&&batch[0].q&&batch[0].q.subject)||(ME&&ME.subject)||'other';
+    var lines = ['Sen tajribali '+(_sj==='other'?'':subjName(_sj)+' fani ')+'ustozisan. Har bir savolni tekshir: avval o\'zing qisqacha yechib yoki o\'ylab chiq (1-2 qator), keyin albatta "ANSWER:" so\'zidan keyin "OK" yoki "XATO: qisqa sabab" deb yoz. Har savol javobini "ANSWER:" bilan tugat, formatga qatiy amal qil:', ''];
     batch.forEach(function(item, i) {
       var q = item.q;
       var opts = (q.options || []).map(function(o, oi) {
