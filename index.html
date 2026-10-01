@@ -3128,7 +3128,7 @@ function renderMasteryAdvice(r){
   el.innerHTML=(improving?'&#x1F4C8; <b>Bu safar zo\'r! Mavzuni mustahkamlash uchun yana 1-2 marta takrorlang.</b> '
       :weak?'&#x1F4DA; <b>Bu mavzuni ko\'proq tayyorlang.</b> ':'&#x1F4AA; <b>Yaxshi o\'zlashtiryapsiz.</b> ')+
     '"'+_qEsc(r.topic)+'" bo\'yicha o\'zlashtirishingiz: <b>'+pct+'%</b> ('+tp.n+' ta urinish).'+
-    (wrong?'<br>Xato qilingan '+wrong+' ta savol takrorlash ro\'yxatiga qo\'shildi - ular ertaga qayta so\'raladi.':'');
+    (wrong?'<br>Xato qilingan '+wrong+' ta savol takrorlash ro\'yxatiga qo\'shildi.':'');
 }
 
 function startTest(mode){
