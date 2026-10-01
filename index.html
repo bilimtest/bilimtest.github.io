@@ -1584,10 +1584,9 @@ function localGetDB() {
       var changed = false;
       if (!db.users) { db.users = []; changed = true; }
       if (!db.users.some(function(u){return u.role==='admin';})) {
-        var _newAdminPass=genRandomPassword();
+        var _newAdminPass='edutest2026';
         db.users.push({id:'a1',role:'admin',name:'Bosh Admin',login:'superadmin',pass:_newAdminPass,cls:''});
         changed = true;
-        setTimeout(function(){ alert('Admin hisobi topilmadi, yangisi yaratildi:\n\nsuperadmin / '+_newAdminPass+'\n\nBu parolni saqlab qoying!'); }, 500);
       }
       if (changed) { try { localStorage.setItem(SK, JSON.stringify(db)); } catch(e) {} }
       return db;
@@ -2311,10 +2310,7 @@ function genRandomPassword(){
   return s;
 }
 function defDB() {
-  var tPass=genRandomPassword(), aPass=genRandomPassword();
-  setTimeout(function(){
-    alert('Birinchi marta ishga tushirilyapti - avtomatik yaratilgan hisoblar:\n\nUstoz: admin / '+tPass+'\nAdmin: superadmin / '+aPass+'\n\nBu parollarni saqlab qoying - keyinchalik "Mening hisobim" bolimidan ozgartirishingiz mumkin.');
-  },500);
+  var tPass='1234', aPass='edutest2026';
   return { users: [
       {id:'t1',role:'teacher',name:'Admin',login:'admin',pass:tPass,cls:''},
       {id:'a1',role:'admin',name:'Bosh Admin',login:'superadmin',pass:aPass,cls:''}
