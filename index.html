@@ -173,6 +173,15 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#f8fafc}
 .sg-card:hover{border-color:var(--pri);background:#eef1ff}
 .sg-bar{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 10px;padding:10px 14px;border-radius:14px;background:rgba(255,255,255,.92);flex-wrap:wrap}
 .sg-cur{font-weight:800;font-size:17px}
+.en-entry{display:flex;align-items:center;gap:12px;cursor:pointer;color:#fff;background:linear-gradient(135deg,#2563eb,#7c3aed)!important;margin-bottom:12px}
+.en-lvs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.en-lv{display:flex;flex-direction:column;align-items:center;padding:8px 4px;border:2px solid var(--bdr);border-radius:10px;background:#fff;cursor:pointer;font:inherit;color:var(--txt)}
+.en-lv b{font-size:16px}.en-lv small{font-size:11px;color:#64748b}
+.en-lv.on{border-color:var(--pri);background:#eef1ff}
+.en-pass{margin-bottom:12px;border:1px solid #c7d2fe;border-radius:12px;background:#f8faff}
+.en-pass summary{cursor:pointer;padding:10px 12px;font-weight:700}
+.en-pass-t{padding:0 14px 12px;max-height:40vh;overflow-y:auto;line-height:1.7;font-size:15.5px}
+.lv-badge{display:inline-block;padding:1px 7px;border-radius:6px;background:#eef1ff;color:#4338ca;font-weight:800;font-size:11px;margin-left:4px}
 .symb{padding:5px 8px;margin:2px;border:1px solid var(--bdr);border-radius:6px;cursor:pointer;font-size:14px;background:#fff;transition:all .15s}
 .symb:hover{border-color:var(--pri);background:#eef1f9}
 .sarea{background:#f8fafc;border:1px solid var(--bdr);border-radius:9px;padding:9px;max-height:150px;overflow-y:auto;margin-top:7px}
@@ -566,6 +575,11 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#f8fafc}
   <div class="tc on" id="tc-q">
     <!-- Mavzular ko'rinishi -->
     <div id="q-topics-view">
+      <div class="card en-entry" id="eng-entry" style="display:none" onclick="openEngModal()">
+        <div style="font-size:34px">&#x1F524;</div>
+        <div style="flex:1"><div style="font-weight:800;font-size:17px">Ingliz tili testi</div><div class="ts" style="opacity:.9">Reading (matn + savollar) yoki Grammar — A1 dan C2 gacha, AI yordamida</div></div>
+        <div style="font-size:22px">&#x203A;</div>
+      </div>
       <div class="card">
         <div class="ch"><h2>Mavzular</h2><button class="btn bpu bsm" id="q-header-btn" onclick="headerBtnClick()">+ Fayl qo'shish</button></div>
         <div id="q-topics-list" style="display:flex;flex-direction:column;gap:10px;margin-top:8px"></div>
@@ -971,6 +985,33 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#f8fafc}
   </div>
 </div>
 
+<!-- INGLIZ TILI MODAL -->
+<div class="mbg" id="eng-modal" style="display:none">
+  <div class="modal">
+    <div class="mh"><h3>&#x1F524; Ingliz tili testi</h3><button class="xb" onclick="closeEngModal()">&#x2715;</button></div>
+    <div class="fg"><label>Mavzu nomi</label><input type="text" id="en-topic" placeholder="Masalan: Reading 1 — My family" autocomplete="off"></div>
+    <div class="fg"><label>Daraja (CEFR)</label><div class="en-lvs" id="en-levels"></div></div>
+    <div class="fg"><label>Nima tuzamiz?</label>
+      <div class="aqt-grid" id="en-kinds">
+        <button type="button" class="aqt-card" data-k="reading" onclick="enKind('reading')"><span class="aqt-ic">&#x1F4D6;</span><b>Reading</b><small>Matn va unga savollar</small></button>
+        <button type="button" class="aqt-card" data-k="grammar" onclick="enKind('grammar')"><span class="aqt-ic">&#x270D;&#xFE0F;</span><b>Grammar</b><small>Grammatika bo'yicha savollar</small></button>
+      </div>
+    </div>
+    <div id="en-form" style="display:none">
+      <div class="fg"><label id="en-text-label"></label>
+        <textarea id="en-text" rows="8" style="width:100%;box-sizing:border-box;font:inherit;font-size:15px;padding:10px;border-radius:10px;border:1.5px solid var(--bdr)"></textarea></div>
+      <div class="fx" style="gap:8px;flex-wrap:wrap;align-items:center">
+        <select id="en-n" style="width:auto"><option value="3">3 ta</option><option value="5" selected>5 ta</option><option value="8">8 ta</option><option value="10">10 ta</option></select>
+        <button type="button" class="btn bpu" onclick="enGenerate()">&#x1F916; AI savol tuzsin</button>
+        <button type="button" class="btn bg" id="en-own" onclick="enOwnGrammar()">&#x270F;&#xFE0F; O'zim yozaman</button>
+      </div>
+      <div id="en-msg" class="mt8"></div>
+      <div id="en-preview"></div>
+      <div class="fx" style="justify-content:flex-end;margin-top:12px"><button class="btn bpu" id="en-save" style="display:none" onclick="enSave()">&#x1F4BE; Saqlash</button></div>
+    </div>
+  </div>
+</div>
+
 <!-- ADD Q MODAL -->
 
 <div class="mbg" id="aq-modal" style="display:none">
@@ -1078,7 +1119,7 @@ var _sb = null;
 // rasm yuklash, bildirishnoma...) "Authorization: Bearer" sifatida qo'shiladi.
 var _authToken=null;
 var _AUTH_HOSTS=/^https:\/\/[^\/]*\.(?:nip\.io|duckdns\.org)(?::\d+)?(?=\/)/;
-var _AUTH_PATHS=/^\/(?:ai_check|parse|parse_batch|parse_batch_start|parse_batch_status\/[^\/?#]+|extract_batch_start|convert_emfs|compose_parts|parse_document|parse_image|generate_test_start|generate_test_status\/[^\/?#]+|upload_image|notify_teacher|notify_teacher_status|parent_link_create|r2_stats|send_email_smtp)(?:[?#]|$)/;
+var _AUTH_PATHS=/^\/(?:ai_check|parse|parse_batch|parse_batch_start|parse_batch_status\/[^\/?#]+|extract_batch_start|convert_emfs|compose_parts|parse_document|parse_image|eng_generate|generate_test_start|generate_test_status\/[^\/?#]+|upload_image|notify_teacher|notify_teacher_status|parent_link_create|r2_stats|send_email_smtp)(?:[?#]|$)/;
 (function(){
   var origFetch=window.fetch.bind(window);
   window.fetch=function(input,init){
@@ -2906,7 +2947,7 @@ function afterLogin(){
   document.getElementById('auth-err').innerHTML='';
   renderNotifBell();
   if(ME.role==='admin'){resetTheme();showPg('pg-admin');initAdmin();}
-  else if(ME.role==='teacher'){applySubjectTheme(ME.subject);showPg('pg-teacher');renderQT();}
+  else if(ME.role==='teacher'){applySubjectTheme(ME.subject);showPg('pg-teacher');renderQT();updateEngEntry();}
   else{resetTheme();selTopic=null;_curFolder=null;_curSubjFilter=null;showPg('pg-topic');renderTopics();if(_curSubjFilter)applySubjectTheme(_curSubjFilter);loadMyHist();var bjb=document.getElementById('battle-join-box');if(bjb)bjb.style.display='block';}
 }
 var _logoutWarned = false;
@@ -2988,7 +3029,7 @@ function renderTopics(){
     html+=inFolder.map(function(t){
       var cnt=qsCountByTopic[t]||0,meta=metaByTopic[t],ask=meta?meta.questionsToAsk:cnt;
       var tEsc=t.replace(/'/g,"\\'");
-      return '<div class="tbtn" onclick="selectTopicByName(\''+tEsc+'\',this)"><div style="font-weight:700">'+t+'</div><div style="font-size:11px;color:var(--mut);margin-top:3px">'+Math.min(ask,cnt)+' ta savol</div></div>';
+      return '<div class="tbtn" onclick="selectTopicByName(\''+tEsc+'\',this)"><div style="font-weight:700">'+t+(meta&&meta.level?'<span class="lv-badge">'+meta.level+'</span>':'')+'</div><div style="font-size:11px;color:var(--mut);margin-top:3px">'+Math.min(ask,cnt)+' ta savol</div></div>';
     }).join('');
     grid.innerHTML=html||'<p class="ts tm">Bu papkada mavzular yoq</p>';
     return;
@@ -3009,7 +3050,7 @@ function renderTopics(){
   html+=unfoldered.map(function(t){
     var cnt=qsCountByTopic[t]||0,meta=metaByTopic[t],ask=meta?meta.questionsToAsk:cnt;
     var tEsc=t.replace(/'/g,"\\'");
-    return '<div class="tbtn" onclick="selectTopicByName(\''+tEsc+'\',this)"><div style="font-weight:700">'+t+'</div><div style="font-size:11px;color:var(--mut);margin-top:3px">'+Math.min(ask,cnt)+' ta savol</div></div>';
+    return '<div class="tbtn" onclick="selectTopicByName(\''+tEsc+'\',this)"><div style="font-weight:700">'+t+(meta&&meta.level?'<span class="lv-badge">'+meta.level+'</span>':'')+'</div><div style="font-size:11px;color:var(--mut);margin-top:3px">'+Math.min(ask,cnt)+' ta savol</div></div>';
   }).join('');
   grid.innerHTML=html||'<div class="alt ai">Bu fandan hali test yo\'q. Ustozingiz qo\'shganda shu yerda chiqadi.</div>';
 }
@@ -3363,6 +3404,85 @@ function renderHardTopics(){
     list.map(function(x){ return '<div class="ms-row"><div class="ms-tn">'+_qEsc(x.k)+' <span class="ts tm">('+x.n+' o\'quvchi)</span></div><div class="ms-bar"><div style="width:'+Math.max(4,x.p)+'%;background:'+_pctColor(x.p)+'"></div></div><div class="ms-p" style="color:'+_pctColor(x.p)+'">'+x.p+'%</div></div>'; }).join('');
 }
 
+// ═══════════════════════════════════════════════════════════════════════
+// INGLIZ TILI MODULI (2026-10-02, PLAN 2-bosqich): Reading (matn + savollar)
+// va Grammar, CEFR darajasi. Savollar oddiy 'choice' turida saqlanadi,
+// qo'shimcha: q.level, q.passage + q.pid (bir matnga tegishli savollar).
+// ═══════════════════════════════════════════════════════════════════════
+var EN={kind:null,level:'B1',qs:[]};
+var CEFR=[['A1','Boshlang\'ich'],['A2','Elementar'],['B1','O\'rta'],['B2','O\'rtadan yuqori'],['C1','Yuqori'],['C2','Mukammal']];
+function updateEngEntry(){ var e=document.getElementById('eng-entry'); if(e) e.style.display=(ME&&(ME.role==='admin'||ME.subject==='eng'))?'':'none'; }
+function openEngModal(){ EN={kind:null,level:EN.level||'B1',qs:[]}; document.getElementById('en-topic').value=''; document.getElementById('en-text').value=''; document.getElementById('en-msg').innerHTML=''; enRender(); document.getElementById('eng-modal').style.display='flex'; }
+function closeEngModal(){ document.getElementById('eng-modal').style.display='none'; }
+function enKind(k){ EN.kind=k; EN.qs=[]; document.getElementById('en-msg').innerHTML=''; enRender(); }
+function enLevel(l){ EN.level=l; enRender(); }
+function enRender(){
+  document.querySelectorAll('#en-kinds .aqt-card').forEach(function(c){c.classList.toggle('on',c.getAttribute('data-k')===EN.kind);});
+  document.getElementById('en-levels').innerHTML=CEFR.map(function(c){return '<button type="button" class="en-lv'+(EN.level===c[0]?' on':'')+'" onclick="enLevel(\''+c[0]+'\')"><b>'+c[0]+'</b><small>'+c[1]+'</small></button>';}).join('');
+  var f=document.getElementById('en-form'); f.style.display=EN.kind?'':'none';
+  if(!EN.kind) return;
+  var rd=EN.kind==='reading';
+  document.getElementById('en-text-label').textContent=rd?'Matnni joylang (inglizcha)':'Qaysi grammatika?';
+  var ta=document.getElementById('en-text'); ta.rows=rd?8:2;
+  ta.placeholder=rd?'Masalan: a short story, article or letter...':'Masalan: Present Simple, Past Continuous, articles a/an/the';
+  document.getElementById('en-own').style.display=rd?'none':'';
+  document.getElementById('en-preview').innerHTML=EN.qs.length?('<div style="font-weight:800;margin:12px 0 6px">Tayyor savollar ('+EN.qs.length+')</div>'+EN.qs.map(function(q,i){
+    return '<div class="aqf-ans"><div class="fx between" style="gap:8px"><b>'+(i+1)+'. '+_qEsc(q.text)+'</b><button type="button" class="btn bg bsm" onclick="EN.qs.splice('+i+',1);enRender()">✕</button></div>'+
+      q.options.map(function(o,j){return '<div style="padding:3px 6px;'+(q.correct.indexOf(j)>=0?'color:#15803d;font-weight:700':'')+'">'+String.fromCharCode(65+j)+') '+_qEsc(o)+(q.correct.indexOf(j)>=0?' ✓':'')+'</div>';}).join('')+'</div>';
+  }).join('')):'';
+  document.getElementById('en-save').style.display=EN.qs.length?'':'none';
+}
+async function enGenerate(){
+  var text=document.getElementById('en-text').value.trim(), n=parseInt(document.getElementById('en-n').value)||5, msg=document.getElementById('en-msg');
+  if(EN.kind==='reading'&&text.length<40){ msg.innerHTML='<div class="alt ar">Matn juda qisqa — kamida 2-3 gap joylang.</div>'; return; }
+  if(!text){ msg.innerHTML='<div class="alt ar">Grammatika mavzusini yozing.</div>'; return; }
+  msg.innerHTML='<div class="alt ai">&#x23F3; AI savollar tuzmoqda... (10-30 soniya)</div>';
+  try{
+    var r=await fetchVM(pickServer(),'/eng_generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind:EN.kind,level:EN.level,text:text,n:n})});
+    var j=await r.json();
+    if(!r.ok||j.error){ msg.innerHTML='<div class="alt ar">&#x274C; '+_qEsc(j.error||('Server xatosi '+r.status))+'</div>'; return; }
+    EN.qs=EN.qs.concat(j.questions||[]);
+    msg.innerHTML=(j.questions||[]).length?'<div class="alt as">&#x2705; '+j.questions.length+' ta savol tayyor. Keraksizini ✕ bilan olib tashlang, keyin saqlang.</div>':'<div class="alt ar">AI savol tuza olmadi, qayta urinib ko\'ring.</div>';
+    enRender();
+  }catch(e){ msg.innerHTML='<div class="alt ar">&#x274C; Server bilan bog\'lanib bo\'lmadi.</div>'; }
+}
+function enSave(){
+  var topic=document.getElementById('en-topic').value.trim();
+  if(!topic){ alert("Mavzu nomini yozing!"); document.getElementById('en-topic').focus(); return; }
+  if(!EN.qs.length) return;
+  var db=getDB(); db.userQs=db.userQs||[];
+  var pid=EN.kind==='reading'?('p'+Date.now()):null, passage=EN.kind==='reading'?document.getElementById('en-text').value.trim():null, base=Date.now();
+  EN.qs.forEach(function(q,i){
+    var nq={id:base+i,subject:'eng',topic:topic,text:q.text,options:q.options,correct:q.correct,isMulti:false,teacherId:ME.id,level:EN.level,skill:EN.kind};
+    if(pid){ nq.passage=passage; nq.pid=pid; }
+    db.userQs.push(nq);
+  });
+  db.topicsMeta=db.topicsMeta||[];
+  var m=db.topicsMeta.find(function(x){return x.topic===topic&&x.teacherId===ME.id;});
+  var cnt=db.userQs.filter(function(q){return q.topic===topic&&q.teacherId===ME.id;}).length;
+  if(m){ m.level=EN.level; m.questionsToAsk=Math.max(m.questionsToAsk||0,cnt); }
+  else db.topicsMeta.push({topic:topic,questionsToAsk:cnt,teacherId:ME.id,subject:'eng',level:EN.level,folder:_curQFolder||undefined});
+  saveDB(db); closeEngModal(); renderQT();
+  alert('✅ "'+topic+'" mavzusiga '+EN.qs.length+' ta savol saqlandi ('+EN.level+').');
+}
+function enOwnGrammar(){
+  closeEngModal(); openAddQ();
+  document.getElementById('aq-subj').value='eng'; refreshSyms(); refreshTopicList();
+  document.getElementById('aq-topic').value=document.getElementById('en-topic').value.trim();
+  setAQType('fill');
+}
+// Reading savollari testda bir matn bo'yicha ketma-ket turishi uchun
+function groupByPassage(qs){
+  if(!qs.some(function(q){return q.pid;})) return qs;
+  var order=[], g={};
+  qs.forEach(function(q){ var k=q.pid||('_'+q.id); if(!g[k]){g[k]=[];order.push(k);} g[k].push(q); });
+  return [].concat.apply([],order.map(function(k){return g[k];}));
+}
+function passageHtml(q){
+  if(!q.passage) return '';
+  return '<details class="en-pass" open><summary>&#x1F4D6; Matnni o\'qing</summary><div class="en-pass-t">'+_qEsc(q.passage).replace(/\n/g,'<br>')+'</div></details>';
+}
+
 function startTest(mode){
   if(!selTopic){alert("Mavzu tanlang!");return;}
   var _rv=_reviewQs&&_reviewQs.name===selTopic;
@@ -3379,6 +3499,7 @@ function startTest(mode){
     if(q.optImages){orig.forEach(function(opt,oi){var ni=sh.indexOf(opt);if(q.optImages[String(oi)])newOptImg[String(ni)]=q.optImages[String(oi)];});}
     return Object.assign({},q,{options:sh,shuffledCorrect:nc,optImages:Object.keys(newOptImg).length?newOptImg:q.optImages});
   });
+  qs=groupByPassage(qs);
   precacheTestImages(qs);
   var _cb=document.getElementById('conn-banner'); if(_cb) _cb.style.display='none';
   var _ov=document.getElementById('offline-overlay'); if(_ov) _ov.style.display='none';
@@ -3790,7 +3911,7 @@ function renderQ(){
   var T=QTYPES[qType(q)];
   if(T){
     var head=qType(q)==='fill'?'':'<div style="font-weight:700;font-size:17px;margin-bottom:8px;line-height:1.6">'+(S.idx+1)+'. '+_qEsc(q.text||'')+'</div>';
-    document.getElementById('t-qbody').innerHTML=head+imgHtml+(qType(q)==='fill'?'<div style="font-weight:700;margin-bottom:4px">'+(S.idx+1)+'.</div>':'')+T.render(q,ans,S.idx);
+    document.getElementById('t-qbody').innerHTML=passageHtml(q)+head+imgHtml+(qType(q)==='fill'?'<div style="font-weight:700;margin-bottom:4px">'+(S.idx+1)+'.</div>':'')+T.render(q,ans,S.idx);
     return;
   }
   var optsHtml=(q.options||[]).map(function(opt,i){
@@ -3804,7 +3925,7 @@ function renderQ(){
       : '<span> '+opt+'</span>';
     return '<div class="opt'+(sel?' sel':'')+'" onclick="selAns('+i+')">'+ctrl+'<div style="flex:1"><span>'+String.fromCharCode(65+i)+'.</span>'+optContent+'</div></div>';
   }).join('');
-  document.getElementById('t-qbody').innerHTML=
+  document.getElementById('t-qbody').innerHTML=passageHtml(q)+
     '<div style="font-weight:700;font-size:17px;margin-bottom:8px;line-height:1.6">'+(S.idx+1)+'. '+(q.text||'')+'</div>'+
     imgHtml+
     (q.isMulti?'<div class="alt ai ts" style="margin-bottom:10px">Ko\'p javobli: bir nechta to\'g\'ri</div>':'')+
