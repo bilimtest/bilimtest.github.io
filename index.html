@@ -1163,7 +1163,7 @@ function startDbPolling(){
 // o'tkazildi - bu aynan "edutest-vnic" (docker orqali .env bilan
 // sozlangan) server, VM8 emas.
 // YANGI SERVER: 1-kichik server tayyor bo'lgach shu manzil yoziladi.
-var DB_SERVER='https://bilimtest.130-61-20-188.nip.io';
+var DB_SERVER='https://bilimtest.130-61-172-212.nip.io'; // vm3 (2026-10-01: Oracle A1 limiti 2 OCPU ga tushdi, vm5/vm6 o'chiriladi)
 
 // TUZATISH (2026-09-30): import kabi tez ketma-ket saveDB() chaqiruvlarida bir
 // nechta db_save so'rovi PARALLEL ketib, server ularni tartibsiz qabul qilar
@@ -5388,10 +5388,8 @@ function uniqueTopicName(base){
 // chetlashadi va indikator DB'da (`db.serverBudgetUsed`) saqlanadi, ertasi
 // kun (UTC) qayta tiklanadi. null = cheklovsiz.
 var SERVER_POOL=[
-  {url:IMPORT_SERVER, name:'Server 1 (vm6)', weight:15, dailyBudgetSec:null},
-  {url:'https://bilimtest.130-61-74-112.nip.io',  name:'Server 2 (vm4)', weight:15, dailyBudgetSec:null},
-  {url:'https://bilimtest.130-61-172-212.nip.io', name:'Server 3 (vm3)', weight:15, dailyBudgetSec:null},
-  {url:'https://bilimtest.130-61-168-154.nip.io', name:'Server 4 (vm5)', weight:15, dailyBudgetSec:null}
+  {url:IMPORT_SERVER, name:'Server 1 (vm3)', weight:15, dailyBudgetSec:null},
+  {url:'https://bilimtest.130-61-74-112.nip.io',  name:'Server 2 (vm4)', weight:15, dailyBudgetSec:null}
 ];
 // MUHIM: RENDER_SERVERS (pickServer/warmUpImportServers/parse_document va
 // h.k. ishlatadigan eski nom) endi SERVER_POOL'dan AVTOMATIK hosil bo'ladi -
