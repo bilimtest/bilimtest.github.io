@@ -5321,7 +5321,7 @@ var RENDER_SERVER=DB_SERVER;
 // (OCI route-table bug, nginx default_server/IPv6 masalasi va h.k.)
 // uchun edutest-pro skill faylining Changelog bolimiga qarang.
 var IMPORT_SERVER=DB_SERVER;
-var RENDER_SERVERS=[IMPORT_SERVER,IMPORT_SERVER_2]; // round-robin pool - pickServer() va warmUpImportServers shundan foydalanadi
+var RENDER_SERVERS=[IMPORT_SERVER]; // round-robin pool - pickServer() va warmUpImportServers shundan foydalanadi
 var _serverIdx=0;
 function pickServer(){
   var s=RENDER_SERVERS[_serverIdx % RENDER_SERVERS.length];
