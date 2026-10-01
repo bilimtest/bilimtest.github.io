@@ -5389,8 +5389,10 @@ function uniqueTopicName(base){
 // chetlashadi va indikator DB'da (`db.serverBudgetUsed`) saqlanadi, ertasi
 // kun (UTC) qayta tiklanadi. null = cheklovsiz.
 var SERVER_POOL=[
-  {url:IMPORT_SERVER, name:'Server 1', weight:15, dailyBudgetSec:null}
-  // Ampere serverlar topilgach shu yerga qo'shiladi.
+  {url:IMPORT_SERVER, name:'Server 1 (vm6)', weight:15, dailyBudgetSec:null},
+  {url:'https://bilimtest.130-61-74-112.nip.io',  name:'Server 2 (vm4)', weight:15, dailyBudgetSec:null},
+  {url:'https://bilimtest.130-61-172-212.nip.io', name:'Server 3 (vm3)', weight:15, dailyBudgetSec:null},
+  {url:'https://bilimtest.130-61-168-154.nip.io', name:'Server 4 (vm5)', weight:15, dailyBudgetSec:null}
 ];
 // MUHIM: RENDER_SERVERS (pickServer/warmUpImportServers/parse_document va
 // h.k. ishlatadigan eski nom) endi SERVER_POOL'dan AVTOMATIK hosil bo'ladi -
