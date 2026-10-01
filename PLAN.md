@@ -48,6 +48,6 @@ Yadro umumiy bo'ladi (login, sinflar, testlar, natijalar, import); har fan o'z m
 ## Holat
 - [x] 1-bosqich (yadro): QTYPES registry, fill/match/order, qisman ball, muharrir, natija tahlili — 2026-10-01
 - [x] 1b: o'zlashtirish yozuvi (db.mastery[userId]: q - SM-2 holati, t - mavzu EMA avg), natijada maslahat — 2026-10-01
-- [ ] 1c: o'quvchi statistikasi sahifasi, "Xatolarim" va bugungi takrorlash testi (myDueQuestionIds)
+- [x] 1c: o'quvchi statistikasi sahifasi, "Xatolarim" va bugungi takrorlash testi (myDueQuestionIds) — "Statistikam" tabi, streak (mastery.d), ustozga "Eng qiyin mavzular" — 2026-10-02 (v22)
 - [x] 4-bosqich (qisman): So'z kartochkalari — ustoz "Kartochkalar" tabi (so'z|tarjima qatorlari, ro'yxatdan joylash), o'quvchi "So'z yodlash" tabi (aylanadigan karta, 🔊, Bilmadim/Qiynaldim/Bildim, SM-2: mastery.c) — 2026-10-01
 - [x] UI QOIDASI: har yangi imkoniyat alohida katta tugma; maxsus sintaksis yo'q. Savol turlari muharririni ham shunga moslash (ustun-forma, `___`/`=` sintaksisisiz) — savol muharriri tur-kartalarga o'tkazildi 2026-10-02 (v20)
