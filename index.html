@@ -188,6 +188,7 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#f8fafc}
 .hub-card b{font-size:15px}.hub-card small{font-size:11.5px;color:#64748b;line-height:1.3}
 .hub-ic{font-size:30px;line-height:1}
 .hub-card.on{border-color:var(--pri);background:#eef1ff}
+.mk-tbl{width:100%;border-collapse:collapse}.mk-tbl td{padding:7px 6px;border-bottom:1px solid #e2e8f0;font-size:14px}
 .symb{padding:5px 8px;margin:2px;border:1px solid var(--bdr);border-radius:6px;cursor:pointer;font-size:14px;background:#fff;transition:all .15s}
 .symb:hover{border-color:var(--pri);background:#eef1f9}
 .sarea{background:#f8fafc;border:1px solid var(--bdr);border-radius:9px;padding:9px;max-height:150px;overflow-y:auto;margin-top:7px}
@@ -478,8 +479,8 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#f8fafc}
     </div>
   </div>
   <div class="tc" id="st-cert">
-    <div class="card"><h2 style="margin:0 0 4px">&#x1F393; Sertifikat mashqlari</h2>
-      <p class="ts tm" style="margin:0 0 14px">Ustozsiz, o'zingiz mashq qiling: imtihon va darajani tanlang — AI har safar yangi topshiriq tuzadi.</p>
+    <div class="card"><h2 style="margin:0 0 4px">&#x1F393; Mock imtihon</h2>
+      <p class="ts tm" style="margin:0 0 14px">IELTS va Multilevel (CEFR) imtihoniga o'xshash to'liq sinov — haqiqiy vaqt, bo'limlar va baholash bilan.</p>
       <div id="cert-body"></div></div>
   </div>
   <div class="tc" id="st-stats">
@@ -552,6 +553,13 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#f8fafc}
 </div>
 
 <!-- RESULT -->
+<div class="pg" id="pg-mockw">
+  <div class="card"><div class="fx between" style="align-items:center;gap:8px">
+    <h2 style="margin:0">&#x270D;&#xFE0F; Writing</h2><div class="tmr" id="mw-tmr">--:--</div>
+    <button class="btn bg bsm" onclick="if(confirm('Writing bo\'limidan chiqasizmi?'))closeMockWriting()">Chiqish</button></div>
+    <p class="ts tm" style="margin:6px 0 0">Javobni yozing — vaqt tugasa avtomatik topshiriladi. AI har bir topshiriqni rasmiy mezonlar bo'yicha baholaydi.</p></div>
+  <div id="mw-body"></div>
+</div>
 <div class="pg" id="pg-res">
   <div class="card" style="text-align:center">
     <div class="rring" id="r-ring"><div style="font-size:33px;font-weight:800" id="r-pct"></div><div class="ts tm" id="r-frac"></div></div>
@@ -1132,7 +1140,7 @@ var _sb = null;
 // rasm yuklash, bildirishnoma...) "Authorization: Bearer" sifatida qo'shiladi.
 var _authToken=null;
 var _AUTH_HOSTS=/^https:\/\/[^\/]*\.(?:nip\.io|duckdns\.org)(?::\d+)?(?=\/)/;
-var _AUTH_PATHS=/^\/(?:ai_check|parse|parse_batch|parse_batch_start|parse_batch_status\/[^\/?#]+|extract_batch_start|convert_emfs|compose_parts|parse_document|parse_image|eng_generate|practice_generate|generate_test_start|generate_test_status\/[^\/?#]+|upload_image|notify_teacher|notify_teacher_status|parent_link_create|r2_stats|send_email_smtp)(?:[?#]|$)/;
+var _AUTH_PATHS=/^\/(?:ai_check|parse|parse_batch|parse_batch_start|parse_batch_status\/[^\/?#]+|extract_batch_start|convert_emfs|compose_parts|parse_document|parse_image|eng_generate|practice_generate|mock_set|mock_practice|mock_grade_writing|generate_test_start|generate_test_status\/[^\/?#]+|upload_image|notify_teacher|notify_teacher_status|parent_link_create|r2_stats|send_email_smtp)(?:[?#]|$)/;
 (function(){
   var origFetch=window.fetch.bind(window);
   window.fetch=function(input,init){
@@ -3497,6 +3505,7 @@ function groupByPassage(qs){
   return [].concat.apply([],order.map(function(k){return g[k];}));
 }
 function passageHtml(q){
+  if(q.listen) return listenHtml(q);
   if(!q.passage) return '';
   return '<details class="en-pass" open><summary>&#x1F4D6; Matnni o\'qing</summary><div class="en-pass-t">'+_qEsc(q.passage).replace(/\n/g,'<br>')+'</div></details>';
 }
@@ -3507,7 +3516,7 @@ function passageHtml(q){
 // ═══════════════════════════════════════════════════════════════════════
 var ST_SECTIONS=[
   {tc:'st-test',   tab:'st-tab-test',   ic:'&#x1F4DD;', t:'Ustoz testlari', d:'Ustozingiz qo\'shgan mavzular', subj:true},
-  {tc:'st-cert',   tab:'st-tab-cert',   ic:'&#x1F393;', t:'Sertifikat mashqlari', d:'CEFR va IELTS — ustozsiz, mustaqil', subj:false},
+  {tc:'st-cert',   tab:'st-tab-cert',   ic:'&#x1F393;', t:'Mock imtihon', d:'IELTS va Multilevel — ustozsiz', subj:false},
   {tc:'st-cards',  tab:'st-cards-tab',  ic:'&#x1F0CF;', t:'Yodlash', d:'Kartochkalar bilan takrorlash', subj:true},
   {tc:'st-battle', tab:'st-tab-battle', ic:'&#x1F3AE;', t:'O\'yinlar', d:'Duel va sinf jangi', subj:true},
   {tc:'st-stats',  tab:'st-stats-tab',  ic:'&#x1F4C8;', t:'Statistikam', d:'Qaysi mavzuni bilasiz', subj:true},
@@ -3594,6 +3603,213 @@ function renderCertEstimate(r){
   el.innerHTML=txt+'<div class="ts" style="opacity:.8;margin-top:4px">Bu rasmiy natija emas — mashq asosidagi taxmin.</div>';
 }
 
+// ═══════════════════════════════════════════════════════════════════════
+// MOCK IMTIHONLAR (2026-10-02): IELTS va O'zbekiston Multilevel (CEFR) formati.
+// Savollar oldindan tuzilgan bazadan keladi (/mock_set) — AI faqat Writing baholashda.
+// Speaking yo'q (tekin nutq AI'si yo'q).
+// ═══════════════════════════════════════════════════════════════════════
+var MOCK={exam:null};
+var MOCK_EXAMS={ielts:{name:'IELTS Academic',ic:'&#x1F393;',plays:1}, ml:{name:'Multilevel (CEFR)',ic:'&#x1F1FA;&#x1F1FF;',plays:2}};
+var MOCK_QT={tfng:"True / False / Not Given",gap:"Bo'sh joyni to'ldirish",mcq:"Variantli savol",heading:"Sarlavha tanlash (headings)",match:"Moslashtirish (matching)"};
+var _mockRun=null, _mockScripts={}, _mockPlays={};
+function _mockHist(){ try{ return JSON.parse(localStorage.getItem('bt_mock_hist')||'[]'); }catch(e){ return []; } }
+function _mockSaveHist(h){ try{ localStorage.setItem('bt_mock_hist',JSON.stringify(h.slice(-30))); }catch(e){} }
+function mockSet(k,v){ MOCK[k]=v; renderCert(); }
+function renderCert(){
+  var el=document.getElementById('cert-body'); if(!el) return;
+  var h='<div class="aqt-grid">'+Object.keys(MOCK_EXAMS).map(function(k){ var e=MOCK_EXAMS[k];
+    return '<button type="button" class="aqt-card'+(MOCK.exam===k?' on':'')+'" onclick="mockSet(\'exam\',\''+k+'\')"><span class="aqt-ic">'+e.ic+'</span><b>'+e.name+'</b><small>'+(k==='ielts'?'Listening, Reading, Writing — band 1–9':'O\'zbekiston milliy imtihoni — A2 dan C1 gacha')+'</small></button>'; }).join('')+'</div>';
+  if(MOCK.exam){
+    var mins=MOCK.exam==='ielts'?{l:30,r:60,w:60}:{l:35,r:60,w:45};
+    var b=function(secs,ic,t,d){ return '<button type="button" class="ms-act" style="background:linear-gradient(135deg,#4f46e5,#7c3aed)" onclick="startMock(\''+secs+'\')"><span style="font-size:26px">'+ic+'</span><b>'+t+'</b><small>'+d+'</small></button>'; };
+    h+='<div style="font-weight:800;margin:16px 0 8px">Nimani ishlaymiz?</div>'+
+      '<button type="button" class="ms-act" style="width:100%;margin-bottom:8px;background:linear-gradient(135deg,#0f766e,#2563eb)" onclick="startMock(\'listening,reading,writing\')"><span style="font-size:30px">&#x1F3C6;</span><b>To\'liq mock imtihon</b><small>Listening ('+mins.l+' daq) → Reading ('+mins.r+' daq) → Writing ('+mins.w+' daq)</small></button>'+
+      '<div class="ms-acts" style="grid-template-columns:repeat(3,1fr)">'+b('listening','&#x1F3A7;','Listening',mins.l+' daqiqa')+b('reading','&#x1F4D6;','Reading',mins.r+' daqiqa')+b('writing','&#x270D;&#xFE0F;','Writing','AI baholaydi')+'</div>';
+    var weak=_mockWeak(MOCK.exam);
+    if(weak.length) h+='<div style="font-weight:800;margin:16px 0 6px">&#x1F4AA; Xatolar ustida ishlash</div><div class="ts tm" style="margin-bottom:8px">Oxirgi mocklaringizda eng ko\'p xato qilgan savol turlari:</div>'+
+      weak.map(function(w){ return '<div class="ms-row"><div class="ms-tn">'+_qEsc(MOCK_QT[w.t]||w.t)+'</div><div class="ms-bar"><div style="width:'+Math.max(4,w.p)+'%;background:'+_pctColor(w.p)+'"></div></div><button class="btn bpu bsm" onclick="startMockPractice(\''+w.t+'\')">Mashq</button></div>'; }).join('');
+    h+='<div id="mock-msg" class="mt8"></div><div class="ts tm" style="margin-top:10px;text-align:center">Savollar original, formati haqiqiy imtihonga o\'xshatilgan. Speaking yo\'q. Natija — taxminiy.</div>';
+  }
+  el.innerHTML=h;
+}
+function _mockWeak(exam){
+  var agg={}; _mockHist().filter(function(x){return x.exam===exam;}).slice(-5).forEach(function(x){ Object.keys(x.qt||{}).forEach(function(t){ var a=agg[t]=agg[t]||{ok:0,n:0}; a.ok+=x.qt[t].ok; a.n+=x.qt[t].n; }); });
+  return Object.keys(agg).map(function(t){return {t:t,p:Math.round(agg[t].ok/agg[t].n*100)};}).filter(function(w){return w.p<80;}).sort(function(a,b){return a.p-b.p;});
+}
+function _mockQs(parts,sec){
+  var out=[];
+  parts.forEach(function(p,pi){
+    _mockScripts[p.id]=p.text;
+    p.questions.forEach(function(q,i){
+      var o={id:'mk_'+p.id+'_'+i,subject:'eng',topic:'',mockSec:sec,qtype:q.qtype,pid:p.id,partNo:pi+1};
+      if(sec==='reading') o.passage=(p.title?p.title+'\n\n':'')+p.text;
+      else { o.listen=q.script?(p.id+'_'+i):p.id; if(q.script) _mockScripts[p.id+'_'+i]=q.script; }
+      if(q.type==='fill'){ o.type='fill'; o.text=/_{3,}/.test(q.text)?q.text:q.text+' ___'; o.data={answers:[q.answers]}; }
+      else { o.text=q.text; o.options=q.options; o.correct=q.correct; o.isMulti=false; }
+      out.push(o);
+    });
+  });
+  return out;
+}
+async function _mockFetch(path,body){
+  var r=await fetchVM(DB_SERVER,path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  var j=await r.json(); if(!r.ok||j.error) throw new Error(j.error||('Server xatosi '+r.status)); return j;
+}
+async function startMock(secs){
+  var msg=document.getElementById('mock-msg'); secs=secs.split(',');
+  var seen=[]; try{ seen=JSON.parse(localStorage.getItem('bt_mock_seen')||'[]'); }catch(e){}
+  msg.innerHTML='<div class="alt ai">&#x23F3; Imtihon tayyorlanmoqda...</div>';
+  try{
+    var j=await _mockFetch('/mock_set',{exam:MOCK.exam,sections:secs,seen:seen.slice(-150)});
+    var obj=[]; ['listening','reading'].forEach(function(s){ if(j.sections[s]) obj=obj.concat(_mockQs(j.sections[s],s)); });
+    var wr=j.sections.writing||[];
+    if(!obj.length&&!wr.length){ msg.innerHTML='<div class="alt aw">&#x23F3; Savollar bazasi hali to\'ldirilmoqda. Har 2 soatda yangi qismlar qo\'shiladi — birozdan keyin urinib ko\'ring.</div>'; return; }
+    Object.keys(j.sections).forEach(function(s){ j.sections[s].forEach(function(p){ seen.push(p.id); }); });
+    try{ localStorage.setItem('bt_mock_seen',JSON.stringify(seen.slice(-300))); }catch(e){}
+    msg.innerHTML=j.missing&&j.missing.length?'<div class="alt aw">Baza hali to\'liq emas: '+j.missing.length+' ta qism hozircha yo\'q, mavjudlari bilan boshlandi.</div>':'';
+    var mins=(secs.indexOf('listening')>=0&&j.sections.listening?j.minutes.listening:0)+(secs.indexOf('reading')>=0&&j.sections.reading?j.minutes.reading:0);
+    _mockRun={exam:MOCK.exam,name:MOCK_EXAMS[MOCK.exam].name+' Mock',qs:obj,writing:wr,wMinutes:j.minutes.writing,res:{}};
+    _mockPlays={};
+    if(obj.length) _mockStartObj(obj,mins); else openMockWriting();
+  }catch(e){ msg.innerHTML='<div class="alt ar">&#x274C; '+_qEsc(e.message||'Server bilan bog\'lanib bo\'lmadi')+'</div>'; }
+}
+function _mockStartObj(qs,mins){
+  _reviewQs={name:_mockRun.name,qs:qs,keepOrder:true}; selTopic=_mockRun.name; _certRun=null;
+  startTest('practice');
+  if(mins){ S.timeLeft=mins*60; var tel=document.getElementById('t-tmr'); if(tel) tel.style.display=''; startTimer(); }
+}
+async function startMockPractice(qt){
+  var msg=document.getElementById('mock-msg'); msg.innerHTML='<div class="alt ai">&#x23F3; Mashq tayyorlanmoqda...</div>';
+  try{
+    var j=await _mockFetch('/mock_practice',{exam:MOCK.exam,qtype:qt});
+    if(!(j.parts||[]).length){ msg.innerHTML='<div class="alt aw">Bu tur bo\'yicha hozircha yangi savol yo\'q.</div>'; return; }
+    var qs=[]; j.parts.forEach(function(p){ var sec=p.slot.indexOf(':listening:')>0?'listening':'reading'; qs=qs.concat(_mockQs([p],sec)); });
+    msg.innerHTML=''; _mockPlays={};
+    _mockRun={exam:MOCK.exam,name:'Mashq: '+(MOCK_QT[qt]||qt),qs:qs,writing:[],res:{},practice:true};
+    _mockStartObj(qs,Math.max(5,Math.round(qs.length*1.5)));
+  }catch(e){ msg.innerHTML='<div class="alt ar">&#x274C; '+_qEsc(e.message)+'</div>'; }
+}
+// ─── Listening (brauzer ovozi) ───
+function listenHtml(q){
+  var k=q.listen, left=(MOCK_EXAMS[_mockRun?_mockRun.exam:'ielts'].plays)-(_mockPlays[k]||0);
+  return '<div class="en-pass" style="padding:12px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">'+
+    '<button class="btn bpu" '+(left>0?'':'disabled')+' onclick="mockPlay(\''+k+'\')">&#x1F3A7; '+(left>0?'Tinglash':'Eshitildi')+'</button>'+
+    '<span class="ts tm">'+(left>0?'Yana '+left+' marta eshitish mumkin':'Qayta eshitib bo\'lmaydi — haqiqiy imtihondagidek')+'</span>'+
+    '<button class="btn bg bsm" onclick="try{speechSynthesis.cancel()}catch(e){}">&#x23F9;</button></div>';
+}
+function mockPlay(k){
+  var left=MOCK_EXAMS[_mockRun.exam].plays-(_mockPlays[k]||0); if(left<=0) return;
+  _mockPlays[k]=(_mockPlays[k]||0)+1; renderQ();
+  try{
+    speechSynthesis.cancel();
+    var vs=speechSynthesis.getVoices().filter(function(v){return /^en(-|_)/i.test(v.lang);}), who={}, n=0;
+    String(_mockScripts[k]||'').split(/\n+/).forEach(function(line){
+      var m=line.match(/^\s*([A-Z][\w .'-]{0,24}):\s*(.+)$/), sp=m?m[1]:'_', tx=m?m[2]:line;
+      if(!tx.trim()) return;
+      if(!(sp in who)) who[sp]=n++;
+      var u=new SpeechSynthesisUtterance(tx); u.lang='en-GB'; u.rate=0.95;
+      if(vs.length) u.voice=vs[who[sp]%vs.length];
+      speechSynthesis.speak(u);
+    });
+  }catch(e){ alert('Brauzeringiz ovozli o\'qishni qo\'llab-quvvatlamaydi.'); }
+}
+// ─── Natija ───
+var IELTS_L=[[39,9],[37,8.5],[35,8],[32,7.5],[30,7],[26,6.5],[23,6],[18,5.5],[16,5],[13,4.5],[10,4],[8,3.5],[6,3],[4,2.5],[0,2]];
+var IELTS_R=[[39,9],[37,8.5],[35,8],[33,7.5],[30,7],[27,6.5],[23,6],[19,5.5],[15,5],[13,4.5],[10,4],[8,3.5],[6,3],[4,2.5],[0,2]];
+function _band(tbl,ok,n){ var raw=Math.round(ok/n*40); for(var i=0;i<tbl.length;i++) if(raw>=tbl[i][0]) return tbl[i][1]; return 1; }
+function _mlLevel(s){ return s>=65?'C1':s>=51?'B2':s>=38?'B1':'B1 dan past'; }
+function _ieltsRound(x){ var f=x-Math.floor(x); return Math.floor(x)+(f<0.25?0:f<0.75?0.5:1); }
+function renderMockResult(r){
+  var el=document.getElementById('r-mock');
+  if(!el){ var sn=document.getElementById('r-synote'); if(!sn) return; el=document.createElement('div'); el.id='r-mock'; sn.parentNode.insertBefore(el,sn.nextSibling); }
+  if(!_mockRun||r.topic!==_mockRun.name){ el.style.display='none'; return; }
+  var secs={}, qt={};
+  (r.details||[]).forEach(function(d,i){ var q=_mockRun.qs[i]; if(!q) return; var sc=typeof d.score==='number'?d.score:(d.ok?1:0);
+    var s=secs[q.mockSec]=secs[q.mockSec]||{ok:0,n:0}; s.ok+=sc; s.n++; var t=qt[q.qtype]=qt[q.qtype]||{ok:0,n:0}; t.ok+=sc; t.n++; });
+  var h='<div style="font-weight:800;font-size:16px;margin-bottom:8px">&#x1F4CA; '+_qEsc(_mockRun.name)+' — natija</div><table class="mk-tbl">';
+  ['listening','reading'].forEach(function(s){ var x=secs[s]; if(!x) return;
+    var val=_mockRun.exam==='ielts'?('Band <b>'+_band(s==='listening'?IELTS_L:IELTS_R,x.ok,x.n).toFixed(1)+'</b>'):('<b>'+Math.round(x.ok/x.n*75)+'</b>/75 · '+_mlLevel(Math.round(x.ok/x.n*75)));
+    _mockRun.res[s]=_mockRun.exam==='ielts'?_band(s==='listening'?IELTS_L:IELTS_R,x.ok,x.n):Math.round(x.ok/x.n*75);
+    h+='<tr><td>'+(s==='listening'?'&#x1F3A7; Listening':'&#x1F4D6; Reading')+'</td><td>'+Math.round(x.ok*10)/10+' / '+x.n+'</td><td>'+val+'</td></tr>'; });
+  h+='</table><div style="font-weight:700;margin:12px 0 6px">Savol turlari bo\'yicha</div>'+Object.keys(qt).map(function(t){ var p=Math.round(qt[t].ok/qt[t].n*100);
+    return '<div class="ms-row"><div class="ms-tn">'+_qEsc(MOCK_QT[t]||t)+'</div><div class="ms-bar"><div style="width:'+Math.max(4,p)+'%;background:'+_pctColor(p)+'"></div></div><div class="ms-p" style="color:'+_pctColor(p)+'">'+p+'%</div></div>'; }).join('');
+  if(!_mockRun.practice){ var hist=_mockHist(); hist.push({exam:_mockRun.exam,t:Date.now(),res:_mockRun.res,qt:qt}); _mockSaveHist(hist); }
+  if(_mockRun.writing&&_mockRun.writing.length) h+='<button class="btn bpu bfw blg" style="margin-top:14px" onclick="openMockWriting()">&#x270D;&#xFE0F; Writing bo\'limiga o\'tish ('+_mockRun.wMinutes+' daqiqa)</button>';
+  h+='<div class="ts" style="opacity:.75;margin-top:8px">Xatolaringizni "Batafsil" tugmasida ko\'ring. Zaif turlarni "Mock imtihon" → "Xatolar ustida ishlash" da mashq qiling. Natija taxminiy.</div>';
+  el.style.cssText='display:block;margin:12px 0;padding:14px;border-radius:12px;background:#f8faff;border:1px solid #c7d2fe;text-align:left';
+  el.innerHTML=h;
+}
+// ─── Writing ───
+function mockChartSvg(ch){
+  var W=520,H=280,L=46,B=40,T=30,R=10, labels=ch.labels, ser=ch.series, all=[].concat.apply([],ser.map(function(s){return s.values;})).map(Number);
+  var mx=Math.max.apply(null,all.concat([1])), cols=['#2563eb','#f59e0b','#10b981','#ef4444'], pw=W-L-R, ph=H-T-B;
+  var y=function(v){return T+ph-(v/mx)*ph;}, svg='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;max-width:560px;background:#fff;border:1px solid #e2e8f0;border-radius:10px">';
+  svg+='<text x="'+W/2+'" y="18" text-anchor="middle" font-size="13" font-weight="700">'+_qEsc(ch.title||'')+'</text>';
+  for(var g=0;g<=4;g++){ var gv=mx*g/4; svg+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+y(gv)+'" y2="'+y(gv)+'" stroke="#eef2f7"/><text x="'+(L-4)+'" y="'+(y(gv)+4)+'" text-anchor="end" font-size="10">'+Math.round(gv*10)/10+'</text>'; }
+  var step=pw/labels.length;
+  labels.forEach(function(lb,i){ svg+='<text x="'+(L+step*i+step/2)+'" y="'+(H-B+16)+'" text-anchor="middle" font-size="10">'+_qEsc(String(lb).slice(0,14))+'</text>'; });
+  ser.forEach(function(s,si){ var c=cols[si%4];
+    if(ch.type==='line'){ svg+='<polyline fill="none" stroke="'+c+'" stroke-width="2.5" points="'+s.values.map(function(v,i){return (L+step*i+step/2)+','+y(+v);}).join(' ')+'"/>'; }
+    else { var bw=step*0.8/ser.length; s.values.forEach(function(v,i){ svg+='<rect x="'+(L+step*i+step*0.1+bw*si)+'" y="'+y(+v)+'" width="'+(bw-2)+'" height="'+(T+ph-y(+v))+'" fill="'+c+'"/>'; }); }
+    svg+='<rect x="'+(L+si*120)+'" y="'+(H-14)+'" width="10" height="10" fill="'+c+'"/><text x="'+(L+si*120+14)+'" y="'+(H-5)+'" font-size="10">'+_qEsc(String(s.name).slice(0,16))+'</text>'; });
+  return svg+(ch.unit?'<text x="6" y="'+(T-8)+'" font-size="10">'+_qEsc(ch.unit)+'</text>':'')+'</svg>';
+}
+var _mwTimer=null;
+function openMockWriting(){
+  var w=_mockRun.writing, el=document.getElementById('mw-body'), items=[];
+  w.forEach(function(t){ if(t.parts) t.parts.forEach(function(p,i){ items.push({kind:t.task+'.'+(i+1),label:'Task 1.'+(i+1),prompt:(i?'':'')+p.prompt,situation:t.situation,min:p.min_words}); });
+    else items.push({kind:t.task,label:t.task==='ielts1'?'Task 1':'Task 2',prompt:t.prompt,chart:t.chart,min:t.min_words}); });
+  _mockRun.wItems=items;
+  el.innerHTML=items.map(function(it,i){
+    return '<div class="card"><div style="font-weight:800;margin-bottom:6px">'+it.label+' <span class="ts tm">(kamida '+it.min+' so\'z)</span></div>'+
+      (it.situation&&/\.1$/.test(it.kind)?'<div class="alt ai" style="margin-bottom:8px">'+_qEsc(it.situation)+'</div>':'')+
+      '<div style="margin-bottom:8px;line-height:1.6">'+_qEsc(it.prompt)+'</div>'+(it.chart?mockChartSvg(it.chart):'')+
+      '<textarea id="mw-t'+i+'" rows="10" oninput="document.getElementById(\'mw-c'+i+'\').textContent=(this.value.trim().split(/\\s+/).filter(Boolean).length)+\' so\\\'z\'" style="width:100%;box-sizing:border-box;margin-top:8px;font:inherit;font-size:15px;padding:10px;border-radius:10px;border:1.5px solid var(--bdr)" spellcheck="false"></textarea>'+
+      '<div class="ts tm" id="mw-c'+i+'">0 so\'z</div><div id="mw-r'+i+'"></div></div>'; }).join('')+
+    '<button class="btn bpu bfw blg" id="mw-submit" onclick="submitMockWriting()">&#x2705; Topshirish va baholash</button><div id="mw-final"></div>';
+  showPg('pg-mockw');
+  var left=(_mockRun.wMinutes||60)*60, tl=document.getElementById('mw-tmr');
+  if(_mwTimer) clearInterval(_mwTimer);
+  _mwTimer=setInterval(function(){ left--; tl.textContent=Math.floor(left/60)+':'+('0'+left%60).slice(-2); if(left<=0){ clearInterval(_mwTimer); submitMockWriting(); } },1000);
+}
+async function submitMockWriting(){
+  if(_mwTimer) clearInterval(_mwTimer);
+  var btn=document.getElementById('mw-submit'); if(btn.disabled) return; btn.disabled=true;
+  var items=_mockRun.wItems, scores=[];
+  for(var i=0;i<items.length;i++){
+    var it=items[i], box=document.getElementById('mw-r'+i), txt=document.getElementById('mw-t'+i).value.trim();
+    document.getElementById('mw-t'+i).readOnly=true;
+    if(txt.split(/\s+/).filter(Boolean).length<20){ box.innerHTML='<div class="alt aw">Javob yozilmagan yoki juda qisqa — 0 ball.</div>'; scores.push({it:it,v:_mockRun.exam==='ielts'?0:0}); continue; }
+    box.innerHTML='<div class="alt ai">&#x23F3; AI baholamoqda...</div>';
+    try{
+      var j=await _mockFetch('/mock_grade_writing',{exam:_mockRun.exam,kind:it.kind,task:(it.situation?it.situation+'\n':'')+it.prompt+(it.chart?'\nChart data: '+JSON.stringify(it.chart):''),text:txt});
+      var v, head;
+      if(_mockRun.exam==='ielts'){ var sc=j.scores||{}, ks=Object.keys(sc); v=ks.length?_ieltsRound(ks.reduce(function(a,k){return a+(+sc[k]||0);},0)/ks.length):0;
+        head='Band <b style="font-size:18px">'+v.toFixed(1)+'</b> · '+ks.map(function(k){return k+' '+sc[k];}).join(' · '); }
+      else { v=Math.max(0,Math.min(75,+j.score75||0)); head='<b style="font-size:18px">'+v+'</b>/75 · '+_qEsc(j.level||_mlLevel(v)); }
+      scores.push({it:it,v:v});
+      box.innerHTML='<div style="margin-top:8px;padding:10px;border-radius:10px;background:#f8faff;border:1px solid #c7d2fe">'+head+
+        '<div style="margin-top:6px;line-height:1.6;white-space:pre-wrap">'+_qEsc(j.feedback||'')+'</div>'+
+        ((j.mistakes||[]).length?'<div style="font-weight:700;margin-top:8px">Xatolar:</div>'+j.mistakes.map(function(m){return '<div class="ts" style="margin:3px 0"><s style="color:#dc2626">'+_qEsc(m.wrong)+'</s> → <b style="color:#16a34a">'+_qEsc(m.right)+'</b> <span class="tm">'+_qEsc(m.why||'')+'</span></div>';}).join(''):'')+'</div>';
+    }catch(e){ box.innerHTML='<div class="alt ar">&#x274C; '+_qEsc(e.message)+'</div>'; }
+  }
+  var wv;
+  if(_mockRun.exam==='ielts'){ var t1=scores.find(function(s){return s.it.kind==='ielts1';}), t2=scores.find(function(s){return s.it.kind==='ielts2';});
+    wv=_ieltsRound(t1&&t2?(t1.v+2*t2.v)/3:(t1||t2).v); }
+  else wv=Math.round(scores.reduce(function(a,s){return a+s.v;},0)/scores.length);
+  _mockRun.res.writing=wv;
+  var R=_mockRun.res, h='<div class="card" style="background:#eef2ff"><div style="font-weight:800;font-size:17px;margin-bottom:8px">&#x1F3C6; Yakuniy natija (taxminiy)</div>';
+  if(_mockRun.exam==='ielts'){ var ks=['listening','reading','writing'].filter(function(k){return typeof R[k]==='number';});
+    h+=ks.map(function(k){return '<div>'+k[0].toUpperCase()+k.slice(1)+': <b>'+R[k].toFixed(1)+'</b></div>';}).join('')+
+      (ks.length>1?'<div style="margin-top:6px;font-size:18px">Umumiy (Speakingsiz): <b>'+_ieltsRound(ks.reduce(function(a,k){return a+R[k];},0)/ks.length).toFixed(1)+'</b></div>':''); }
+  else { var ks2=['listening','reading','writing'].filter(function(k){return typeof R[k]==='number';});
+    h+=ks2.map(function(k){return '<div>'+k[0].toUpperCase()+k.slice(1)+': <b>'+R[k]+'</b>/75 · '+_mlLevel(R[k])+'</div>';}).join('')+
+      (ks2.length>1?'<div style="margin-top:6px;font-size:18px">O\'rtacha: <b>'+Math.round(ks2.reduce(function(a,k){return a+R[k];},0)/ks2.length)+'</b>/75 · '+_mlLevel(Math.round(ks2.reduce(function(a,k){return a+R[k];},0)/ks2.length))+'</div>':''); }
+  document.getElementById('mw-final').innerHTML=h+'<div class="ts tm" style="margin-top:6px">Speaking baholanmagan. Bu rasmiy natija emas.</div></div>';
+  var hist=_mockHist(); if(hist.length&&hist[hist.length-1].exam===_mockRun.exam) { hist[hist.length-1].res=R; _mockSaveHist(hist); }
+}
+function closeMockWriting(){ if(_mwTimer) clearInterval(_mwTimer); try{speechSynthesis.cancel();}catch(e){} showPg('pg-topic'); openStSection('st-cert'); }
+
 function startTest(mode){
   if(!selTopic){alert("Mavzu tanlang!");return;}
   var _rv=_reviewQs&&_reviewQs.name===selTopic;
@@ -3602,7 +3818,7 @@ function startTest(mode){
   var meta=getTopicMeta(selTopic);
   var toAsk=(meta&&!_rv)?meta.questionsToAsk:rawQs.length;
   toAsk=Math.min(toAsk,rawQs.length);
-  var qs=shuf(rawQs).slice(0,toAsk).map(function(q){
+  var qs=(_rv&&_reviewQs.keepOrder?rawQs.slice():shuf(rawQs)).slice(0,toAsk).map(function(q){
     if(QTYPES[qType(q)]) return QTYPES[qType(q)].prepare(q);
     var orig=q.options.slice(),sh=shuf(orig);
     var nc=q.correct.map(function(ci){return sh.indexOf(orig[ci]);});
@@ -4315,6 +4531,7 @@ function showResult(r,syncState){
   if(r.pct>=70){setTimeout(function(){fireConfetti(r.pct>=90?70:40);},250);}
   try{ renderMasteryAdvice(r); }catch(e){ console.warn('mastery advice',e); }
   try{ renderCertEstimate(r); }catch(e){}
+  try{ renderMockResult(r); }catch(e){ console.warn('mock natija',e); }
 }
 function fireConfetti(count){
   if(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
