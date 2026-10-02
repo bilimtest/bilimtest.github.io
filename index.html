@@ -3645,7 +3645,7 @@ function _mockQs(parts,sec){
       if(sec==='reading') o.passage=(p.title?p.title+'\n\n':'')+p.text;
       else { o.listen=q.script?(p.id+'_'+i):p.id; if(q.script) _mockScripts[p.id+'_'+i]=q.script; }
       if(q.type==='fill'){ o.type='fill'; o.text=/_{3,}/.test(q.text)?q.text:q.text+' ___'; o.data={answers:[q.answers]}; }
-      else { o.text=q.text; o.options=q.options; o.correct=q.correct; o.isMulti=false; if(q.keep) o.keep=true; }
+      else { o.text=q.text; o.options=q.qtype==='mcq'?q.options.map(function(x){return String(x).replace(/^\(?[A-Ja-j][\).:]\s+/,'');}):q.options; o.correct=q.correct; o.isMulti=false; if(q.keep) o.keep=true; }
       out.push(o);
     });
   });
