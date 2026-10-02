@@ -182,6 +182,12 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#f8fafc}
 .en-pass summary{cursor:pointer;padding:10px 12px;font-weight:700}
 .en-pass-t{padding:0 14px 12px;max-height:40vh;overflow-y:auto;line-height:1.7;font-size:15.5px}
 .lv-badge{display:inline-block;padding:1px 7px;border-radius:6px;background:#eef1ff;color:#4338ca;font-weight:800;font-size:11px;margin-left:4px}
+.hub-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}
+@media(max-width:560px){.hub-grid{grid-template-columns:repeat(2,1fr)}}
+.hub-card{display:flex;flex-direction:column;align-items:center;gap:4px;padding:14px 8px;border:2px solid transparent;border-radius:16px;background:rgba(255,255,255,.94);cursor:pointer;font:inherit;color:var(--txt);text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.hub-card b{font-size:15px}.hub-card small{font-size:11.5px;color:#64748b;line-height:1.3}
+.hub-ic{font-size:30px;line-height:1}
+.hub-card.on{border-color:var(--pri);background:#eef1ff}
 .symb{padding:5px 8px;margin:2px;border:1px solid var(--bdr);border-radius:6px;cursor:pointer;font-size:14px;background:#fff;transition:all .15s}
 .symb:hover{border-color:var(--pri);background:#eef1f9}
 .sarea{background:#f8fafc;border:1px solid var(--bdr);border-radius:9px;padding:9px;max-height:150px;overflow-y:auto;margin-top:7px}
@@ -370,14 +376,16 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#f8fafc}
     </div>
   </div>
 
+  <div id="st-hub" class="hub-grid"></div>
   <div id="subj-gate" style="display:none"></div>
   <div id="subj-bar" class="sg-bar" style="display:none"></div>
-  <div class="tabs">
-    <button class="tab on" onclick="switchTab('st-test',this)">&#x1F4DD; Test yechish</button>
-    <button class="tab" onclick="switchTab('st-battle',this)">&#x1F3AE; O'yinlar</button>
+  <div class="tabs" id="st-tabs" style="display:none">
+    <button class="tab on" id="st-tab-test" onclick="switchTab('st-test',this)">&#x1F4DD; Test yechish</button>
+    <button class="tab" id="st-tab-cert" onclick="switchTab('st-cert',this)">&#x1F393; Sertifikat</button>
+    <button class="tab" id="st-tab-battle" onclick="switchTab('st-battle',this)">&#x1F3AE; O'yinlar</button>
     <button class="tab" id="st-cards-tab" style="display:none" onclick="switchTab('st-cards',this);renderStudentDecks()">&#x1F0CF; Yodlash</button>
     <button class="tab" id="st-stats-tab" style="display:none" onclick="switchTab('st-stats',this);renderMyStats()">&#x1F4C8; Statistikam</button>
-    <button class="tab" onclick="switchTab('st-results',this);loadMyHist()">&#x1F4CA; Natijalarim</button>
+    <button class="tab" id="st-tab-results" onclick="switchTab('st-results',this);loadMyHist()">&#x1F4CA; Natijalarim</button>
   </div>
 
   <div class="tc on" id="st-test">
@@ -468,6 +476,11 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#f8fafc}
       <p class="ts tm" style="margin:0 0 14px">Kartani bosing — javobi chiqadi. Bilganlaringiz kamroq, bilmaganlaringiz ko'proq takrorlanadi.</p>
       <div id="st-deck-list"></div>
     </div>
+  </div>
+  <div class="tc" id="st-cert">
+    <div class="card"><h2 style="margin:0 0 4px">&#x1F393; Sertifikat mashqlari</h2>
+      <p class="ts tm" style="margin:0 0 14px">Ustozsiz, o'zingiz mashq qiling: imtihon va darajani tanlang — AI har safar yangi topshiriq tuzadi.</p>
+      <div id="cert-body"></div></div>
   </div>
   <div class="tc" id="st-stats">
     <div class="card"><div class="ch"><div><h2>&#x1F4C8; Mening statistikam</h2><p class="ts tm" style="margin:4px 0 0">Qaysi mavzuni yaxshi bilasiz, qaysini takrorlash kerak — shu yerda.</p></div></div>
@@ -1119,7 +1132,7 @@ var _sb = null;
 // rasm yuklash, bildirishnoma...) "Authorization: Bearer" sifatida qo'shiladi.
 var _authToken=null;
 var _AUTH_HOSTS=/^https:\/\/[^\/]*\.(?:nip\.io|duckdns\.org)(?::\d+)?(?=\/)/;
-var _AUTH_PATHS=/^\/(?:ai_check|parse|parse_batch|parse_batch_start|parse_batch_status\/[^\/?#]+|extract_batch_start|convert_emfs|compose_parts|parse_document|parse_image|eng_generate|generate_test_start|generate_test_status\/[^\/?#]+|upload_image|notify_teacher|notify_teacher_status|parent_link_create|r2_stats|send_email_smtp)(?:[?#]|$)/;
+var _AUTH_PATHS=/^\/(?:ai_check|parse|parse_batch|parse_batch_start|parse_batch_status\/[^\/?#]+|extract_batch_start|convert_emfs|compose_parts|parse_document|parse_image|eng_generate|practice_generate|generate_test_start|generate_test_status\/[^\/?#]+|upload_image|notify_teacher|notify_teacher_status|parent_link_create|r2_stats|send_email_smtp)(?:[?#]|$)/;
 (function(){
   var origFetch=window.fetch.bind(window);
   window.fetch=function(input,init){
@@ -3085,16 +3098,17 @@ function initStudentSubject(){
 function renderSubjGate(list){
   list=list||myStudentSubjects();
   var pg=document.getElementById('pg-topic'), gate=document.getElementById('subj-gate'), bar=document.getElementById('subj-bar');
-  var need=!_curSubjFilter&&list.length>1;
+  var needSubj=_sectionNeedsSubj(), need=!_curSubjFilter&&list.length>1&&needSubj;
   pg.classList.toggle('no-subj',need);
   gate.style.display=need?'':'none';
   if(need){
     gate.innerHTML='<div class="card"><h2 style="margin:0 0 4px">Qaysi fanni o\'qiymiz?</h2><p class="ts tm" style="margin:0 0 14px">Fanni tanlang — testlar, kartochkalar va o\'yinlar shu fan bo\'yicha chiqadi.</p>'+
       '<div class="sg-grid">'+list.map(function(s){return '<button class="sg-card" onclick="setStudentSubject(\''+s+'\')"><span style="font-size:34px">'+subjEmoji(s)+'</span><b>'+_qEsc(subjName(s))+'</b></button>';}).join('')+'</div></div>';
   }
-  bar.style.display=(_curSubjFilter&&!need)?'':'none';
+  bar.style.display=(_curSubjFilter&&!need&&needSubj)?'':'none';
   if(_curSubjFilter) bar.innerHTML='<span class="sg-cur">'+subjEmoji(_curSubjFilter)+' '+_qEsc(subjName(_curSubjFilter))+'</span>'+
     (list.length>1?'<button class="btn bg bsm" onclick="setStudentSubject(null)">&#x1F504; Fanni almashtirish</button>':'');
+  renderStHub();
 }
 function setStudentSubject(s){
   _curSubjFilter=s; _curFolder=null;
@@ -3347,6 +3361,7 @@ function updateStatsTab(){
   var has=!!(ME&&ME.role==='student'&&hasMyStats());
   b.style.display=has?'':'none';
   if(!has&&b.classList.contains('on')){ var t=document.querySelector('#pg-topic .tab'); if(t) t.click(); }
+  renderStHub();
 }
 function _pctColor(p){ return p>=80?'#16a34a':p>=60?'#d97706':'#dc2626'; }
 function renderMyStats(){
@@ -3484,6 +3499,99 @@ function groupByPassage(qs){
 function passageHtml(q){
   if(!q.passage) return '';
   return '<details class="en-pass" open><summary>&#x1F4D6; Matnni o\'qing</summary><div class="en-pass-t">'+_qEsc(q.passage).replace(/\n/g,'<br>')+'</div></details>';
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// O'QUVCHI BO'LIMLARI (2026-10-02): tablar o'rniga katta kartalar. Ba'zi
+// bo'limlar ustozga bog'liq emas (Sertifikat mashqlari, Natijalarim).
+// ═══════════════════════════════════════════════════════════════════════
+var ST_SECTIONS=[
+  {tc:'st-test',   tab:'st-tab-test',   ic:'&#x1F4DD;', t:'Ustoz testlari', d:'Ustozingiz qo\'shgan mavzular', subj:true},
+  {tc:'st-cert',   tab:'st-tab-cert',   ic:'&#x1F393;', t:'Sertifikat mashqlari', d:'CEFR va IELTS — ustozsiz, mustaqil', subj:false},
+  {tc:'st-cards',  tab:'st-cards-tab',  ic:'&#x1F0CF;', t:'Yodlash', d:'Kartochkalar bilan takrorlash', subj:true},
+  {tc:'st-battle', tab:'st-tab-battle', ic:'&#x1F3AE;', t:'O\'yinlar', d:'Duel va sinf jangi', subj:true},
+  {tc:'st-stats',  tab:'st-stats-tab',  ic:'&#x1F4C8;', t:'Statistikam', d:'Qaysi mavzuni bilasiz', subj:true},
+  {tc:'st-results',tab:'st-tab-results',ic:'&#x1F4CA;', t:'Natijalarim', d:'Imtihon natijalari', subj:false}
+];
+function _curStSection(){ var on=document.querySelector('#pg-topic .tc.on'); return on?on.id:'st-test'; }
+function renderStHub(){
+  var h=document.getElementById('st-hub'); if(!h) return;
+  var cur=_curStSection();
+  h.innerHTML=ST_SECTIONS.filter(function(s){ var b=document.getElementById(s.tab); return b&&b.style.display!=='none'; }).map(function(s){
+    return '<button type="button" class="hub-card'+(cur===s.tc?' on':'')+'" onclick="openStSection(\''+s.tc+'\')"><span class="hub-ic">'+s.ic+'</span><b>'+s.t+'</b><small>'+s.d+'</small></button>';
+  }).join('');
+}
+function openStSection(tc){
+  var s=ST_SECTIONS.find(function(x){return x.tc===tc;}); if(!s) return;
+  var b=document.getElementById(s.tab); if(b) b.click();
+  if(tc==='st-cert') renderCert();
+  renderSubjGate(); renderStHub();
+}
+function _sectionNeedsSubj(){ var s=ST_SECTIONS.find(function(x){return x.tc===_curStSection();}); return !s||s.subj; }
+
+// ─── SERTIFIKAT MASHQLARI ──────────────────────────────────────────────
+var CERT={exam:null,section:'reading',level:'B1',band:'6'};
+var IELTS_BANDS=[['5','B1'],['6','B2'],['7','C1'],['8','C2']];
+var BAND_RANGE={B1:[4,5],B2:[5.5,6.5],C1:[7,8],C2:[8.5,9]};
+function certSet(k,v){ CERT[k]=v; renderCert(); }
+function renderCert(){
+  var el=document.getElementById('cert-body'); if(!el) return;
+  var h='<div class="aqt-grid">'+
+    '<button type="button" class="aqt-card'+(CERT.exam==='cefr'?' on':'')+'" onclick="certSet(\'exam\',\'cefr\')"><span class="aqt-ic">&#x1F4CA;</span><b>CEFR</b><small>A1 dan C2 gacha — darajangizni bilib oling</small></button>'+
+    '<button type="button" class="aqt-card'+(CERT.exam==='ielts'?' on':'')+'" onclick="certSet(\'exam\',\'ielts\')"><span class="aqt-ic">&#x1F393;</span><b>IELTS</b><small>Reading mashqi va taxminiy band</small></button></div>';
+  if(CERT.exam){
+    var secs=CERT.exam==='ielts'?[['reading','&#x1F4D6;','Reading','Matn o\'qib, savollarga javob']]:[['reading','&#x1F4D6;','Reading','Matn o\'qib, savollarga javob'],['grammar','&#x270D;&#xFE0F;','Grammar','Gapni to\'g\'ri to\'ldiring']];
+    if(CERT.exam==='ielts') CERT.section='reading';
+    h+='<div style="font-weight:800;margin:16px 0 8px">Nimani mashq qilamiz?</div><div class="aqt-grid">'+secs.map(function(s){
+      return '<button type="button" class="aqt-card'+(CERT.section===s[0]?' on':'')+'" onclick="certSet(\'section\',\''+s[0]+'\')"><span class="aqt-ic">'+s[1]+'</span><b>'+s[2]+'</b><small>'+s[3]+'</small></button>'; }).join('')+'</div>';
+    if(CERT.exam==='cefr'){
+      h+='<div style="font-weight:800;margin:16px 0 8px">Qaysi daraja?</div><div class="en-lvs">'+CEFR.map(function(c){
+        return '<button type="button" class="en-lv'+(CERT.level===c[0]?' on':'')+'" onclick="certSet(\'level\',\''+c[0]+'\')"><b>'+c[0]+'</b><small>'+c[1]+'</small></button>'; }).join('')+'</div>';
+    } else {
+      h+='<div style="font-weight:800;margin:16px 0 8px">Maqsadingiz qaysi band?</div><div class="en-lvs">'+IELTS_BANDS.map(function(b){
+        return '<button type="button" class="en-lv'+(CERT.band===b[0]?' on':'')+'" onclick="certSet(\'band\',\''+b[0]+'\')"><b>'+b[0]+(b[0]==='8'?'+':'')+'</b><small>band</small></button>'; }).join('')+'</div>';
+    }
+    h+='<button class="btn bpu bfw blg" style="margin-top:16px" onclick="startCert()">&#x25B6;&#xFE0F; Boshlash</button>'+
+       '<div class="ts tm" style="margin-top:8px;text-align:center">Har safar AI yangi topshiriq tuzadi va uni tekshiradi. Natija — taxminiy.</div><div id="cert-msg" class="mt8"></div>';
+  }
+  el.innerHTML=h;
+}
+function _certLevel(){ if(CERT.exam==='ielts'){ var b=IELTS_BANDS.find(function(x){return x[0]===CERT.band;}); return b?b[1]:'B2'; } return CERT.level; }
+async function startCert(){
+  var msg=document.getElementById('cert-msg'), lvl=_certLevel(), seen=[];
+  try{ seen=JSON.parse(localStorage.getItem('bt_cert_seen')||'[]'); }catch(e){}
+  msg.innerHTML='<div class="alt ai">&#x23F3; Topshiriq tayyorlanmoqda... (yangi bo\'lsa 20-60 soniya)</div>';
+  try{
+    var r=await fetchVM(DB_SERVER,'/practice_generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({section:CERT.section,level:lvl,seen:seen.slice(-60)})});
+    var j=await r.json();
+    if(!r.ok||j.error||!(j.questions||[]).length){ msg.innerHTML='<div class="alt ar">&#x274C; '+_qEsc(j.error||'Topshiriq tayyorlanmadi, qayta urinib ko\'ring.')+'</div>'; return; }
+    seen.push(j.id); try{ localStorage.setItem('bt_cert_seen',JSON.stringify(seen.slice(-200))); }catch(e){}
+    var name=(CERT.exam==='ielts'?'IELTS '+CERT.band+' ':'CEFR '+lvl+' ')+(CERT.section==='reading'?'Reading':'Grammar');
+    var qs=j.questions.map(function(q,i){ var o={id:'pr_'+j.id+'_'+i,subject:'eng',topic:name,text:q.text,options:q.options,correct:q.correct,isMulti:false,level:lvl};
+      if(j.passage){ o.passage=(j.title?j.title+'\n\n':'')+j.passage; o.pid='pr_'+j.id; } return o; });
+    msg.innerHTML='';
+    _certRun={exam:CERT.exam,level:lvl,band:CERT.band,name:name};
+    _reviewQs={name:name,qs:qs}; selTopic=name; startTest('practice');
+  }catch(e){ msg.innerHTML='<div class="alt ar">&#x274C; Server bilan bog\'lanib bo\'lmadi.</div>'; }
+}
+var _certRun=null;
+function renderCertEstimate(r){
+  var el=document.getElementById('r-cert');
+  if(!el){ var sn=document.getElementById('r-advice')||document.getElementById('r-synote'); if(!sn) return; el=document.createElement('div'); el.id='r-cert'; sn.parentNode.insertBefore(el,sn.nextSibling); }
+  if(!_certRun||r.topic!==_certRun.name){ el.style.display='none'; return; }
+  var p=r.pct, txt;
+  if(_certRun.exam==='ielts'){
+    var rg=BAND_RANGE[_certRun.level]||[5.5,6.5], band=p<50?rg[0]-0.5:rg[0]+(rg[1]-rg[0])*(p-50)/50;
+    band=Math.max(1,Math.round(band*2)/2);
+    txt='&#x1F393; Taxminiy IELTS Reading band: <b style="font-size:20px">'+band.toFixed(1)+'</b>'+(band>=+_certRun.band?' — maqsadingizga yetdingiz!':' — maqsad: '+_certRun.band);
+  } else {
+    var L=_certRun.level, i=CEFR.findIndex(function(c){return c[0]===L;}), nxt=CEFR[i+1]?CEFR[i+1][0]:null, prv=i>0?CEFR[i-1][0]:null;
+    txt=p>=80?'&#x1F3C6; <b>'+L+'</b> darajasini yaxshi bilasiz.'+(nxt?' Endi <b>'+nxt+'</b> ni sinab ko\'ring.':'')
+       :p>=60?'&#x1F44D; <b>'+L+'</b> darajasiga yaqinsiz — yana 1-2 marta mashq qiling.'
+       :'&#x1F4DA; <b>'+L+'</b> hozircha qiyin.'+(prv?' <b>'+prv+'</b> dan mashq qilib, qaytib keling.':'');
+  }
+  el.style.cssText='display:block;margin:12px 0;padding:12px 14px;border-radius:12px;background:#eef2ff;border:1px solid #c7d2fe;color:#3730a3;font-size:14px;line-height:1.6;text-align:left';
+  el.innerHTML=txt+'<div class="ts" style="opacity:.8;margin-top:4px">Bu rasmiy natija emas — mashq asosidagi taxmin.</div>';
 }
 
 function startTest(mode){
@@ -4206,6 +4314,7 @@ function showResult(r,syncState){
   // A'lo natijada konfetti portlaydi
   if(r.pct>=70){setTimeout(function(){fireConfetti(r.pct>=90?70:40);},250);}
   try{ renderMasteryAdvice(r); }catch(e){ console.warn('mastery advice',e); }
+  try{ renderCertEstimate(r); }catch(e){}
 }
 function fireConfetti(count){
   if(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
@@ -8538,6 +8647,7 @@ function updateCardsTab(){
   var has=!!(ME&&ME.role==='student'&&fcDecks().filter(fcDeckVisible).length);
   b.style.display=has?'':'none';
   if(!has&&b.classList.contains('on')){ var t=document.querySelector('#pg-topic .tab'); if(t) t.click(); }
+  renderStHub();
 }
 function renderStudentDecks(){
   var el=document.getElementById('st-deck-list'); if(!el) return;
