@@ -3645,7 +3645,7 @@ function _mockQs(parts,sec){
       if(sec==='reading') o.passage=(p.title?p.title+'\n\n':'')+p.text;
       else { o.listen=q.script?(p.id+'_'+i):p.id; if(q.script) _mockScripts[p.id+'_'+i]=q.script; }
       if(q.type==='fill'){ o.type='fill'; o.text=/_{3,}/.test(q.text)?q.text:q.text+' ___'; o.data={answers:[q.answers]}; }
-      else { o.text=q.text; o.options=q.options; o.correct=q.correct; o.isMulti=false; }
+      else { o.text=q.text; o.options=q.options; o.correct=q.correct; o.isMulti=false; if(q.keep) o.keep=true; }
       out.push(o);
     });
   });
@@ -3820,7 +3820,7 @@ function startTest(mode){
   toAsk=Math.min(toAsk,rawQs.length);
   var qs=(_rv&&_reviewQs.keepOrder?rawQs.slice():shuf(rawQs)).slice(0,toAsk).map(function(q){
     if(QTYPES[qType(q)]) return QTYPES[qType(q)].prepare(q);
-    var orig=q.options.slice(),sh=shuf(orig);
+    var orig=q.options.slice(),sh=q.keep?orig.slice():shuf(orig);
     var nc=q.correct.map(function(ci){return sh.indexOf(orig[ci]);});
     var newOptImg={};
     if(q.optImages){orig.forEach(function(opt,oi){var ni=sh.indexOf(opt);if(q.optImages[String(oi)])newOptImg[String(ni)]=q.optImages[String(oi)];});}
@@ -4250,7 +4250,7 @@ function renderQ(){
     var optContent=isImg
       ? '<img src="'+imgSrcVal(opt)+'" style="max-width:100%;max-height:150px;display:block;margin:6px 0 2px 0;background:#fff;border-radius:6px;padding:4px">'
       : '<span> '+opt+'</span>';
-    return '<div class="opt'+(sel?' sel':'')+'" onclick="selAns('+i+')">'+ctrl+'<div style="flex:1"><span>'+String.fromCharCode(65+i)+'.</span>'+optContent+'</div></div>';
+    return '<div class="opt'+(sel?' sel':'')+'" onclick="selAns('+i+')">'+ctrl+'<div style="flex:1"><span>'+(_optLabeled(q)?'':String.fromCharCode(65+i)+'.')+'</span>'+optContent+'</div></div>';
   }).join('');
   document.getElementById('t-qbody').innerHTML=passageHtml(q)+
     '<div style="font-weight:700;font-size:17px;margin-bottom:8px;line-height:1.6">'+(S.idx+1)+'. '+(q.text||'')+'</div>'+
@@ -4259,6 +4259,8 @@ function renderQ(){
     optsHtml;
   renderMathIn(document.getElementById('t-qbody'));
 }
+// Variantlarning o'zida harf/raqam belgisi bo'lsa (masalan 'A. ...', 'iv ...'), qo'shimcha 'A.' yozilmaydi
+function _optLabeled(q){ var o=q.options||[]; return o.length>1&&o.every(function(x){return /^\(?([A-J]|[ivx]{1,4})(?:[\).:\s-]|$)/.test(String(x));}); }
 function goQ(d){S.idx=Math.max(0,Math.min(S.test.length-1,S.idx+d));renderQ();}
 function selAns(i){var q=S.test[S.idx],ans=(S.answers[S.idx]||[]).slice();if(q.isMulti){var x=ans.indexOf(i);if(x>=0)ans.splice(x,1);else ans.push(i);}else{ans=[i];}S.answers[S.idx]=ans;renderQ();}
 // Klaviatura orqali javob belgilash: 1-9 raqamlar yoki A-Z harflar variant tanlaydi,
