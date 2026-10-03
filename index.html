@@ -900,6 +900,11 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#f8fafc}
       <div id="admin-pending-teachers"></div>
     </div>
     <div class="card">
+      <h3 style="margin-bottom:8px">&#x1F3C5; Milliy sertifikat bazasi</h3>
+      <p style="font-size:13px;color:var(--mut);margin-bottom:10px">Biologiya, tarix, geografiya, ona tili va adabiyot uchun AI original savol qoralamalarini yozadi (ikkinchi AI tekshiradi). Siz har birini ko'rib tasdiqlaysiz. Fanda 45 ta tasdiqlangan savol bo'lgach, o'quvchilarga ochiladi.</p>
+      <div id="admin-ms-bank"></div>
+    </div>
+    <div class="card">
       <h3 style="margin-bottom:8px">&#x1F510; Mening hisobim</h3>
       <div class="fg"><label>Joriy parol</label><div style="position:relative"><input type="password" id="apw-old" autocomplete="new-password" data-lpignore="true" data-1p-ignore placeholder="Joriy parol" style="padding-right:38px" readonly onfocus="this.removeAttribute('readonly')"><span onclick="togglePw('apw-old',this)" style="position:absolute;right:11px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:16px">&#x1F441;</span></div></div>
       <div class="fg"><label>Yangi login (ixtiyoriy)</label><input type="text" id="apw-login" autocomplete="off" placeholder="Yangi login" readonly onfocus="this.removeAttribute('readonly')"></div>
@@ -1146,7 +1151,7 @@ var _sb = null;
 // rasm yuklash, bildirishnoma...) "Authorization: Bearer" sifatida qo'shiladi.
 var _authToken=null;
 var _AUTH_HOSTS=/^https:\/\/[^\/]*\.(?:nip\.io|duckdns\.org)(?::\d+)?(?=\/)/;
-var _AUTH_PATHS=/^\/(?:ai_check|parse|parse_batch|parse_batch_start|parse_batch_status\/[^\/?#]+|extract_batch_start|convert_emfs|compose_parts|parse_document|parse_image|eng_generate|practice_generate|mock_set|mock_practice|mock_grade_writing|generate_test_start|generate_test_status\/[^\/?#]+|upload_image|notify_teacher|notify_teacher_status|parent_link_create|r2_stats|send_email_smtp)(?:[?#]|$)/;
+var _AUTH_PATHS=/^\/(?:ai_check|parse|parse_batch|parse_batch_start|parse_batch_status\/[^\/?#]+|extract_batch_start|convert_emfs|compose_parts|parse_document|parse_image|eng_generate|practice_generate|mock_set|mock_practice|mock_grade_writing|generate_test_start|generate_test_status\/[^\/?#]+|upload_image|notify_teacher|notify_teacher_status|parent_link_create|r2_stats|send_email_smtp|ms_draft_gen|ms_drafts|ms_bank_save)(?:[?#]|$)/;
 (function(){
   var origFetch=window.fetch.bind(window);
   window.fetch=function(input,init){
@@ -4259,17 +4264,95 @@ async function msLoad(subj){
   }catch(e){}
   return {qs:msGenerate(subj), src:'gen'};
 }
+// ─── MILLIY SERTIFIKAT: AI fanlari (qoralama → admin tasdig'i → baza) ───────
+var MS_AI_SUBJ={bio:{name:'Biologiya',ic:'&#x1F9EC;'},hist:{name:'Tarix',ic:'&#x1F3DB;&#xFE0F;'},geo:{name:'Geografiya',ic:'&#x1F30D;'},ona:{name:'Ona tili va adabiyot',ic:'&#x1F4D6;'}};
+var _msStats=null;
+async function msLoadStats(){
+  try{ var r=await fetchVM(DB_SERVER,'/ms_bank_stats'); if(r.ok){ _msStats=await r.json(); } }catch(e){}
+  return _msStats;
+}
+var _msAdm={subj:'bio', drafts:[], bank:[], edit:null, busy:false};
+function _msAdmEl(){ return document.getElementById('admin-ms-bank'); }
+async function msAdminLoad(subj){
+  if(subj) _msAdm.subj=subj; var el=_msAdmEl(); if(!el) return;
+  el.innerHTML='<div class="ts tm">&#x23F3; Yuklanmoqda...</div>';
+  try{ var r=await fetchVM(DB_SERVER,'/ms_drafts?subject='+_msAdm.subj); var j=await r.json();
+    if(!r.ok) throw new Error(j.error||('HTTP '+r.status)); _msAdm.drafts=j.drafts||[]; _msAdm.bank=j.bank||[]; }
+  catch(e){ el.innerHTML='<div class="alt ar">Yuklab bo\'lmadi: '+_qEsc(e.message)+'</div>'; return; }
+  msAdminRender();
+}
+function _msAdmQ(q,i,kind){
+  var L='ABCD', ed=_msAdm.edit&&_msAdm.edit.id===q.id;
+  if(ed){ var e=_msAdm.edit;
+    return '<div class="pd" style="border:2px solid var(--pri)"><div class="fg"><label>Savol matni</label><textarea id="msq-t" rows="3">'+_qEsc(e.text)+'</textarea></div>'+
+      e.options.map(function(o,k){ return '<div class="fx" style="gap:6px;align-items:center;margin-bottom:6px"><label style="display:flex;align-items:center;gap:4px;white-space:nowrap"><input type="radio" name="msq-c" value="'+k+'"'+(e.correct[0]===k?' checked':'')+'> '+L[k]+'</label><input type="text" id="msq-o'+k+'" value="'+_qEsc(o)+'" style="flex:1"></div>'; }).join('')+
+      '<div class="ts tm" style="margin-bottom:8px">To\'g\'ri javobni doiracha bilan belgilang.</div>'+
+      '<div class="fx" style="gap:8px;flex-wrap:wrap"><button type="button" class="btn bp" onclick="msAdminSave(\''+kind+'\')">&#x1F4BE; Saqlash'+(kind==='d'?' va tasdiqlash':'')+'</button><button type="button" class="btn" onclick="_msAdm.edit=null;msAdminRender()">Bekor qilish</button></div></div>';
+  }
+  return '<div class="pd"><div class="ts tm" style="margin-bottom:4px">'+(i+1)+'. '+_qEsc(q.msTopic||'')+'</div><div style="font-size:14px;margin-bottom:6px">'+_qEsc(q.text)+'</div>'+
+    q.options.map(function(o,k){ var c=q.correct[0]===k; return '<div style="font-size:13px;padding:2px 0;'+(c?'color:var(--ok);font-weight:700':'')+'">'+L[k]+') '+_qEsc(o)+(c?' &#x2714;':'')+'</div>'; }).join('')+
+    (q.note?'<div class="ts tm" style="margin-top:4px">&#x1F4A1; '+_qEsc(q.note)+'</div>':'')+
+    '<div class="fx" style="gap:6px;margin-top:8px;flex-wrap:wrap">'+
+    (kind==='d'?'<button type="button" class="btn bp" style="padding:6px 12px" onclick="msAdminAct(\'approve\',\''+q.id+'\')">&#x2705; Tasdiqlash</button>':'')+
+    '<button type="button" class="btn" style="padding:6px 12px" onclick="msAdminEdit(\''+kind+'\',\''+q.id+'\')">&#x270F;&#xFE0F; Tahrirlash</button>'+
+    '<button type="button" class="btn" style="padding:6px 12px;color:var(--err)" onclick="msAdminAct(\''+(kind==='d'?'delete':'remove')+'\',\''+q.id+'\')">&#x274C; O\'chirish</button></div></div>';
+}
+function msAdminRender(){
+  var el=_msAdmEl(); if(!el) return; var A=_msAdm, need=45;
+  el.innerHTML='<div class="fx" style="gap:6px;flex-wrap:wrap;margin-bottom:10px">'+Object.keys(MS_AI_SUBJ).map(function(k){
+      return '<button type="button" class="btn'+(k===A.subj?' bp':'')+'" style="padding:6px 12px" onclick="_msAdm.edit=null;msAdminLoad(\''+k+'\')">'+MS_AI_SUBJ[k].ic+' '+MS_AI_SUBJ[k].name+'</button>'; }).join('')+'</div>'+
+    '<div class="alt ai" style="margin-bottom:10px">Bazada <b>'+A.bank.length+'</b> ta tasdiqlangan savol'+(A.bank.length>=need?' — o\'quvchilarga <b>ochiq</b>.':' — o\'quvchiga ochilishi uchun yana <b>'+(need-A.bank.length)+'</b> ta kerak.')+' Qoralamalar: <b>'+A.drafts.length+'</b>.</div>'+
+    '<button type="button" class="btn bp" style="width:100%;margin-bottom:12px" '+(A.busy?'disabled':'')+' onclick="msAdminGen()">'+(A.busy?'&#x23F3; AI savol yozmoqda (1–2 daqiqa)...':'&#x2728; AI bilan 5 ta yangi qoralama yaratish')+'</button>'+
+    '<h4 style="margin:6px 0">&#x1F4DD; Qoralamalar (tekshirib tasdiqlang)</h4>'+
+    (A.drafts.length?A.drafts.map(function(q,i){return _msAdmQ(q,i,'d');}).join(''):'<p class="ts tm">Qoralama yo\'q. Yuqoridagi tugma bilan yarating (fonda ham har kuni oz-ozdan qo\'shiladi).</p>')+
+    '<details style="margin-top:12px"><summary style="cursor:pointer;font-weight:700">&#x1F4DA; Tasdiqlangan savollar ('+A.bank.length+')</summary>'+
+    A.bank.map(function(q,i){return _msAdmQ(q,i,'b');}).join('')+'</details>';
+}
+function msAdminEdit(kind,id){
+  var q=(kind==='d'?_msAdm.drafts:_msAdm.bank).filter(function(x){return x.id===id;})[0]; if(!q) return;
+  _msAdm.edit={id:id,text:q.text,options:q.options.slice(),correct:q.correct.slice(),msTopic:q.msTopic,note:q.note}; msAdminRender();
+}
+async function msAdminSave(kind){
+  var e=_msAdm.edit; if(!e) return; var c=document.querySelector('input[name="msq-c"]:checked');
+  var q={text:document.getElementById('msq-t').value.trim(), options:[0,1,2,3].map(function(k){return document.getElementById('msq-o'+k).value.trim();}), correct:[c?+c.value:-1], msTopic:e.msTopic, note:e.note};
+  if(q.text.length<10||q.options.some(function(o){return !o;})||q.correct[0]<0){ alert('Savol matni, 4 ta variant va to\'g\'ri javob kerak.'); return; }
+  await msAdminAct(kind==='d'?'approve':'edit', e.id, q);
+}
+async function msAdminAct(action,id,q){
+  if((action==='delete'||action==='remove')&&!confirm('Savol o\'chirilsinmi?')) return;
+  try{ var r=await fetchVM(DB_SERVER,'/ms_bank_save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({subject:_msAdm.subj,action:action,id:id,question:q||null})});
+    var j=await r.json(); if(!r.ok) throw new Error(j.error||('HTTP '+r.status)); }
+  catch(e){ alert('Saqlanmadi: '+e.message); return; }
+  _msAdm.edit=null; _msStats=null; msAdminLoad();
+}
+async function msAdminGen(){
+  if(_msAdm.busy) return; _msAdm.busy=true; msAdminRender();
+  try{ var r=await fetchVM(DB_SERVER,'/ms_draft_gen',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({subject:_msAdm.subj,n:5})});
+    var j=await r.json(); if(!r.ok) throw new Error(j.error||('HTTP '+r.status));
+    if(!j.added) alert('AI yozgan savollar tekshiruvdan o\'tmadi. Yana bir bor urinib ko\'ring.'); }
+  catch(e){ alert('Yaratilmadi: '+e.message); }
+  _msAdm.busy=false; msAdminLoad();
+}
 var _msRun=null;
-function renderMsSection(){
+function renderMsSection(skip){
   var el=document.getElementById('ms-body'); if(!el) return;
+  if(!skip&&!_msStats) msLoadStats().then(function(st){ if(st) renderMsSection(true); });
   el.innerHTML='<div class="aqt-grid">'+Object.keys(MS_SUBJECTS).map(function(k){ var s=MS_SUBJECTS[k];
     return '<button type="button" class="aqt-card" onclick="startMs(\''+k+'\')"><span class="aqt-ic">'+s.ic+'</span><b>'+s.name+'</b><small>45 savol · 150 daqiqa</small></button>'; }).join('')+
-    '<button type="button" class="aqt-card" disabled style="opacity:.55"><span class="aqt-ic">&#x1F9EC;</span><b>Biologiya, tarix...</b><small>Tez orada</small></button></div>'+
+    Object.keys(MS_AI_SUBJ).map(function(k){ var s=MS_AI_SUBJ[k], c=_msStats&&_msStats.counts?(_msStats.counts[k]||0):null, need=(_msStats&&_msStats.need)||45, open=c!=null&&c>=need;
+      return open?'<button type="button" class="aqt-card" onclick="startMs(\''+k+'\')"><span class="aqt-ic">'+s.ic+'</span><b>'+s.name+'</b><small>45 savol · 150 daqiqa</small></button>'
+                 :'<button type="button" class="aqt-card" disabled style="opacity:.55"><span class="aqt-ic">'+s.ic+'</span><b>'+s.name+'</b><small>Tez orada</small></button>'; }).join('')+'</div>'+
     '<div class="ts tm" style="margin-top:10px;line-height:1.55">Tuzilma: 1–10 — 1,3 ball; 11–32 — 2,2 ball; 33–35 — moslashtirish (6 variant), 2,2 ball; 36–45 — yozma a) 1,5 + b) 1,7 ball. Jami 100 ball → 75 ballik shkala. Natija <b>taxminiy</b>. Savollar har safar yangi, javoblarini dastur hisoblaydi.</div><div id="ms-msg" class="mt8"></div>';
 }
 async function startMs(subj){
   var msg=document.getElementById('ms-msg'); if(msg) msg.innerHTML='<div class="alt ai">&#x23F3; Tayyorlanmoqda...</div>';
-  var L=await msLoad(subj), SB=MS_SUBJECTS[subj];
+  var SB=MS_SUBJECTS[subj]||MS_AI_SUBJ[subj], L;
+  if(MS_SUBJECTS[subj]) L=await msLoad(subj);
+  else { L={qs:[],src:'bank'}; try{ var rr=await fetchVM(DB_SERVER,'/ms_set?subject='+subj); if(rr.ok) L.qs=(await rr.json()).questions||[]; }catch(e){} }
+  if(L.qs.length<20){ if(msg) msg.innerHTML='<div class="alt aw">Bu fan bazasi hali tayyor emas yoki server bilan bog\'lanib bo\'lmadi.</div>'; return; }
+  if(L.src==='bank') L.qs=L.qs.map(function(q,i){ var p=q.type==='fill'?null:(i<10?MS_SPEC.pts.easy:MS_SPEC.pts.main);
+    var t=String(q.text||'').replace(/^\(\d+(,\d+)? ball\)\s*/,'');
+    return Object.assign({},q,{msNo:i+1, msPts:p||q.msPts, msParts:q.type==='fill'?(q.msParts||[MS_SPEC.pts.oa,MS_SPEC.pts.ob]):undefined, text:p?'('+String(p).replace('.',',')+' ball) '+t:q.text}); });
   if(msg) msg.innerHTML='';
   var name='Milliy sertifikat — '+SB.name;
   _msRun={subj:subj,name:name,src:L.src}; _certRun=null; if(typeof _mockRun!=='undefined') _mockRun=null;
@@ -4295,12 +4378,12 @@ function renderMsResult(r){
   if(!el){ var sn=document.getElementById('r-advice')||document.getElementById('r-synote'); if(!sn) return; el=document.createElement('div'); el.id='r-ms'; sn.parentNode.insertBefore(el,sn.nextSibling); }
   if(!_msRun||r.topic!==_msRun.name){ el.style.display='none'; return; }
   var sc=msScore(S.test||[], r.details), wl=Object.keys(sc.weak).sort(function(a,b){return sc.weak[b]-sc.weak[a];}).slice(0,4);
-  _msLastWeak=wl.length?{subj:_msRun.subj, topics:wl}:null;
+  _msLastWeak=wl.length&&MS_SUBJECTS[_msRun.subj]?{subj:_msRun.subj, topics:wl}:null;
   el.style.cssText='display:block;margin:12px 0;padding:14px;border-radius:12px;background:#fefce8;border:1px solid #fde68a;color:#713f12;text-align:left;line-height:1.6';
   el.innerHTML='&#x1F3C5; Taxminiy natija: <b style="font-size:22px">'+String(sc.ball).replace('.',',')+'</b> / 75 ball'+(sc.grade?' — <b style="font-size:20px">'+sc.grade+'</b>':' — sertifikat chegarasidan (46) past')+
     '<div class="ts">Xom ball: '+String(sc.raw).replace('.',',')+' / '+String(sc.max).replace('.',',')+'</div>'+
     (wl.length?'<div style="margin-top:6px">Ko\'proq ishlash kerak: <b>'+wl.map(_qEsc).join(', ')+'</b></div>'+
-      '<button type="button" class="btn bp" style="margin-top:8px;width:100%" onclick="startMsWeak()">&#x1F3AF; Xatolarim bo\'yicha mashq (10 savol)</button>':'')+
+      (_msLastWeak?'<button type="button" class="btn bp" style="margin-top:8px;width:100%" onclick="startMsWeak()">&#x1F3AF; Xatolarim bo\'yicha mashq (10 savol)</button>':''):'')+
     '<div class="ts" style="opacity:.8;margin-top:4px">Bu rasmiy natija emas — mashq asosidagi taxmin.'+(_msRun.src==='gen'?' Savollar dastur tomonidan yaratilgan.':'')+'</div>';
 }
 
@@ -6018,6 +6101,7 @@ function initAdminSettings(){
   renderPendingTeachers();
   renderAdminAllUsers();
   loadStorageStats();
+  msAdminLoad();
 }
 var _adminShowPass=false;
 var STORAGE_PLAN_MB={free:1024,pro:1024*100};
