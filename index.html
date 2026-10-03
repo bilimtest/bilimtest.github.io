@@ -3760,21 +3760,36 @@ function listenHtml(q){
     '<span class="ts tm">'+(left>0?'Yana '+left+' marta eshitish mumkin':'Qayta eshitib bo\'lmaydi — haqiqiy imtihondagidek')+'</span>'+
     '<button class="btn bg bsm" onclick="try{speechSynthesis.cancel()}catch(e){}">&#x23F9;</button></div>';
 }
+// 2026-10-03: tugma bosilishi bilan darhol eshitilsin — lokal (kompyuterdagi) ovozlar
+// avval tanlanadi (onlayn "Google" ovozlar tarmoq orqali kechikib boshlanadi), ovozlar
+// ro'yxati oldindan yuklanadi, cancel() faqat ovoz ketayotganda, qayta chizish ovozdan keyin.
+var _enVoices=[];
+function _loadEnVoices(){
+  try{
+    var all=speechSynthesis.getVoices().filter(function(v){return /^en(-|_)/i.test(v.lang);});
+    _enVoices=all.filter(function(v){return v.localService;}).concat(all.filter(function(v){return !v.localService;}));
+    var loc=all.filter(function(v){return v.localService;}); if(loc.length) _enVoices=loc;
+  }catch(e){}
+}
+try{ _loadEnVoices(); speechSynthesis.onvoiceschanged=_loadEnVoices; }catch(e){}
 function mockPlay(k){
   var left=MOCK_EXAMS[_mockRun.exam].plays-(_mockPlays[k]||0); if(left<=0) return;
-  _mockPlays[k]=(_mockPlays[k]||0)+1; renderQ();
+  _mockPlays[k]=(_mockPlays[k]||0)+1;
   try{
-    speechSynthesis.cancel();
-    var vs=speechSynthesis.getVoices().filter(function(v){return /^en(-|_)/i.test(v.lang);}), who={}, n=0;
+    if(speechSynthesis.speaking||speechSynthesis.pending) speechSynthesis.cancel();
+    if(!_enVoices.length) _loadEnVoices();
+    var vs=_enVoices, who={}, n=0;
     String(_mockScripts[k]||'').split(/\n+/).forEach(function(line){
       var m=line.match(/^\s*([A-Z][\w .'-]{0,24}):\s*(.+)$/), sp=m?m[1]:'_', tx=m?m[2]:line;
       if(!tx.trim()) return;
       if(!(sp in who)) who[sp]=n++;
       var u=new SpeechSynthesisUtterance(tx); u.lang='en-GB'; u.rate=0.95;
-      if(vs.length) u.voice=vs[who[sp]%vs.length];
+      if(vs.length){ u.voice=vs[who[sp]%vs.length]; u.lang=u.voice.lang; }
       speechSynthesis.speak(u);
     });
+    if(speechSynthesis.paused) speechSynthesis.resume();
   }catch(e){ alert('Brauzeringiz ovozli o\'qishni qo\'llab-quvvatlamaydi.'); }
+  setTimeout(renderQ,0);
 }
 // ─── Natija ───
 var IELTS_L=[[39,9],[37,8.5],[35,8],[32,7.5],[30,7],[26,6.5],[23,6],[18,5.5],[16,5],[13,4.5],[10,4],[8,3.5],[6,3],[4,2.5],[0,2]];
@@ -6526,8 +6541,8 @@ function uniqueTopicName(base){
 // chetlashadi va indikator DB'da (`db.serverBudgetUsed`) saqlanadi, ertasi
 // kun (UTC) qayta tiklanadi. null = cheklovsiz.
 var SERVER_POOL=[
-  {url:IMPORT_SERVER, name:'Server 1 (vm3)', weight:15, dailyBudgetSec:null},
-  {url:'https://bilimtest.130-61-74-112.nip.io',  name:'Server 2 (vm4)', weight:15, dailyBudgetSec:null}
+  {url:IMPORT_SERVER, name:'Server 1 (vm3)', weight:15, chunk:24, parallel:2, dailyBudgetSec:null},
+  {url:'https://bilimtest.130-61-74-112.nip.io',  name:'Server 2 (vm4)', weight:15, chunk:24, parallel:2, dailyBudgetSec:null}
 ];
 // MUHIM: RENDER_SERVERS (pickServer/warmUpImportServers/parse_document va
 // h.k. ishlatadigan eski nom) endi SERVER_POOL'dan AVTOMATIK hosil bo'ladi -
@@ -6628,7 +6643,7 @@ async function distributeEmfConversion(emfTasks, onProgress){
     var totalDownMs=0;
     while(true){
       if(!isServerBudgetAvailable(srv)){ delete activeServers[srv.name]; return; }
-      var chunk=queue.claim(Math.min(srv.weight, MAX_CHUNK));
+      var chunk=queue.claim(srv.chunk||Math.min(srv.weight, MAX_CHUNK));
       if(!chunk.length){ delete activeServers[srv.name]; return; }
       activeServers[srv.name]=true;
       if(onProgress) onProgress(done,total,Object.keys(activeServers));
@@ -6664,7 +6679,9 @@ async function distributeEmfConversion(emfTasks, onProgress){
     }
   }
 
-  await Promise.all(SERVER_POOL.map(worker));
+  // 2026-10-03: o'lchov (vm4, 1-mavzu.exe): 6x1 -> 2.2 formula/s, 24x2 ~2x tez.
+  // Har server o'z 'parallel' soni qadar bir vaqtda so'rov oladi (tarmoq kutilayotganda CPU bo'sh qolmasin).
+  await Promise.all([].concat.apply([], SERVER_POOL.map(function(s){ var a=[]; for(var i=0;i<(s.parallel||1);i++) a.push(s); return a; })).map(worker));
 
   // Agar hali ham vazifalar navbatda qolgan bo'lsa (masalan hammasi bir
   // vaqtda vaqtincha ishdan chiqqan bo'lsa) - endi FAQAT VM1'ga emas,
