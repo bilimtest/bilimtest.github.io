@@ -4201,6 +4201,33 @@ function _msChoice(gen,n,pts,id,seen){
   var g=seen?_msUniq(gen.f,seen):gen.f(), a=String(typeof g.a==='number'?_num(g.a):g.a), w=(g.w||[]).map(function(x){return typeof x==='number'?_num(x):String(x);});
   return {id:id, subject:'ms', topic:'Milliy sertifikat', text:'('+String(pts).replace('.',',')+' ball) '+g.q, options:_opts(a,w), correct:[0], isMulti:false, msTopic:gen.t, msPts:pts, msNo:n};
 }
+function _msFill(g,n,id,seen){
+  var P=MS_SPEC.pts, r=seen?_msUniq(g.o,seen):g.o();
+  var A=String(typeof r.p[0][1]==='number'?_num(r.p[0][1]):r.p[0][1]), B=String(typeof r.p[1][1]==='number'?_num(r.p[1][1]):r.p[1][1]);
+  return {id:id, type:'fill', subject:'ms', topic:'Milliy sertifikat', text:'(a) 1,5 + b) 1,7 ball) '+r.q+'\na) '+r.p[0][0]+' ___\nb) '+r.p[1][0]+' ___',
+    data:{answers:[_numForms(A),_numForms(B)]}, msTopic:g.t, msParts:[P.oa,P.ob], msNo:n};
+}
+// "Xatolarim bo'yicha mashq": zaif mavzular shablonlaridan 10 savol (vaqtsiz, ball hisoblanmaydi)
+var _msLastWeak=null;
+function msWeakQs(subj, topics, cnt){
+  var SB=MS_SUBJECTS[subj], seen={}, qs=[], uid=Date.now().toString(36); cnt=cnt||10;
+  var byT=topics.map(function(t){ return {t:SB.T.filter(function(g){return g.t===t;}), o:SB.O.filter(function(g){return g.t===t;})}; }).filter(function(x){return x.t.length||x.o.length;});
+  if(!byT.length) return [];
+  var add=function(q){ var k=q.text.replace(/^\([^)]*\)\s*/,''); if(txt[k]) return; txt[k]=1; qs.push(q); }, txt={};
+  for(var i=0;qs.length<cnt&&i<cnt*4;i++){ var bb=byT[i%byT.length], id='msw_'+uid+'_'+(qs.length+1);
+    if(bb.t.length&&(!bb.o.length||i%3!==2)) add(_msChoice(_pick(bb.t),qs.length+1,MS_SPEC.pts.main,id,seen));
+    else add(_msFill(_pick(bb.o),qs.length+1,id,seen)); }
+  // mavzuda variant kam bo'lsa — shu fanning boshqa savollari bilan to'ldiriladi
+  for(var j=0;qs.length<cnt&&j<200;j++) add(_msChoice(_pick(SB.T),qs.length+1,MS_SPEC.pts.main,'msw_'+uid+'_'+(qs.length+1),seen));
+  return qs;
+}
+function startMsWeak(){
+  if(!_msLastWeak) return; var L=_msLastWeak, qs=msWeakQs(L.subj,L.topics,10);
+  if(!qs.length){ alert('Mashq uchun savol topilmadi.'); return; }
+  var name='Xatolar mashqi — '+MS_SUBJECTS[L.subj].name;
+  _msRun=null; _certRun=null; if(typeof _mockRun!=='undefined') _mockRun=null;
+  _reviewQs={name:name,qs:qs,keepOrder:true}; selTopic=name; startTest('practice');
+}
 function msGenerate(subj){
   var SB=MS_SUBJECTS[subj], P=MS_SPEC.pts, qs=[], n=1, uid=Date.now().toString(36);
   var id=function(){ return 'ms_'+uid+'_'+n; }, seen={};
@@ -4221,10 +4248,7 @@ function msGenerate(subj){
   // 36–45: 6 oddiy + 4 qiyin (oxirida)
   var oN=SB.O.filter(function(g){return !g.h;}), oH=SB.O.filter(function(g){return g.h;}), op1=[], op2=[];
   while(op1.length<6) op1=op1.concat(shuf(oN)); while(op2.length<4) op2=op2.concat(shuf(oH));
-  op1.slice(0,6).concat(op2.slice(0,4)).forEach(function(g){ var r=_msUniq(g.o,seen);
-    var A=String(typeof r.p[0][1]==='number'?_num(r.p[0][1]):r.p[0][1]), B=String(typeof r.p[1][1]==='number'?_num(r.p[1][1]):r.p[1][1]);
-    qs.push({id:id(), type:'fill', subject:'ms', topic:'Milliy sertifikat', text:'(a) 1,5 + b) 1,7 ball) '+r.q+'\na) '+r.p[0][0]+' ___\nb) '+r.p[1][0]+' ___',
-      data:{answers:[_numForms(A),_numForms(B)]}, msTopic:g.t, msParts:[P.oa,P.ob], msNo:n}); n++; });
+  op1.slice(0,6).concat(op2.slice(0,4)).forEach(function(g){ qs.push(_msFill(g,n,id(),seen)); n++; });
   return qs;
 }
 // Manba: avval server bazasi (rasmiy ruxsat kelgach to'ldiriladi), bo'lmasa — generator
@@ -4271,10 +4295,12 @@ function renderMsResult(r){
   if(!el){ var sn=document.getElementById('r-advice')||document.getElementById('r-synote'); if(!sn) return; el=document.createElement('div'); el.id='r-ms'; sn.parentNode.insertBefore(el,sn.nextSibling); }
   if(!_msRun||r.topic!==_msRun.name){ el.style.display='none'; return; }
   var sc=msScore(S.test||[], r.details), wl=Object.keys(sc.weak).sort(function(a,b){return sc.weak[b]-sc.weak[a];}).slice(0,4);
+  _msLastWeak=wl.length?{subj:_msRun.subj, topics:wl}:null;
   el.style.cssText='display:block;margin:12px 0;padding:14px;border-radius:12px;background:#fefce8;border:1px solid #fde68a;color:#713f12;text-align:left;line-height:1.6';
   el.innerHTML='&#x1F3C5; Taxminiy natija: <b style="font-size:22px">'+String(sc.ball).replace('.',',')+'</b> / 75 ball'+(sc.grade?' — <b style="font-size:20px">'+sc.grade+'</b>':' — sertifikat chegarasidan (46) past')+
     '<div class="ts">Xom ball: '+String(sc.raw).replace('.',',')+' / '+String(sc.max).replace('.',',')+'</div>'+
-    (wl.length?'<div style="margin-top:6px">Ko\'proq ishlash kerak: <b>'+wl.map(_qEsc).join(', ')+'</b></div>':'')+
+    (wl.length?'<div style="margin-top:6px">Ko\'proq ishlash kerak: <b>'+wl.map(_qEsc).join(', ')+'</b></div>'+
+      '<button type="button" class="btn bp" style="margin-top:8px;width:100%" onclick="startMsWeak()">&#x1F3AF; Xatolarim bo\'yicha mashq (10 savol)</button>':'')+
     '<div class="ts" style="opacity:.8;margin-top:4px">Bu rasmiy natija emas — mashq asosidagi taxmin.'+(_msRun.src==='gen'?' Savollar dastur tomonidan yaratilgan.':'')+'</div>';
 }
 

@@ -1,4 +1,4 @@
-const CACHE = 'bilimtest-v38';
+const CACHE = 'bilimtest-v39';
 const IMG_CACHE = 'bilimtest-img-v1';
 const FILES = ['./', './index.html'];
 
