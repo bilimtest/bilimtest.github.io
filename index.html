@@ -4028,6 +4028,96 @@ var MS_O_CHEM=[
   {t:'Reaksiya hisobi',o:function(){ var n=_pick([1,2,3]); return {q:'Zn + 2HCl = ZnCl₂ + H₂ reaksiyasida '+(65*n)+' g rux to\'liq reaksiyaga kirishdi (Ar(Zn)=65).', p:[['Hosil bo\'lgan vodorod miqdori (mol).', n],['Sarflangan HCl miqdori (mol).', 2*n]]}; }},
   {t:'Molyar massa',o:function(){ var x=_pick([['H₂SO₄',98,'S',32],['CaCO₃',100,'Ca',40],['NaOH',40,'Na',23],['HNO₃',63,'N',14]]); return {q:x[0]+' moddasi berilgan.', p:[['Molyar massasi (g/mol).', x[1]],[x[2]+' ning massa ulushi (%) (0,1 gacha).', _num(Math.round(x[3]/x[1]*1000)/10)]]}; }}
 ];
+// ─── QIYIN (ko'p bosqichli) SHABLONLAR — 2026-10-03 ─────────────────────
+MS_T_MATH=MS_T_MATH.concat([
+  {t:'Foiz',s:1,h:1,f:function(){ var A=_ri(2,9)*10000, p1=_pick([10,20,25,50]), p2=_pick([10,20,25,50]); var r=A*(100+p1)/100*(100-p2)/100;
+    return {q:'Narxi '+_fmt(A)+' so\'m bo\'lgan mahsulot avval '+p1+'% ga qimmatladi, keyin yangi narxi '+p2+'% ga arzonlashdi. Oxirgi narxi necha so\'m?', a:_fmt(r), w:[_fmt(A*(100+p1-p2)/100), _fmt(A), _fmt(A*(100-p1)/100*(100+p2)/100+1000)]}; }},
+  {t:'Aralashma',s:1,h:1,f:function(){ var m1=_pick([100,200,300]), m2=_pick([100,200,300]), p1=_pick([10,20,30]), p2=_pick([40,50,60]); var r=(m1*p1+m2*p2)/(m1+m2);
+    if(r!==Math.round(r)){ m1=m2=200; r=(p1+p2)/2; }
+    return {q:m1+' g '+p1+'% li eritma bilan '+m2+' g '+p2+'% li eritma aralashtirildi. Hosil bo\'lgan eritma necha foizli?', a:r, w:[(p1+p2)/2===r?r+5:(p1+p2)/2, p1+p2, Math.abs(p2-p1)]}; }},
+  {t:'Tengsizlik',s:3,h:1,f:function(){ var r1=_ri(-6,3), r2=r1+_ri(3,8), p=-(r1+r2), q=r1*r2;
+    return {q:'x² '+_sgn(p)+'x '+_sgn(q)+' < 0 tengsizlikning butun yechimlari sonini toping.', a:r2-r1-1, w:[r2-r1+1, r2-r1, r2+r1]}; }},
+  {t:'Modulli tenglama',s:3,h:1,f:function(){ var a=_ri(-6,8), b=_ri(1,9);
+    return {q:'|x '+_sgn(-a)+'| = '+b+' tenglama ildizlari yig\'indisini toping.', a:2*a, w:[a+b, 2*b, a]}; }},
+  {t:'Ko\'rsatkichli tenglama',s:3,h:1,f:function(){ var a=_pick([2,3]), k=_ri(1,3), m=_ri(3,6);
+    return {q:a+'^(x + '+k+') = '+Math.pow(a,m)+' tenglamani yeching.', a:m-k, w:[m+k, m, Math.pow(a,m)/a-k]}; }},
+  {t:'Logarifmik tenglama',s:3,h:1,f:function(){ var k=_ri(2,5), c=_ri(-4,6);
+    return {q:'log₂(x '+_sgn(-c)+') = '+k+' tenglamani yeching.', a:Math.pow(2,k)+c, w:[2*k+c, Math.pow(2,k)-c, Math.pow(k,2)+c]}; }},
+  {t:'Progressiya',s:5,h:1,f:function(){ var a1=_ri(1,9), d=_ri(2,6), n=_ri(8,15); var S=(2*a1+(n-1)*d)*n/2;
+    return {q:'Arifmetik progressiyada a₁ = '+a1+', d = '+d+'. Dastlabki '+n+' ta hadi yig\'indisini toping.', a:S, w:[(a1+(n-1)*d)*n, S+a1, (2*a1+n*d)*n/2]}; }},
+  {t:'Progressiya',s:5,h:1,f:function(){ var q=_pick([2,3]), b1=_ri(1,9)*(q-1)*q; var S=b1*q/(q-1);
+    return {q:'Cheksiz kamayuvchi geometrik progressiyada b₁ = '+b1+', q = 1/'+q+'. Yig\'indisini toping.', a:S, w:[b1*q, b1/(q-1), b1*(q+1)/q]}; }},
+  {t:'Trigonometriya',s:4,h:1,f:function(){ var t=_pick([[3,4,5],[5,12,13],[8,15,17],[7,24,25]]);
+    return _pick([{q:'sin α = '+t[0]+'/'+t[2]+' va α — o\'tkir burchak. cos α ni toping.', a:t[1]+'/'+t[2], w:[t[0]+'/'+t[1], t[2]+'/'+t[1], (t[2]-t[0])+'/'+t[2]]},
+                   {q:'sin α = '+t[0]+'/'+t[2]+' va α — o\'tkir burchak. tg α ni toping.', a:t[0]+'/'+t[1], w:[t[1]+'/'+t[0], t[1]+'/'+t[2], t[0]+'/'+t[2]]}]); }},
+  {t:'Hosila',s:5,h:1,f:function(){ var a=_ri(1,4); var M=2*a*a*a;
+    return {q:'f(x) = x³ − '+(3*a*a)+'x funksiyaning maksimum qiymatini toping.', a:M, w:[-M, a, 3*a*a]}; }},
+  {t:'Integral',s:5,h:1,f:function(){ var k=_ri(1,5), b=_ri(-3,6);
+    return {q:'∫₀^'+k+' (2x '+_sgn(b)+') dx integralni hisoblang.', a:k*k+b*k, w:[2*k+b, k*k, k*k+b]}; }},
+  {t:'Geometriya',s:6,h:1,f:function(){ var d1=_ri(3,12)*2, d2=_ri(3,12)*2, a=_ri(3,12), b=a+_ri(2,10), h=_ri(2,9)*2;
+    return _pick([{q:'Rombning diagonallari '+d1+' va '+d2+'. Yuzasini toping.', a:d1*d2/2, w:[d1*d2, d1+d2, d1*d2/4]},
+                   {q:'Trapetsiyaning asoslari '+a+' va '+b+', balandligi '+h+'. Yuzasini toping.', a:(a+b)*h/2, w:[(a+b)*h, a*b*h/2, (b-a)*h/2]}]); }},
+  {t:'Geometriya',s:6,h:1,f:function(){ var r=_ri(2,6), h=_ri(2,10);
+    return {q:'Silindrning asos radiusi '+r+', balandligi '+h+'. Hajmini toping.', a:(r*r*h)+'π', w:[(2*r*h)+'π', (r*h)+'π', (r*r*h/3)+'π']}; }},
+  {t:'Geometriya',s:6,h:1,f:function(){ var k=_ri(1,4), t=_pick([[6,8,10],[5,12,13],[8,15,17]]);
+    return {q:'Katetlari '+t[0]*k+' va '+t[1]*k+' bo\'lgan to\'g\'ri burchakli uchburchakka tashqi chizilgan aylana radiusini toping.', a:_num(t[2]*k/2), w:[t[2]*k, _num(t[0]*k/2), _num((t[0]+t[1])*k/2)]}; }},
+  {t:'Ehtimollik',s:7,h:1,f:function(){ var s=_ri(3,11), cnt=0; for(var i=1;i<=6;i++) for(var j=1;j<=6;j++) if(i+j===s) cnt++;
+    return {q:'Ikki o\'yin kubigi tashlandi. Tushgan ochkolar yig\'indisi '+s+' bo\'lish ehtimolini toping.', a:_frac(cnt,36), w:[_frac(1,s), _frac(cnt,12), _frac(cnt+1,36)]}; }},
+  {t:'Kombinatorika',s:7,h:1,f:function(){ var n=_ri(5,9), k=_pick([2,3]); var C=k===2?n*(n-1)/2:n*(n-1)*(n-2)/6;
+    return {q:n+' kishidan '+k+' kishilik guruhni necha usulda tuzish mumkin?', a:C, w:[C*(k===2?2:6), n*k, C+n]}; }}
+]);
+MS_O_MATH=MS_O_MATH.concat([
+  {t:'Hosila',h:1,o:function(){ var a=_ri(1,3); return {q:'f(x) = x³ − '+(3*a*a)+'x funksiya berilgan.', p:[['Maksimum nuqtasini (x) toping.', -a],['Minimum qiymatini toping.', -2*a*a*a]]}; }},
+  {t:'Geometriya',h:1,o:function(){ var r=_ri(2,6), h=_ri(1,3)*3; return {q:'Konusning asos radiusi '+r+', balandligi '+h+'. (Javobni π siz yozing, masalan 12π → 12)', p:[['Asos yuzasi (π birligida).', r*r],['Hajmi (π birligida).', _num(r*r*h/3)]]}; }},
+  {t:'Ehtimollik',h:1,o:function(){ var r=_ri(3,7), w=_ri(3,7), n=r+w; return {q:'Qutida '+r+' ta qizil va '+w+' ta oq shar bor. Ketma-ket 2 ta shar olinadi (qaytarilmaydi).', p:[['Ikkalasi qizil bo\'lish ehtimoli (a/b ko\'rinishida).', _frac(r*(r-1),n*(n-1))],['Ikkalasi oq bo\'lish ehtimoli (a/b).', _frac(w*(w-1),n*(n-1))]]}; }}
+]);
+MS_T_PHYS=MS_T_PHYS.concat([
+  {t:'Kinematika',s:1,h:1,f:function(){ var k=_ri(1,5), v0=_ri(2,20); var h=5*k*k;
+    return {q:h+' m balandlikdan gorizontal '+v0+' m/s tezlik bilan otilgan jism qancha masofaga (m) uchib boradi? (g = 10 m/s²)', a:v0*k, w:[v0*k*2, v0*h/10, v0+k]}; }},
+  {t:'Kinematika',s:1,h:1,f:function(){ var v0=_ri(1,6)*10;
+    return _pick([{q:'Jism yuqoriga '+v0+' m/s tezlik bilan otildi. Ko\'tarilish balandligi (m) qancha? (g = 10 m/s²)', a:v0*v0/20, w:[v0*v0/10, v0*2, v0/10]},
+                   {q:'Jism yuqoriga '+v0+' m/s tezlik bilan otildi. Necha sekunddan keyin yerga qaytib tushadi? (g = 10 m/s²)', a:v0/5, w:[v0/10, v0/20, v0]}]); }},
+  {t:'Dinamika',s:2,h:1,f:function(){ var m=_ri(2,10), mu=_pick([0.1,0.2,0.3]), a=_ri(1,4); var F=m*a+mu*m*10;
+    return {q:'Massasi '+m+' kg jism gorizontal sirtda '+_num(F)+' N kuch ta\'sirida harakatlanmoqda. Ishqalanish koeffitsiyenti '+_num(mu)+'. Tezlanishi (m/s²)? (g = 10)', a:a, w:[_num(F/m), _num(a+mu*10), _num(mu*10)]}; }},
+  {t:'Ish va energiya',s:3,h:1,f:function(){ var k=_ri(1,4); var h=5*k*k;
+    return {q:'Jism '+h+' m balandlikdan erkin tushdi. Yerga tushish oldidagi tezligi (m/s) qancha? (g = 10 m/s²)', a:10*k, w:[h*2, 5*k, 10*k*k]}; }},
+  {t:'Impuls',s:3,h:1,f:function(){ var m1=_ri(1,5), m2=_ri(1,5), v1=(m1+m2)*_ri(1,4);
+    return {q:'Massasi '+m1+' kg, tezligi '+v1+' m/s bo\'lgan shar tinch turgan '+m2+' kg sharga urilib, ular birga harakatlana boshladi. Umumiy tezligi (m/s)?', a:m1*v1/(m1+m2), w:[v1/2, v1, _num(m2*v1/(m1+m2))]}; }},
+  {t:'Elektr',s:5,h:1,f:function(){ var R1=_ri(2,10), R=_ri(2,10)*2;
+    return {q:R1+' Ω qarshilikka ketma-ket ravishda o\'zaro parallel ulangan ikkita '+R+' Ω li qarshilik ulangan. Umumiy qarshilik (Ω)?', a:R1+R/2, w:[R1+2*R, R1+R, _num(R1*R/(R1+R))]}; }},
+  {t:'Elektr',s:5,h:1,f:function(){ var P=_pick([0.5,1,1.5,2]), t=_ri(2,8), n=_pick([300,450,600,800]);
+    return {q:'Quvvati '+_num(P)+' kW bo\'lgan asbob '+t+' soat ishladi. 1 kW·soat narxi '+n+' so\'m bo\'lsa, sarflangan elektr energiya narxi (so\'m)?', a:_fmt(P*t*n), w:[_fmt(P*n), _fmt(t*n), _fmt(P*t*n*1000)]}; }},
+  {t:'Issiqlik',s:6,h:1,f:function(){ var m1=_ri(1,4), m2=_ri(1,4), t1=_ri(1,4)*10, t2=t1+_ri(2,6)*10; var t=(m1*t1+m2*t2)/(m1+m2);
+    if(t!==Math.round(t)){ m2=m1; t=(t1+t2)/2; }
+    return {q:m1+' kg '+t1+' °C li suv bilan '+m2+' kg '+t2+' °C li suv aralashtirildi. Aralashma harorati (°C)? (issiqlik yo\'qotilmaydi)', a:_num(t), w:[_num((t1+t2)/2===t?t+5:(t1+t2)/2), t1+t2, t2-t1]}; }},
+  {t:'Issiqlik',s:6,h:1,f:function(){ var A=_ri(2,8)*100, Q=A*_pick([2,4,5]);
+    return {q:'Issiqlik mashinasi isitkichdan '+Q+' J issiqlik olib, '+A+' J foydali ish bajardi. FIK (%) qancha?', a:A/Q*100, w:[Q/A*10, (Q-A)/Q*100, A/Q*10]}; }},
+  {t:'Gaz qonunlari',s:6,h:1,f:function(){ var V1=_ri(2,12), k=_pick([2,3,4]);
+    return {q:'Gaz hajmi '+V1+' l. Harorat o\'zgarmas holda bosim '+k+' marta oshirildi. Yangi hajm (l)?', a:_num(V1/k), w:[V1*k, V1, _num(V1/k/2)]}; }}
+]);
+MS_O_PHYS=MS_O_PHYS.concat([
+  {t:'Kinematika',h:1,o:function(){ var k=_ri(1,4), v0=_ri(2,15); return {q:(5*k*k)+' m balandlikdan gorizontal '+v0+' m/s tezlik bilan jism otildi (g = 10 m/s²).', p:[['Uchish vaqti (s).', k],['Uchish masofasi (m).', v0*k]]}; }},
+  {t:'Issiqlik',h:1,o:function(){ var m=_ri(1,4), dt=_ri(2,8)*10; return {q:m+' kg suvni '+dt+' °C ga isitish kerak (c = 4200 J/(kg·°C)).', p:[['Kerakli issiqlik (kJ).', _num(4200*m*dt/1000)],['Isitgich quvvati 2 kW bo\'lsa, necha sekund kerak (yo\'qotishlarsiz)?', 4200*m*dt/2000]]}; }},
+  {t:'Elektr',h:1,o:function(){ var R=_ri(2,8)*2, U=R*_ri(1,5); return {q:'Ikkita '+R+' Ω li qarshilik parallel ulanib, '+U+' V manbaga ulandi.', p:[['Umumiy qarshilik (Ω).', R/2],['Umumiy tok kuchi (A).', U/(R/2)]]}; }}
+]);
+MS_T_CHEM=MS_T_CHEM.concat([
+  {t:'Reaksiya hisobi',s:6,h:1,f:function(){ var a=_ri(1,6), b=_ri(1,4); var w=Math.min(a,2*b);
+    return {q:'2H₂ + O₂ = 2H₂O. '+a+' mol H₂ va '+b+' mol O₂ aralashmasi yondirildi. Necha mol suv hosil bo\'ladi?', a:w, w:[a+b, Math.max(a,2*b), 2*b+a]}; }},
+  {t:'Reaksiya hisobi',s:6,h:1,f:function(){ var n=_pick([1,2,4]), eta=_pick([50,75,80,90]); var m=_num(44*n*eta/100);
+    return {q:'CaCO₃ = CaO + CO₂. '+(100*n)+' g CaCO₃ parchalandi, unum '+eta+'%. Necha gramm CO₂ olindi?', a:m, w:[_num(44*n), _num(56*n*eta/100), _num(100*n*eta/100)]}; }},
+  {t:'Eritmalar',s:3,h:1,f:function(){ var m=_pick([100,200,300]), w1=_pick([20,30,40]), w2=_pick([5,10]); var add=m*w1/w2-m;
+    return {q:m+' g '+w1+'% li eritmaga necha gramm suv qo\'shilsa, '+w2+'% li eritma hosil bo\'ladi?', a:add, w:[m*w1/w2, add/2, m*(w1-w2)/100]}; }},
+  {t:'Gaz hajmi',s:2,h:1,f:function(){ var V=_pick([5,10,11.2,22.4]);
+    return {q:'CH₄ + 2O₂ = CO₂ + 2H₂O. '+_num(V)+' l metanni yoqish uchun necha litr kislorod kerak (bir xil sharoit)?', a:_num(2*V), w:[_num(V), _num(V/2), _num(3*V)]}; }},
+  {t:'Reaksiya hisobi',s:6,h:1,f:function(){ var n=_pick([0.1,0.2,0.5,1]);
+    return {q:'AgNO₃ + NaCl = AgCl↓ + NaNO₃. '+_num(58.5*n)+' g NaCl to\'liq reaksiyaga kirishdi. Necha gramm AgCl cho\'kmaga tushadi? (M(AgCl) = 143,5)', a:_num(143.5*n), w:[_num(58.5*n), _num(170*n), _num(143.5*n/2)]}; }},
+  {t:'Formulani aniqlash',s:4,h:1,f:function(){ var x=_pick([['C — 75%, H — 25%','CH₄',['C₂H₆','C₂H₄','CH₂']],['C — 80%, H — 20%','C₂H₆',['CH₄','C₂H₄','C₃H₈']],['S — 50%, O — 50%','SO₂',['SO₃','SO','S₂O']],['Na — 39,3%, Cl — 60,7%','NaCl',['NaCl₂','Na₂Cl','NaClO']]]);
+    return {q:'Moddaning massa tarkibi: '+x[0]+'. Eng oddiy formulasi qaysi?', a:x[1], w:x[2]}; }}
+]);
+MS_O_CHEM=MS_O_CHEM.concat([
+  {t:'Reaksiya hisobi',h:1,o:function(){ var a=_ri(2,6), b=_ri(1,4); return {q:'2H₂ + O₂ = 2H₂O. '+a+' mol H₂ va '+b+' mol O₂ yondirildi.', p:[['Hosil bo\'lgan suv (mol).', Math.min(a,2*b)],['Hosil bo\'lgan suv massasi (g).', 18*Math.min(a,2*b)]]}; }},
+  {t:'Eritmalar',h:1,o:function(){ var m=_pick([100,200]), w1=_pick([20,40]), w2=10; return {q:m+' g '+w1+'% li tuz eritmasi berilgan.', p:[['Eritmadagi tuz massasi (g).', m*w1/100],[w2+'% li eritma olish uchun qo\'shiladigan suv (g).', m*w1/w2-m]]}; }}
+]);
 var MS_SUBJECTS={
   math:{name:'Matematika',ic:'&#x1F4D0;',T:MS_T_MATH,O:MS_O_MATH},
   phys:{name:'Fizika',ic:'&#x269B;&#xFE0F;',T:MS_T_PHYS,O:MS_O_PHYS},
@@ -4041,11 +4131,12 @@ function _msChoice(gen,n,pts,id){
 function msGenerate(subj){
   var SB=MS_SUBJECTS[subj], P=MS_SPEC.pts, qs=[], n=1, uid=Date.now().toString(36);
   var id=function(){ return 'ms_'+uid+'_'+n; };
-  var easy=shuf(SB.T.filter(function(t){return t.e;})), all=SB.T.slice();
+  var easy=shuf(SB.T.filter(function(t){return t.e;})), all=SB.T.filter(function(t){return !t.h;}), hard=SB.T.filter(function(t){return t.h;});
   for(var i=0;i<MS_SPEC.easy;i++,n++) qs.push(_msChoice(easy[i%easy.length],n,P.easy,id()));
   // 11–32: sohalar tartibida (1→7), har sohadan aralash
-  var main=[]; while(main.length<MS_SPEC.main) main=main.concat(shuf(all));
-  main=main.slice(0,MS_SPEC.main).sort(function(a,b){return a.s-b.s;});
+  // 11–32: 10 ta qiyin (ko'p bosqichli) + 12 ta oddiy, sohalar tartibida
+  var nH=Math.min(10,hard.length), hp=shuf(hard).slice(0,nH), np=[]; while(np.length<MS_SPEC.main-nH) np=np.concat(shuf(all));
+  var main=hp.concat(np.slice(0,MS_SPEC.main-nH)).sort(function(a,b){return a.s-b.s||(a.h?1:0)-(b.h?1:0);});
   main.forEach(function(g){ qs.push(_msChoice(g,n,P.main,id())); n++; });
   // 33–35: moslashtirish — 3 savol, 6 ta UMUMIY variant (A–F), aralashtirilmaydi
   var mg=shuf(all).slice(0,3), made=mg.map(function(g){ var r=g.f(); return {g:g, r:r, a:String(typeof r.a==='number'?_num(r.a):r.a)}; });
@@ -4054,8 +4145,10 @@ function msGenerate(subj){
   six=_opts(six[0],six.slice(1),6); six=shuf(six);
   made.forEach(function(m,k){ qs.push({id:id(), subject:'ms', topic:'Milliy sertifikat', text:'('+String(P.match).replace('.',',')+' ball) Moslashtiring ('+(k+1)+'/3): '+m.r.q, options:six.slice(), correct:[six.indexOf(m.a)], isMulti:false, fixedOpts:true, keep:true, msTopic:m.g.t, msPts:P.match, msNo:n}); n++; });
   // 36–45: yozma (a, b)
-  var op=[]; while(op.length<MS_SPEC.open) op=op.concat(shuf(SB.O.slice()));
-  op.slice(0,MS_SPEC.open).forEach(function(g){ var r=g.o();
+  // 36–45: 6 oddiy + 4 qiyin (oxirida)
+  var oN=SB.O.filter(function(g){return !g.h;}), oH=SB.O.filter(function(g){return g.h;}), op1=[], op2=[];
+  while(op1.length<6) op1=op1.concat(shuf(oN)); while(op2.length<4) op2=op2.concat(shuf(oH));
+  op1.slice(0,6).concat(op2.slice(0,4)).forEach(function(g){ var r=g.o();
     var A=String(typeof r.p[0][1]==='number'?_num(r.p[0][1]):r.p[0][1]), B=String(typeof r.p[1][1]==='number'?_num(r.p[1][1]):r.p[1][1]);
     qs.push({id:id(), type:'fill', subject:'ms', topic:'Milliy sertifikat', text:'(a) 1,5 + b) 1,7 ball) '+r.q+'\na) '+r.p[0][0]+' ___\nb) '+r.p[1][0]+' ___',
       data:{answers:[_numForms(A),_numForms(B)]}, msTopic:g.t, msParts:[P.oa,P.ob], msNo:n}); n++; });
