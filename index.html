@@ -382,7 +382,6 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#f8fafc}
   <div id="subj-bar" class="sg-bar" style="display:none"></div>
   <div class="tabs" id="st-tabs" style="display:none">
     <button class="tab on" id="st-tab-test" onclick="switchTab('st-test',this)">&#x1F4DD; Test yechish</button>
-    <button class="tab" id="st-tab-ms" onclick="switchTab('st-ms',this)">&#x1F3C5; Milliy sertifikat</button>
     <button class="tab" id="st-tab-cert" onclick="switchTab('st-cert',this)">&#x1F393; Sertifikat</button>
     <button class="tab" id="st-tab-battle" onclick="switchTab('st-battle',this)">&#x1F3AE; O'yinlar</button>
     <button class="tab" id="st-cards-tab" style="display:none" onclick="switchTab('st-cards',this);renderStudentDecks()">&#x1F0CF; Yodlash</button>
@@ -479,14 +478,9 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#f8fafc}
       <div id="st-deck-list"></div>
     </div>
   </div>
-  <div class="tc" id="st-ms">
-    <div class="card"><h2 style="margin:0 0 4px">&#x1F3C5; Milliy sertifikat mock</h2>
-      <p class="ts tm" style="margin:0 0 14px">Fanni tanlang — imtihon formatidagi sinov boshlanadi. Natija 75 ballik shkalada, A+ dan C gacha.</p>
-      <div id="ms-body"></div></div>
-  </div>
   <div class="tc" id="st-cert">
-    <div class="card"><h2 style="margin:0 0 4px">&#x1F393; Mock imtihon</h2>
-      <p class="ts tm" style="margin:0 0 14px">IELTS va Multilevel (CEFR) imtihoniga o'xshash to'liq sinov — haqiqiy vaqt, bo'limlar va baholash bilan.</p>
+    <div class="card"><h2 style="margin:0 0 4px">&#x1F393; Sertifikatlar</h2>
+      <p class="ts tm" style="margin:0 0 14px">Imtihonni tanlang: IELTS, Multilevel (CEFR) yoki Milliy sertifikat. Har birida haqiqiy formatdagi mock imtihon va qisqa mashqlar.</p>
       <div id="cert-body"></div></div>
   </div>
   <div class="tc" id="st-stats">
@@ -3597,8 +3591,7 @@ function passageHtml(q){
 // ═══════════════════════════════════════════════════════════════════════
 var ST_SECTIONS=[
   {tc:'st-test',   tab:'st-tab-test',   ic:'&#x1F4DD;', t:'Ustoz testlari', d:'Ustozingiz qo\'shgan mavzular', subj:true},
-  {tc:'st-ms',     tab:'st-tab-ms',     ic:'&#x1F3C5;', t:'Milliy sertifikat', d:'Mock imtihon — 45 savol, A+ dan C gacha', subj:false},
-  {tc:'st-cert',   tab:'st-tab-cert',   ic:'&#x1F393;', t:'Mock imtihon', d:'IELTS va Multilevel — ustozsiz', subj:false},
+  {tc:'st-cert',   tab:'st-tab-cert',   ic:'&#x1F393;', t:'Sertifikatlar', d:'IELTS, CEFR, Milliy sertifikat — mock va mashq', subj:false},
   {tc:'st-cards',  tab:'st-cards-tab',  ic:'&#x1F0CF;', t:'Yodlash', d:'Kartochkalar bilan takrorlash', subj:true},
   {tc:'st-battle', tab:'st-tab-battle', ic:'&#x1F3AE;', t:'O\'yinlar', d:'Duel va sinf jangi', subj:true},
   {tc:'st-stats',  tab:'st-stats-tab',  ic:'&#x1F4C8;', t:'Statistikam', d:'Qaysi mavzuni bilasiz', subj:true},
@@ -3613,10 +3606,10 @@ function renderStHub(){
   }).join('');
 }
 function openStSection(tc){
+  if(tc==='st-ms'){ tc='st-cert'; if(typeof MOCK!=='undefined') MOCK.exam='ms'; } // eski saqlangan bo'lim
   var s=ST_SECTIONS.find(function(x){return x.tc===tc;}); if(!s) return;
   var b=document.getElementById(s.tab); if(b) b.click();
   if(tc==='st-cert') renderCert();
-  if(tc==='st-ms') renderMsSection();
   renderSubjGate(); renderStHub();
 }
 function _sectionNeedsSubj(){ var s=ST_SECTIONS.find(function(x){return x.tc===_curStSection();}); return !s||s.subj; }
@@ -3626,15 +3619,16 @@ var CERT={exam:null,section:'reading',level:'B1',band:'6'};
 var IELTS_BANDS=[['5','B1'],['6','B2'],['7','C1'],['8','C2']];
 var BAND_RANGE={B1:[4,5],B2:[5.5,6.5],C1:[7,8],C2:[8.5,9]};
 function certSet(k,v){ CERT[k]=v; renderCert(); }
-function renderCert(){
-  var el=document.getElementById('cert-body'); if(!el) return;
-  var h='<div class="aqt-grid">'+
+// 2026-10-04: bu blok avval ikkinchi renderCert (mock) tomonidan bosib ketilgan edi — endi
+// "Sertifikatlar" bo'limida mock ostida "Daraja bo'yicha mashq" bo'lib chiqadi (HTML qaytaradi).
+function _renderCertPractice(){
+  var h='', _unused='<div class="aqt-grid">'+
     '<button type="button" class="aqt-card'+(CERT.exam==='cefr'?' on':'')+'" onclick="certSet(\'exam\',\'cefr\')"><span class="aqt-ic">&#x1F4CA;</span><b>CEFR</b><small>A1 dan C2 gacha — darajangizni bilib oling</small></button>'+
     '<button type="button" class="aqt-card'+(CERT.exam==='ielts'?' on':'')+'" onclick="certSet(\'exam\',\'ielts\')"><span class="aqt-ic">&#x1F393;</span><b>IELTS</b><small>Reading mashqi va taxminiy band</small></button></div>';
   if(CERT.exam){
     var secs=CERT.exam==='ielts'?[['reading','&#x1F4D6;','Reading','Matn o\'qib, savollarga javob']]:[['reading','&#x1F4D6;','Reading','Matn o\'qib, savollarga javob'],['grammar','&#x270D;&#xFE0F;','Grammar','Gapni to\'g\'ri to\'ldiring']];
     if(CERT.exam==='ielts') CERT.section='reading';
-    h+='<div style="font-weight:800;margin:16px 0 8px">Nimani mashq qilamiz?</div><div class="aqt-grid">'+secs.map(function(s){
+    h+='<div style="font-weight:800;margin:4px 0 8px">Nimani mashq qilamiz?</div><div class="aqt-grid">'+secs.map(function(s){
       return '<button type="button" class="aqt-card'+(CERT.section===s[0]?' on':'')+'" onclick="certSet(\'section\',\''+s[0]+'\')"><span class="aqt-ic">'+s[1]+'</span><b>'+s[2]+'</b><small>'+s[3]+'</small></button>'; }).join('')+'</div>';
     if(CERT.exam==='cefr'){
       h+='<div style="font-weight:800;margin:16px 0 8px">Qaysi daraja?</div><div class="en-lvs">'+CEFR.map(function(c){
@@ -3643,10 +3637,10 @@ function renderCert(){
       h+='<div style="font-weight:800;margin:16px 0 8px">Maqsadingiz qaysi band?</div><div class="en-lvs">'+IELTS_BANDS.map(function(b){
         return '<button type="button" class="en-lv'+(CERT.band===b[0]?' on':'')+'" onclick="certSet(\'band\',\''+b[0]+'\')"><b>'+b[0]+(b[0]==='8'?'+':'')+'</b><small>band</small></button>'; }).join('')+'</div>';
     }
-    h+='<button class="btn bpu bfw blg" style="margin-top:16px" onclick="startCert()">&#x25B6;&#xFE0F; Boshlash</button>'+
+    h+='<button class="btn bpu bfw blg" style="margin-top:16px" onclick="startCert()">&#x25B6;&#xFE0F; Mashqni boshlash</button>'+
        '<div class="ts tm" style="margin-top:8px;text-align:center">Har safar AI yangi topshiriq tuzadi va uni tekshiradi. Natija — taxminiy.</div><div id="cert-msg" class="mt8"></div>';
   }
-  el.innerHTML=h;
+  return h;
 }
 function _certLevel(){ if(CERT.exam==='ielts'){ var b=IELTS_BANDS.find(function(x){return x[0]===CERT.band;}); return b?b[1]:'B2'; } return CERT.level; }
 async function startCert(){
@@ -3693,6 +3687,7 @@ function renderCertEstimate(r){
 // ═══════════════════════════════════════════════════════════════════════
 var MOCK={exam:null};
 var MOCK_EXAMS={ielts:{name:'IELTS Academic',ic:'&#x1F393;',plays:1}, ml:{name:'Multilevel (CEFR)',ic:'&#x1F1FA;&#x1F1FF;',plays:2}};
+var CERT_CARDS={ielts:'Listening, Reading, Writing — band 1–9', ml:'CEFR darajasi — A2 dan C1 gacha', ms:'Matematika, fizika, kimyo... — 45 savol, A+ dan C gacha'};
 var MOCK_QT={tfng:"True / False / Not Given",gap:"Bo'sh joyni to'ldirish",mcq:"Variantli savol",heading:"Sarlavha tanlash (headings)",match:"Moslashtirish (matching)"};
 var _mockRun=null, _mockScripts={}, _mockPlays={};
 function _mockHist(){ try{ return JSON.parse(localStorage.getItem('bt_mock_hist')||'[]'); }catch(e){ return []; } }
@@ -3700,8 +3695,10 @@ function _mockSaveHist(h){ try{ localStorage.setItem('bt_mock_hist',JSON.stringi
 function mockSet(k,v){ MOCK[k]=v; renderCert(); }
 function renderCert(){
   var el=document.getElementById('cert-body'); if(!el) return;
-  var h='<div class="aqt-grid">'+Object.keys(MOCK_EXAMS).map(function(k){ var e=MOCK_EXAMS[k];
+  var h='<div class="aqt-grid">'+Object.keys(MOCK_EXAMS).concat(['ms']).map(function(k){ var e=k==='ms'?{name:'Milliy sertifikat',ic:'&#x1F3C5;'}:MOCK_EXAMS[k];
+    if(k==='ms'||CERT_CARDS[k]) return '<button type="button" class="aqt-card'+(MOCK.exam===k?' on':'')+'" onclick="mockSet(\'exam\',\''+k+'\')"><span class="aqt-ic">'+e.ic+'</span><b>'+e.name+'</b><small>'+CERT_CARDS[k]+'</small></button>';
     return '<button type="button" class="aqt-card'+(MOCK.exam===k?' on':'')+'" onclick="mockSet(\'exam\',\''+k+'\')"><span class="aqt-ic">'+e.ic+'</span><b>'+e.name+'</b><small>'+(k==='ielts'?'Listening, Reading, Writing — band 1–9':'O\'zbekiston milliy imtihoni — A2 dan C1 gacha')+'</small></button>'; }).join('')+'</div>';
+  if(MOCK.exam==='ms'){ el.innerHTML=h+'<div style="margin-top:14px"><div id="ms-body"></div></div>'; renderMsSection(); return; }
   if(MOCK.exam){
     var mins=MOCK.exam==='ielts'?{l:30,r:60,w:60}:{l:35,r:60,w:45};
     var b=function(secs,ic,t,d){ return '<button type="button" class="ms-act" style="background:linear-gradient(135deg,#4f46e5,#7c3aed)" onclick="startMock(\''+secs+'\')"><span style="font-size:26px">'+ic+'</span><b>'+t+'</b><small>'+d+'</small></button>'; };
@@ -3712,6 +3709,8 @@ function renderCert(){
     if(weak.length) h+='<div style="font-weight:800;margin:16px 0 6px">&#x1F4AA; Xatolar ustida ishlash</div><div class="ts tm" style="margin-bottom:8px">Oxirgi mocklaringizda eng ko\'p xato qilgan savol turlari:</div>'+
       weak.map(function(w){ return '<div class="ms-row"><div class="ms-tn">'+_qEsc(MOCK_QT[w.t]||w.t)+'</div><div class="ms-bar"><div style="width:'+Math.max(4,w.p)+'%;background:'+_pctColor(w.p)+'"></div></div><button class="btn bpu bsm" onclick="startMockPractice(\''+w.t+'\')">Mashq</button></div>'; }).join('');
     h+='<div id="mock-msg" class="mt8"></div><div class="ts tm" style="margin-top:10px;text-align:center">Savollar original, formati haqiqiy imtihonga o\'xshatilgan. Speaking yo\'q. Natija — taxminiy.</div>';
+    CERT.exam=MOCK.exam==='ielts'?'ielts':'cefr';
+    h+='<div style="font-weight:800;margin:20px 0 4px;padding-top:14px;border-top:1px solid var(--bdr,#e5e7eb)">&#x1F4DA; Daraja bo\'yicha qisqa mashq</div>'+_renderCertPractice();
   }
   el.innerHTML=h;
 }
@@ -9265,6 +9264,7 @@ function _saveRun(v){
   var pg=document.querySelector('.pg.on'); v.pg=pg?pg.id:null;
   var runs={ms:_gv('_msRun')||null, cert:_gv('_certRun')||null, mock:_gv('_mockRun')||null, mockScripts:_gv('_mockScripts')||null, review:_gv('_reviewQs')||null};
   if(typeof CERT!=='undefined') v.certSel=CERT;
+  if(typeof MOCK!=='undefined') v.mockSel={exam:MOCK.exam};
   if(S.mode&&v.pg==='pg-test'&&S.test&&S.test.length){
     v.test={test:S.test, idx:S.idx, answers:S.answers, mode:S.mode, timeLeft:S.timeLeft, at:Date.now(), topic:selTopic, runs:runs,
       hdr:['tb-name','tb-cls','tb-topic','tb-mode'].map(function(id){ var e=document.getElementById(id); return e?[e.textContent,e.className]:null; })};
@@ -9279,7 +9279,9 @@ function _setRuns(r){
   try{ if(r.mockScripts) _mockScripts=r.mockScripts; }catch(e){} try{ _reviewQs=r.review; }catch(e){}
 }
 function _restoreRun(v){
-  if(v.certSel&&typeof CERT!=='undefined'){ try{ Object.assign(CERT,v.certSel); if(typeof renderCert==='function'&&document.getElementById('cert-body')) renderCert(); }catch(e){} }
+  if(v.certSel&&typeof CERT!=='undefined'){ try{ Object.assign(CERT,v.certSel); }catch(e){} }
+  if(v.mockSel&&typeof MOCK!=='undefined'){ try{ MOCK.exam=v.mockSel.exam; }catch(e){} }
+  if((v.certSel||v.mockSel)&&typeof renderCert==='function'&&document.getElementById('cert-body')){ try{ renderCert(); }catch(e){} }
   if(v.test){
     var t=v.test; _setRuns(t.runs); selTopic=t.topic;
     S.test=t.test; S.idx=t.idx||0; S.answers=t.answers||{}; S.mode=t.mode;
