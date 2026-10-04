@@ -895,7 +895,7 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#f8fafc}
     </div>
     <div class="card">
       <h3 style="margin-bottom:8px">&#x1F3C5; Milliy sertifikat bazasi</h3>
-      <p style="font-size:13px;color:var(--mut);margin-bottom:10px">Biologiya, tarix, geografiya, ona tili va adabiyot uchun AI original savol qoralamalarini yozadi (ikkinchi AI tekshiradi). Siz har birini ko'rib tasdiqlaysiz. Fanda 45 ta tasdiqlangan savol bo'lgach, o'quvchilarga ochiladi.</p>
+      <p style="font-size:13px;color:var(--mut);margin-bottom:10px">Biologiya, tarix, geografiya, ona tili va adabiyot uchun AI original savol yozadi. Har savolni boshqa AI'lar javobini bilmasdan ikki marta mustaqil yechib tekshiradi — hammasi bir xil javob bersagina savol bazaga qo'shiladi. Fanda 45 ta savol bo'lgach, o'quvchilarga ochiladi.</p>
       <div id="admin-ms-bank"></div>
     </div>
     <div class="card">
@@ -4340,11 +4340,10 @@ function msAdminRender(){
   var el=_msAdmEl(); if(!el) return; var A=_msAdm, need=45;
   el.innerHTML='<div class="fx" style="gap:6px;flex-wrap:wrap;margin-bottom:10px">'+Object.keys(MS_AI_SUBJ).map(function(k){
       return '<button type="button" class="btn'+(k===A.subj?' bp':'')+'" style="padding:6px 12px" onclick="_msAdm.edit=null;msAdminLoad(\''+k+'\')">'+MS_AI_SUBJ[k].ic+' '+MS_AI_SUBJ[k].name+'</button>'; }).join('')+'</div>'+
-    '<div class="alt ai" style="margin-bottom:10px">Bazada <b>'+A.bank.length+'</b> ta tasdiqlangan savol'+(A.bank.length>=need?' — o\'quvchilarga <b>ochiq</b>.':' — o\'quvchiga ochilishi uchun yana <b>'+(need-A.bank.length)+'</b> ta kerak.')+' Qoralamalar: <b>'+A.drafts.length+'</b>.</div>'+
-    '<button type="button" class="btn bp" style="width:100%;margin-bottom:12px" '+(A.busy?'disabled':'')+' onclick="msAdminGen()">'+(A.busy?'&#x23F3; AI savol yozmoqda (1–2 daqiqa)...':'&#x2728; AI bilan 5 ta yangi qoralama yaratish')+'</button>'+
-    '<h4 style="margin:6px 0">&#x1F4DD; Qoralamalar (tekshirib tasdiqlang)</h4>'+
-    (A.drafts.length?A.drafts.map(function(q,i){return _msAdmQ(q,i,'d');}).join(''):'<p class="ts tm">Qoralama yo\'q. Yuqoridagi tugma bilan yarating (fonda ham har kuni oz-ozdan qo\'shiladi).</p>')+
-    '<details style="margin-top:12px"><summary style="cursor:pointer;font-weight:700">&#x1F4DA; Tasdiqlangan savollar ('+A.bank.length+')</summary>'+
+    '<div class="alt ai" style="margin-bottom:10px">Bazada <b>'+A.bank.length+'</b> ta savol'+(A.bank.length>=need?' — o\'quvchilarga <b>ochiq</b>.':' — o\'quvchiga ochilishi uchun yana <b>'+(need-A.bank.length)+'</b> ta kerak.')+'</div>'+
+    '<button type="button" class="btn bp" style="width:100%;margin-bottom:12px" '+(A.busy?'disabled':'')+' onclick="msAdminGen()">'+(A.busy?'&#x23F3; AI savol yozib, tekshirmoqda (2–4 daqiqa)...':'&#x2728; AI bilan yangi savollar qo\'shish')+'</button>'+
+    '<p class="ts tm">Fonda ham har kuni oz-ozdan qo\'shiladi.</p>'+
+    '<details style="margin-top:12px"><summary style="cursor:pointer;font-weight:700">&#x1F4DA; Bazadagi savollar ('+A.bank.length+')</summary>'+
     A.bank.map(function(q,i){return _msAdmQ(q,i,'b');}).join('')+'</details>';
 }
 function msAdminEdit(kind,id){
@@ -4368,7 +4367,7 @@ async function msAdminGen(){
   if(_msAdm.busy) return; _msAdm.busy=true; msAdminRender();
   try{ var r=await fetchVM(DB_SERVER,'/ms_draft_gen',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({subject:_msAdm.subj,n:5})});
     var j=await r.json(); if(!r.ok) throw new Error(j.error||('HTTP '+r.status));
-    if(!j.added) alert('AI yozgan savollar tekshiruvdan o\'tmadi. Yana bir bor urinib ko\'ring.'); }
+    alert(j.added?(j.added+' ta savol tekshiruvdan o\'tib bazaga qo\'shildi.'+(j.rejected?' '+j.rejected+' tasi ishonchsiz deb tashlandi.':'')):'AI yozgan savollar tekshiruvdan o\'tmadi. Yana bir bor urinib ko\'ring.'); }
   catch(e){ alert('Yaratilmadi: '+e.message); }
   _msAdm.busy=false; msAdminLoad();
 }
