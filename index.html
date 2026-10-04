@@ -1172,6 +1172,9 @@ var _AUTH_PATHS=/^\/(?:db_get|db_save|ai_check|parse|parse_batch|parse_batch_sta
     var p=origFetch(input,init);
     if(!prot) return p;
     return p.then(function(res){
+      if(res.status===429 && res.headers.get('X-AI-Limit')){
+        try{ showSyncNotice("Bugungi AI limiti tugadi. Iltimos, ertaga qayta urinib ko'ring."); }catch(e){}
+      }
       if(res.status===401) _sessionExpired();
       return res;
     });
@@ -8571,7 +8574,7 @@ function aiCheckTopic(topic, force) {
       })
     })
     .then(function(r) {
-      if (r.status === 429 && retryCount < 4) {
+      if (r.status === 429 && retryCount < 4 && !r.headers.get('X-AI-Limit')) {
         // Limitga urildik - kutib qayta urinamiz
         return null;
       }
