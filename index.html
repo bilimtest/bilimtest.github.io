@@ -1144,8 +1144,17 @@ var _sb = null;
 // FAQAT bizning serverlarga va faqat himoyalangan endpointlarga (AI, import,
 // rasm yuklash, bildirishnoma...) "Authorization: Bearer" sifatida qo'shiladi.
 var _authToken=null;
+try{ var _es0=JSON.parse(sessionStorage.getItem('et_sess')||'null'); if(_es0&&_es0.t) _authToken=_es0.t; }catch(e){}
+// Token muddati o'tgan / server tanimadi: sessiyani tozalaymiz (test paytida chiqarmaymiz).
+function _sessionExpired(){
+  _authToken=null; try{ sessionStorage.removeItem('et_sess'); }catch(e){}
+  if(typeof ME!=='undefined' && ME){
+    try{ showSyncNotice('Sessiya muddati tugadi. Iltimos, qayta kiring.'); }catch(e){}
+    try{ if(!S.mode) logout(); }catch(e){}
+  }
+}
 var _AUTH_HOSTS=/^https:\/\/[^\/]*\.(?:nip\.io|duckdns\.org)(?::\d+)?(?=\/)/;
-var _AUTH_PATHS=/^\/(?:ai_check|parse|parse_batch|parse_batch_start|parse_batch_status\/[^\/?#]+|extract_batch_start|convert_emfs|compose_parts|parse_document|parse_image|eng_generate|practice_generate|mock_set|mock_practice|mock_grade_writing|generate_test_start|generate_test_status\/[^\/?#]+|upload_image|notify_teacher|notify_teacher_status|parent_link_create|r2_stats|send_email_smtp|ms_draft_gen|ms_drafts|ms_bank_save)(?:[?#]|$)/;
+var _AUTH_PATHS=/^\/(?:db_get|db_save|ai_check|parse|parse_batch|parse_batch_start|parse_batch_status\/[^\/?#]+|extract_batch_start|convert_emfs|compose_parts|parse_document|parse_image|eng_generate|practice_generate|mock_set|mock_practice|mock_grade_writing|generate_test_start|generate_test_status\/[^\/?#]+|upload_image|notify_teacher|notify_teacher_status|parent_link_create|r2_stats|send_email_smtp|ms_draft_gen|ms_drafts|ms_bank_save)(?:[?#]|$)/;
 (function(){
   var origFetch=window.fetch.bind(window);
   window.fetch=function(input,init){
@@ -1163,10 +1172,7 @@ var _AUTH_PATHS=/^\/(?:ai_check|parse|parse_batch|parse_batch_start|parse_batch_
     var p=origFetch(input,init);
     if(!prot) return p;
     return p.then(function(res){
-      if(res.status===401){
-        _authToken=null;
-        try{ showSyncNotice('Sessiya muddati tugadi. Iltimos, chiqib qayta kiring.'); }catch(e){}
-      }
+      if(res.status===401) _sessionExpired();
       return res;
     });
   };
@@ -1368,6 +1374,7 @@ async function _sbPushOnce(db) {
       if(typeof info.server_v==='number' && info.server_v<=_lastOkV) return true;
       return await sbResolveConflict(db);
     }
+    if(res.status===401){ markConnOk(); return false; } // kirmagan / sessiya tugagan - saqlanmaydi
     if(!res.ok){ console.error('Server push xato (kod: '+res.status+')'); markConnLost(); return false; }
     markConnOk();
     if((db.v||0)>_lastOkV) _lastOkV=db.v||0;
@@ -1456,6 +1463,8 @@ async function sbPull() {
     if(!res.ok){ markConnLost(); return null; }
     markConnOk();
     var data = await res.json();
+    // server bizni tanimadi (token muddati o'tgan) - bazaning qisqa nusxasi keldi
+    if (data && data.view==='anon' && _authToken) _sessionExpired();
     if (data && data.value) return JSON.parse(data.value);
   } catch(e) { markConnLost(); }
   return null;
@@ -2954,6 +2963,7 @@ async function doLogin(){
     else showErr("Login yoki parol noto'g'ri!");
     return;
   }
+  if(srv) _authToken=srv.token; // token bilan to'liq (rolga mos) baza keladi
   // Har doim serverdan eng so'nggi ma'lumotni yuklaymiz — iPhone/yangi
   // qurilmada localStorage bo'sh bo'lsa ham kirish ishlashi uchun.
   try{ await syncFromCloud(); }catch(e){}
@@ -3009,6 +3019,29 @@ async function doRegister(){
   // admin uni "Tasdiqlanishi kerak" royxatida korib (ism/maktab/sinflar orqali)
   // tekshirib, keyin tasdiqlaydi. Shu payGacha ustoz kira olmaydi.
   var nu={id:'u'+Date.now(),role:authRole,name:name,login:user,pass:pass,cls:cls,subject:subj,email:email,teachClasses:tclasses,viloyat:vil,tuman:tum,maktab:maktab,plan:'free',approved:(authRole!=='teacher'),usage:{month:curMonthKey(),images:0,pages:0,questions:0}};
+  // 2026-10-04: ro'yxatdan o'tish SERVERDA (baza endi kirmaganlarga parollarsiz
+  // beriladi va tokensiz saqlab bo'lmaydi). Eski server (404) - eskicha yo'l.
+  var reg=null;
+  document.getElementById('auth-err').innerHTML='<div class="alt ai">&#x23F3; Saqlanmoqda...</div>';
+  try{
+    var rr=await fetch(DB_SERVER+'/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(nu)});
+    if(rr.status===409){showErr("Bu login band! Boshqa login tanlang.");return;}
+    if(rr.status===429){showErr("Juda ko'p urinish. Birozdan so'ng qayta urinib ko'ring.");return;}
+    if(rr.ok) reg=await rr.json();
+    else if(rr.status!==404){showErr("Serverda xato. Qaytadan urinib ko'ring.");return;}
+  }catch(e){ showErr("&#x26A0;&#xFE0F; Server bilan bog'lanib bo'lmadi. Internetni tekshiring."); return; }
+  if(reg && reg.ok){
+    _authToken=reg.token||null;
+    try{ await syncFromCloud(); }catch(e){}
+    if(!reg.approved){
+      showAuthTab('li');
+      document.getElementById('auth-err').innerHTML='<div class="alt as mt8">&#x2705; Ma\'lumotlaringiz adminga jo\'natildi! Admin tasdiqlagandan keyin tizimga kirishingiz mumkin bo\'ladi. Admin tasdiqlagach (yoki rad etsa), natija <b>'+email+'</b> manziliga xabar qilinadi.</div>';
+      return;
+    }
+    var meU=(getDB().users||[]).find(function(x){return x.id===reg.id;});
+    ME=meU||Object.assign(nu,{id:reg.id});afterLogin();
+    return;
+  }
   db.users.push(nu);
   saveDB(db);
   if(authRole==='teacher' && !nu.approved){
