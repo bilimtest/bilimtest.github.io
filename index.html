@@ -437,6 +437,7 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#f8fafc}
   <div class="tc" id="st-battle">
     <div class="card">
       <h2 style="margin-bottom:14px">&#x1F3AE; O'yinlar</h2>
+      <div id="subj-games" style="margin-bottom:16px"></div>
       <div class="rc">
         <div class="rcard" onclick="document.getElementById('games-sinfjangi').style.display='block';document.getElementById('games-hub').style.display='none'">
           <div class="ic">&#x1F465;</div>
@@ -584,7 +585,7 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#f8fafc}
 <div class="pg" id="pg-teacher">
   <div class="tabs">
     <button class="tab on" onclick="switchTab('tc-q',this)">&#x1F4DD; Savollar</button>
-    <button class="tab" onclick="switchTab('tc-k',this);renderTeacherDecks()">&#x1F0CF; Kartochkalar</button>
+    <button class="tab" id="tc-k-tab" style="display:none" onclick="switchTab('tc-k',this);renderTeacherDecks()">&#x1F0CF; Kartochkalar</button>
     <button class="tab" onclick="switchTab('tc-r',this);loadResults();renderHardTopics()">&#x1F4CA; Natijalar</button>
     <button class="tab" onclick="switchTab('tc-c',this);loadClasses()">&#x1F3EB; Sinflar</button>
     <button class="tab" id="tc-review-tab" onclick="switchTab('tc-v',this);loadReviewQueue()">&#x1F50D; Tekshirish<span id="review-count-badge" style="display:none;background:var(--err);color:#fff;border-radius:99px;padding:1px 6px;font-size:11px;margin-left:4px"></span></button>
@@ -1154,7 +1155,7 @@ function _sessionExpired(){
   }
 }
 var _AUTH_HOSTS=/^https:\/\/[^\/]*\.(?:nip\.io|duckdns\.org)(?::\d+)?(?=\/)/;
-var _AUTH_PATHS=/^\/(?:db_get|db_save|ai_check|parse|parse_batch|parse_batch_start|parse_batch_status\/[^\/?#]+|extract_batch_start|convert_emfs|compose_parts|parse_document|parse_image|eng_generate|practice_generate|mock_set|mock_practice|mock_grade_writing|generate_test_start|generate_test_status\/[^\/?#]+|upload_image|notify_teacher|notify_teacher_status|parent_link_create|r2_stats|send_email_smtp|ms_draft_gen|ms_drafts|ms_bank_save)(?:[?#]|$)/;
+var _AUTH_PATHS=/^\/(?:db_get|db_save|ai_check|parse|parse_batch|parse_batch_start|parse_batch_status\/[^\/?#]+|extract_batch_start|convert_emfs|compose_parts|parse_document|parse_image|eng_generate|practice_generate|mock_set|mock_practice|mock_grade_writing|generate_test_start|generate_test_status\/[^\/?#]+|upload_image|notify_teacher|notify_teacher_status|parent_link_create|r2_stats|send_email_smtp|ms_draft_gen|ms_drafts|ms_bank_save|vocab_image)(?:[?#]|$)/;
 (function(){
   var origFetch=window.fetch.bind(window);
   window.fetch=function(input,init){
@@ -3080,7 +3081,7 @@ function afterLogin(){
   document.getElementById('auth-err').innerHTML='';
   renderNotifBell();
   if(ME.role==='admin'){resetTheme();showPg('pg-admin');initAdmin();}
-  else if(ME.role==='teacher'){applySubjectTheme(ME.subject);showPg('pg-teacher');renderQT();updateEngEntry();}
+  else if(ME.role==='teacher'){applySubjectTheme(ME.subject);showPg('pg-teacher');renderQT();updateEngEntry();try{updateTeacherCardsTab();}catch(e){}}
   else{resetTheme();selTopic=null;_curFolder=null;_curSubjFilter=null;showPg('pg-topic');renderTopics();if(_curSubjFilter)applySubjectTheme(_curSubjFilter);loadMyHist();var bjb=document.getElementById('battle-join-box');if(bjb)bjb.style.display='block';}
 }
 var _logoutWarned = false;
@@ -3646,6 +3647,7 @@ function openStSection(tc){
   var s=ST_SECTIONS.find(function(x){return x.tc===tc;}); if(!s) return;
   var b=document.getElementById(s.tab); if(b) b.click();
   if(tc==='st-cert') renderCert();
+  if(tc==='st-battle'){ try{ renderSubjGames(); }catch(e){} }
   renderSubjGate(); renderStHub();
 }
 function _sectionNeedsSubj(){ var s=ST_SECTIONS.find(function(x){return x.tc===_curStSection();}); return !s||s.subj; }
@@ -9703,7 +9705,10 @@ history.pushState(null, '', location.href);
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 14px">
       <button class="btn bg bsm" onclick="fcAddRow()">+ Karta qo'shish</button>
       <button class="btn bg bsm" onclick="fcTogglePaste()">&#x1F4CB; Ro'yxatdan qo'yish</button>
+      <button class="btn bpu bsm" id="fc-photo-btn" style="display:none" onclick="fcPickPhoto()">&#x1F4F7; Lug'atni rasmga olish</button>
+      <input type="file" id="fc-photo-inp" accept="image/*" capture="environment" style="display:none" onchange="fcPhotoChosen(this)">
     </div>
+    <div id="fc-photo-st" class="alt ai" style="display:none;margin-bottom:10px"></div>
     <div id="fc-paste-box" style="display:none;margin-bottom:12px">
       <div class="ts tm" style="margin-bottom:6px" id="fc-paste-help"></div>
       <textarea id="fc-paste" rows="5" style="width:100%;box-sizing:border-box;padding:10px;border-radius:10px;border:1px solid #cbd5e1;font:inherit" placeholder=""></textarea>
@@ -9744,7 +9749,7 @@ function fcApplySubj(){
   document.getElementById('fc-col-a').textContent=f[0]; document.getElementById('fc-col-b').textContent=f[1];
   document.getElementById('fc-paste-help').innerHTML='Har qatorga bitta karta: <b>'+_qEsc(f[0].toLowerCase())+' - '+_qEsc(f[1].toLowerCase())+'</b>. Masalan: <b>'+_qEsc(f[2][0])+' - '+_qEsc(f[2][1])+'</b>';
   document.getElementById('fc-paste').placeholder=f[2][0]+' - '+f[2][1]+'\n'+f[3][0]+' - '+f[3][1];
-  fcRenderRows();
+  fcRenderRows(); try{ fcPhotoToggle(); }catch(e){}
 }
 function fcDecks(){ return getDB().decks||[]; }
 function fcDeckVisible(d,anySubj){
@@ -9776,7 +9781,8 @@ function renderStudentDecks(){
     var head=''; if(d.subject!==_lastSubj){ _lastSubj=d.subject; head='<div style="font-weight:800;color:#64748b;font-size:13px;text-transform:uppercase;letter-spacing:.04em;margin:14px 0 8px">'+_qEsc(subjName(d.subject))+'</div>'; }
     return head+'<div class="fc-deck"><div class="fc-ico">&#x1F0CF;</div><div style="flex:1;min-width:0"><div style="font-weight:800">'+_qEsc(d.title)+'</div>'+
       '<div class="ts tm">'+subjName(d.subject)+' &middot; '+s.total+' ta karta &middot; yodlangan: '+s.learned+'</div><div class="fc-bar"><div style="width:'+pct+'%"></div></div></div>'+
-      '<button class="btn bpu" onclick="startStudy(\''+d.id+'\')">'+(todo?'Boshlash ('+todo+')':'Takrorlash')+'</button></div>'; }).join('');
+      '<div style="display:flex;flex-direction:column;gap:6px"><button class="btn bpu" onclick="startStudy(\''+d.id+'\')">'+(todo?'Boshlash ('+todo+')':'Takrorlash')+'</button>'+
+      (d.subject==='eng'&&(d.cards||[]).length>=4?'<button class="btn bg bsm" onclick="openDeckGames(\''+d.id+'\')">&#x1F3AE; O\'yin</button>':'')+'</div></div>'; }).join('');
 }
 function startStudy(id){
   var d=fcDecks().find(function(x){return x.id===id;}); if(!d) return;
@@ -9833,7 +9839,8 @@ function openDeckEditor(id){
   var d=id?fcDecks().find(function(x){return x.id===id;}):null; _fcEditId=d?d.id:null;
   document.getElementById('fc-edit-title').textContent=d?'To\'plamni tahrirlash':'Yangi to\'plam';
   document.getElementById('fc-name').value=d?d.title:'';
-  var ss=document.getElementById('fc-subj'); ss.innerHTML=SUBJECTS.map(function(s){return '<option value="'+s.v+'">'+s.n+'</option>';}).join('');
+  var ss=document.getElementById('fc-subj'); ss.innerHTML=SUBJECTS.filter(function(s){return FC_ALLOWED_SUBJ.indexOf(s.v)>=0&&(ME.role==='admin'||s.v===ME.subject);}).map(function(s){return '<option value="'+s.v+'">'+s.n+'</option>';}).join('');
+  document.getElementById('fc-photo-st').style.display='none';
   ss.value=d?d.subject:((ME&&ME.subject)||'eng'); if(!ss.value) ss.selectedIndex=0;
   _fcRows=d?(d.cards||[]).map(function(c){return {f:c.f,b:c.b};}):[{f:'',b:''},{f:'',b:''},{f:'',b:''}];
   document.getElementById('fc-paste-box').style.display='none'; document.getElementById('fc-paste').value='';
@@ -9870,6 +9877,180 @@ function saveDeck(){
 }
 function deleteDeck(id){ if(!confirm("Bu to'plamni o'chirasizmi?")) return; var db=getDB(); db.decks=(db.decks||[]).filter(function(d){return d.id!==id;}); saveDB(db); renderTeacherDecks(); }
 </script>
+<script>
+// ═══════════════════════════════════════════════════════════════════════
+// FAN O'YINLARI (2026-10-05): ingliz tili lug'at o'yinlari (eshitib top, to'g'rimi?,
+// tarjimani top), geografiya (bayroq, poytaxt, davlat), matematika (tez hisob),
+// kimyo (element belgisi). Kartochka qo'shish faqat ingliz tili va geografiya ustoziga.
+// ═══════════════════════════════════════════════════════════════════════
+var FC_ALLOWED_SUBJ=['eng','geo'];
+function fcTeacherAllowed(){ return !!(ME&&(ME.role==='admin'||FC_ALLOWED_SUBJ.indexOf(ME.subject)>=0)); }
+function updateTeacherCardsTab(){ var b=document.getElementById('tc-k-tab'); if(b) b.style.display=fcTeacherAllowed()?'':'none'; }
+
+// ── Lug'at rasmidan qo'shish (faqat ingliz tili) ──
+function fcPhotoToggle(){ var b=document.getElementById('fc-photo-btn'), s=document.getElementById('fc-subj'); if(b) b.style.display=(s&&s.value==='eng')?'':'none'; }
+function fcPickPhoto(){ var i=document.getElementById('fc-photo-inp'); i.value=''; i.click(); }
+function _fcShrink(file){
+  return new Promise(function(res,rej){
+    var img=new Image(), url=URL.createObjectURL(file);
+    img.onload=function(){ var m=1600, w=img.width, h=img.height, k=Math.min(1,m/Math.max(w,h));
+      var c=document.createElement('canvas'); c.width=Math.round(w*k); c.height=Math.round(h*k);
+      c.getContext('2d').drawImage(img,0,0,c.width,c.height); URL.revokeObjectURL(url);
+      res(c.toDataURL('image/jpeg',0.85).split(',')[1]); };
+    img.onerror=function(){ URL.revokeObjectURL(url); rej(new Error('Rasm ochilmadi')); };
+    img.src=url;
+  });
+}
+async function fcPhotoChosen(inp){
+  var f=inp.files&&inp.files[0]; if(!f) return;
+  var st=document.getElementById('fc-photo-st'); st.style.display='block'; st.className='alt ai'; st.textContent="⏳ Rasm o'qilmoqda (20–40 soniya)...";
+  try{
+    var b64=await _fcShrink(f);
+    var r=await fetch(DB_SERVER+'/vocab_image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({data:b64,filename:'lugat.jpg'})});
+    var j=await r.json(); if(!r.ok) throw new Error(j.error||('HTTP '+r.status));
+    var add=(j.pairs||[]).map(function(p){ return {f:String(p.f).replace(/^\s*\d+\s*[\.\)\-:]?\s*/,''),b:String(p.b).replace(/^\s*\d+\s*[\.\)\-:]?\s*/,'')}; })
+      .filter(function(p){ return p.f&&p.b&&!/^[\d\s.,]+$/.test(p.f); });
+    _fcRows=_fcRows.filter(function(x){return String(x.f).trim()||String(x.b).trim();}).concat(add); fcRenderRows();
+    st.className='alt as'; st.textContent='✅ '+add.length+" ta so'z qo'shildi. Tekshirib, kerak bo'lsa tuzating, keyin Saqlang.";
+  }catch(e){ st.className='alt ar'; st.textContent='❌ '+e.message; }
+}
+
+// ── Umumiy o'yin dvigateli (kartochka oynasidan foydalanadi) ──
+var GAME=null;
+function gameStart(title,rounds){
+  if(!rounds||!rounds.length){ alert("O'yin uchun ma'lumot yetarli emas"); return; }
+  GAME={title:title,rounds:rounds,i:0,score:0,lock:false,again:null};
+  document.getElementById('fc-study-name').textContent=title;
+  document.getElementById('fc-study-ov').classList.add('on'); gameShow();
+}
+function gameSpeak(t,lang){ try{ var u=new SpeechSynthesisUtterance(t); u.lang=lang||'en-US'; u.rate=.85; speechSynthesis.cancel(); speechSynthesis.speak(u);}catch(e){} }
+function gameShow(){
+  var G=GAME, body=document.getElementById('fc-study-body'), n=G.rounds.length;
+  document.getElementById('fc-study-prog').style.width=Math.round(G.i/n*100)+'%';
+  document.getElementById('fc-study-count').textContent=Math.min(G.i+1,n)+' / '+n+' · ✅ '+G.score;
+  if(G.i>=n){
+    var pct=Math.round(G.score/n*100);
+    body.innerHTML='<div style="text-align:center;padding:26px 10px"><div style="font-size:56px">'+(pct>=80?'🏆':pct>=50?'👍':'💪')+'</div><h2>'+G.score+' / '+n+'</h2><p class="tm">'+(pct>=80?'Ajoyib!':pct>=50?'Yaxshi, yana mashq qiling.':"Qayta urinib ko'ring.")+'</p>'+
+      '<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">'+(G.again?'<button class="btn bpu" onclick="GAME.again()">🔄 Yana o\'ynash</button>':'')+'<button class="btn bg" onclick="closeStudy()">Tayyor</button></div></div>';
+    return;
+  }
+  var R=G.rounds[G.i]; G.lock=false;
+  body.innerHTML='<div class="gm-q">'+R.q+'</div>'+(R.say?'<div style="text-align:center;margin:-4px 0 12px"><button class="btn bg bsm" onclick="gameSpeak(GAME.rounds[GAME.i].say,GAME.rounds[GAME.i].lang)">🔊 Yana eshitish</button></div>':'')+
+    '<div class="gm-opts'+(R.opts.length===2?' two':'')+'">'+R.opts.map(function(o,k){ return '<button class="gm-opt" onclick="gameAns('+k+',this)">'+o+'</button>'; }).join('')+'</div>';
+  if(R.say) setTimeout(function(){ gameSpeak(R.say,R.lang); },250);
+}
+function gameAns(k,btn){
+  var G=GAME; if(!G||G.lock) return; G.lock=true; var R=G.rounds[G.i], bs=document.querySelectorAll('.gm-opt');
+  if(k===R.ok){ G.score++; btn.classList.add('ok'); } else { btn.classList.add('bad'); if(bs[R.ok]) bs[R.ok].classList.add('ok'); }
+  setTimeout(function(){ G.i++; gameShow(); }, k===R.ok?650:1500);
+}
+function _pick(arr,n,not){ return shuf(arr.filter(function(x){return not.indexOf(x)<0;})).slice(0,n); }
+function _mc(right,pool,n){ var o=shuf([right].concat(_pick(pool,(n||4)-1,[right]))); return {opts:o,ok:o.indexOf(right)}; }
+
+// ── Ingliz tili: to'plamdagi so'zlar bilan ──
+function _uniq(a){ var s={}; return a.filter(function(x){ var k=String(x).toLowerCase(); if(s[k]) return false; s[k]=1; return true; }); }
+function engRounds(d,kind){
+  var cs=(d.cards||[]).filter(function(c){return c.f&&c.b;}), en=_uniq(cs.map(function(c){return c.f;})), uz=_uniq(cs.map(function(c){return c.b;}));
+  return shuf(cs).slice(0,10).map(function(c,i){
+    var m;
+    if(kind==='listen'){ m=_mc(c.f,en); return {q:'🎧 Eshitgan so\'zingizni tanlang',say:c.f,lang:'en-US',opts:m.opts.map(_qEsc),ok:m.ok}; }
+    if(kind==='tf'){ var right=Math.random()<.5, other=_pick(uz,1,[c.b])[0], shown=right||!other?c.b:other;
+      return {q:'<b>'+_qEsc(c.f)+'</b> — '+_qEsc(shown)+'<div class="ts tm" style="margin-top:6px">Tarjima to\'g\'rimi?</div>',say:c.f,lang:'en-US',opts:['✅ To\'g\'ri','❌ Noto\'g\'ri'],ok:shown===c.b?0:1}; }
+    if(i%2===0){ m=_mc(c.b,uz); return {q:'<b>'+_qEsc(c.f)+'</b><div class="ts tm" style="margin-top:6px">Tarjimasini toping</div>',say:c.f,lang:'en-US',opts:m.opts.map(_qEsc),ok:m.ok}; }
+    m=_mc(c.f,en); return {q:'<b>'+_qEsc(c.b)+'</b><div class="ts tm" style="margin-top:6px">Inglizchasini toping</div>',opts:m.opts.map(_qEsc),ok:m.ok};
+  });
+}
+var ENG_GAMES=[['listen','🎧','Eshitib top','So\'zni eshiting va yozilishini toping'],['tf','✔️','To\'g\'rimi?','Tarjima to\'g\'ri yoki noto\'g\'ri'],['tr','🔤','Tarjimani top','Inglizcha ↔ o\'zbekcha']];
+function openDeckGames(id){
+  var d=fcDecks().find(function(x){return x.id===id;}); if(!d) return;
+  if((d.cards||[]).length<4){ alert("O'yin uchun to'plamda kamida 4 ta so'z bo'lishi kerak"); return; }
+  GAME=null; document.getElementById('fc-study-name').textContent=d.title; document.getElementById('fc-study-ov').classList.add('on');
+  document.getElementById('fc-study-prog').style.width='0'; document.getElementById('fc-study-count').textContent='O\'yinni tanlang';
+  document.getElementById('fc-study-body').innerHTML='<div class="gm-menu">'+ENG_GAMES.map(function(g){ return '<button class="gm-card" onclick="playDeckGame(\''+id+'\',\''+g[0]+'\')"><span>'+g[1]+'</span><b>'+g[2]+'</b><small>'+g[3]+'</small></button>'; }).join('')+'</div>';
+}
+function playDeckGame(id,kind){
+  var d=fcDecks().find(function(x){return x.id===id;}), g=ENG_GAMES.find(function(x){return x[0]===kind;});
+  gameStart(g[2]+' · '+d.title,engRounds(d,kind)); GAME.again=function(){ playDeckGame(id,kind); };
+}
+
+// ── Geografiya: dunyo davlatlari (kod|nomi|poytaxti|qit'a). Poytaxti munozarali davlatlar faqat bayroq o'yinida. ──
+var GEO_RAW="af|Afg'oniston|Kobul|O;am|Armaniston|Yerevan|O;az|Ozarbayjon|Boku|O;bh|Bahrayn|Manama|O;bd|Bangladesh|Dakka|O;bt|Butan|Thimpxu|O;bn|Bruney|Bandar-Seri-Begavan|O;kh|Kambodja|Pnompen|O;cn|Xitoy|Pekin|O;ge|Gruziya|Tbilisi|O;in|Hindiston|Nyu-Dehli|O;id|Indoneziya|Jakarta|O;ir|Eron|Tehron|O;iq|Iroq|Bag'dod|O;il|Isroil||O;jp|Yaponiya|Tokio|O;jo|Iordaniya|Ammon|O;kz|Qozog'iston|Astana|O;kw|Quvayt|Quvayt|O;kg|Qirg'iziston|Bishkek|O;la|Laos|Vyentyan|O;lb|Livan|Bayrut|O;my|Malayziya|Kuala-Lumpur|O;mv|Maldiv orollari|Male|O;mn|Mo'g'uliston|Ulan-Bator|O;mm|Myanma|Neypido|O;np|Nepal|Katmandu|O;kp|Shimoliy Koreya|Pxenyan|O;kr|Janubiy Koreya|Seul|O;om|Ummon|Masqat|O;pk|Pokiston|Islomobod|O;ps|Falastin||O;ph|Filippin|Manila|O;qa|Qatar|Doha|O;sa|Saudiya Arabistoni|Ar-Riyod|O;sg|Singapur|Singapur|O;lk|Shri-Lanka|Shri-Jayavardenepura-Kotte|O;sy|Suriya|Damashq|O;tj|Tojikiston|Dushanbe|O;th|Tailand|Bangkok|O;tl|Sharqiy Timor|Dili|O;tr|Turkiya|Anqara|O;tm|Turkmaniston|Ashxobod|O;ae|Birlashgan Arab Amirliklari|Abu-Dabi|O;uz|O'zbekiston|Toshkent|O;vn|Vyetnam|Xanoy|O;ye|Yaman|San'o|O;"+
+"al|Albaniya|Tirana|E;ad|Andorra|Andorra-la-Velya|E;at|Avstriya|Vena|E;by|Belarus|Minsk|E;be|Belgiya|Bryussel|E;ba|Bosniya va Gersegovina|Sarayevo|E;bg|Bolgariya|Sofiya|E;hr|Xorvatiya|Zagreb|E;cy|Kipr|Nikosiya|E;cz|Chexiya|Praga|E;dk|Daniya|Kopengagen|E;ee|Estoniya|Tallin|E;fi|Finlandiya|Xelsinki|E;fr|Fransiya|Parij|E;de|Germaniya|Berlin|E;gr|Gretsiya|Afina|E;hu|Vengriya|Budapesht|E;is|Islandiya|Reykyavik|E;ie|Irlandiya|Dublin|E;it|Italiya|Rim|E;lv|Latviya|Riga|E;li|Lixtenshteyn|Vaduts|E;lt|Litva|Vilnyus|E;lu|Lyuksemburg|Lyuksemburg|E;mt|Malta|Valletta|E;md|Moldova|Kishinyov|E;mc|Monako|Monako|E;me|Chernogoriya|Podgoritsa|E;nl|Niderlandiya|Amsterdam|E;mk|Shimoliy Makedoniya|Skopye|E;no|Norvegiya|Oslo|E;pl|Polsha|Varshava|E;pt|Portugaliya|Lissabon|E;ro|Ruminiya|Buxarest|E;ru|Rossiya|Moskva|E;sm|San-Marino|San-Marino|E;rs|Serbiya|Belgrad|E;sk|Slovakiya|Bratislava|E;si|Sloveniya|Lyublyana|E;es|Ispaniya|Madrid|E;se|Shvetsiya|Stokgolm|E;ch|Shveytsariya|Bern|E;ua|Ukraina|Kiyev|E;gb|Buyuk Britaniya|London|E;va|Vatikan|Vatikan|E;"+
+"dz|Jazoir|Jazoir|A;ao|Angola|Luanda|A;bj|Benin|Porto-Novo|A;bw|Botsvana|Gaborone|A;bf|Burkina-Faso|Uagadugu|A;bi|Burundi|Gitega|A;cv|Kabo-Verde|Praya|A;cm|Kamerun|Yaunde|A;cf|Markaziy Afrika Respublikasi|Bangi|A;td|Chad|Njamena|A;km|Komor orollari|Moroni|A;cg|Kongo Respublikasi|Brazzavil|A;cd|Kongo Demokratik Respublikasi|Kinshasa|A;ci|Kot-d'Ivuar|Yamusukro|A;dj|Jibuti|Jibuti|A;eg|Misr|Qohira|A;gq|Ekvatorial Gvineya|Malabo|A;er|Eritreya|Asmara|A;sz|Esvatini|Mbabane|A;et|Efiopiya|Addis-Abeba|A;ga|Gabon|Librevil|A;gm|Gambiya|Banjul|A;gh|Gana|Akkra|A;gn|Gvineya|Konakri|A;gw|Gvineya-Bisau|Bisau|A;ke|Keniya|Nayrobi|A;ls|Lesoto|Maseru|A;lr|Liberiya|Monroviya|A;ly|Liviya|Tripoli|A;mg|Madagaskar|Antananarivu|A;mw|Malavi|Lilongve|A;ml|Mali|Bamako|A;mr|Mavritaniya|Nuakshot|A;mu|Mavrikiy|Port-Lui|A;ma|Marokash|Rabot|A;mz|Mozambik|Maputu|A;na|Namibiya|Vindxuk|A;ne|Niger|Niamey|A;ng|Nigeriya|Abuja|A;rw|Ruanda|Kigali|A;st|San-Tome va Prinsipi|San-Tome|A;sn|Senegal|Dakar|A;sc|Seyshel orollari|Viktoriya|A;sl|Syerra-Leone|Fritaun|A;so|Somali|Mogadisho|A;za|Janubiy Afrika Respublikasi|Pretoriya|A;ss|Janubiy Sudan|Juba|A;sd|Sudan|Xartum|A;tz|Tanzaniya|Dodoma|A;tg|Togo|Lome|A;tn|Tunis|Tunis|A;ug|Uganda|Kampala|A;zm|Zambiya|Lusaka|A;zw|Zimbabve|Xarare|A;"+
+"ag|Antigua va Barbuda|Sent-Jons|S;bs|Bagama orollari|Nassau|S;bb|Barbados|Bridjtaun|S;bz|Beliz|Belmopan|S;ca|Kanada|Ottava|S;cr|Kosta-Rika|San-Xose|S;cu|Kuba|Gavana|S;dm|Dominika|Rozo|S;do|Dominikan Respublikasi|Santo-Domingo|S;sv|Salvador|San-Salvador|S;gd|Grenada|Sent-Jorjes|S;gt|Gvatemala|Gvatemala|S;ht|Gaiti|Port-o-Prens|S;hn|Gonduras|Tegusigalpa|S;jm|Yamayka|Kingston|S;mx|Meksika|Mexiko|S;ni|Nikaragua|Managua|S;pa|Panama|Panama|S;kn|Sent-Kits va Nevis|Basseter|S;lc|Sent-Lyusiya|Kastri|S;vc|Sent-Vinsent va Grenadinlar|Kingstaun|S;tt|Trinidad va Tobago|Port-of-Speyn|S;us|AQSH|Vashington|S;"+
+"ar|Argentina|Buenos-Ayres|J;bo|Boliviya|Sukre|J;br|Braziliya|Braziliya|J;cl|Chili|Santyago|J;co|Kolumbiya|Bogota|J;ec|Ekvador|Kito|J;gy|Gayana|Jorjtaun|J;py|Paragvay|Asunson|J;pe|Peru|Lima|J;sr|Surinam|Paramaribo|J;uy|Urugvay|Montevideo|J;ve|Venesuela|Karakas|J;"+
+"au|Avstraliya|Kanberra|K;fj|Fiji|Suva|K;ki|Kiribati|Janubiy Tarava|K;mh|Marshall orollari|Majuro|K;fm|Mikroneziya|Palikir|K;nr|Nauru||K;nz|Yangi Zelandiya|Vellington|K;pw|Palau|Ngerulmud|K;pg|Papua-Yangi Gvineya|Port-Morsbi|K;ws|Samoa|Apia|K;sb|Solomon orollari|Xoniara|K;to|Tonga|Nukualofa|K;tv|Tuvalu|Funafuti|K;vu|Vanuatu|Portvila|K";
+var GEO_CONT={O:'Osiyo',E:'Yevropa',A:'Afrika',S:'Shimoliy Amerika',J:'Janubiy Amerika',K:'Okeaniya'};
+var GEO=GEO_RAW.split(';').map(function(r){ var p=r.split('|'); return {c:p[0],n:p[1],cap:p[2],k:p[3]}; });
+function _geoOpts(x,field,pool){ // chalg'ituvchilar avval shu qit'adan — qiyinroq
+  var same=pool.filter(function(y){return y!==x&&y.k===x.k&&y[field];}), other=pool.filter(function(y){return y!==x&&y.k!==x.k&&y[field];});
+  var ds=shuf(same).slice(0,3); if(ds.length<3) ds=ds.concat(shuf(other).slice(0,3-ds.length));
+  var o=shuf([x].concat(ds)); return {opts:o.map(function(y){return _qEsc(y[field]);}),ok:o.indexOf(x)};
+}
+function geoRounds(kind,cont){
+  var pool=GEO.filter(function(x){return !cont||x.k===cont;}); if(kind!=='flag') pool=pool.filter(function(x){return x.cap;});
+  return shuf(pool).slice(0,10).map(function(x){ var m;
+    if(kind==='flag'){ m=_geoOpts(x,'n',pool); return {q:'<img class="gm-flag" src="https://flagcdn.com/w320/'+x.c+'.png" alt="bayroq"><div class="ts tm">Bu qaysi davlatning bayrog\'i?</div>',opts:m.opts,ok:m.ok}; }
+    if(kind==='cap'){ m=_geoOpts(x,'cap',pool); return {q:'<b>'+_qEsc(x.n)+'</b><div class="ts tm" style="margin-top:6px">Poytaxti qaysi shahar?</div>',opts:m.opts,ok:m.ok}; }
+    m=_geoOpts(x,'n',pool); return {q:'<b>'+_qEsc(x.cap)+'</b><div class="ts tm" style="margin-top:6px">Bu qaysi davlatning poytaxti?</div>',opts:m.opts,ok:m.ok};
+  });
+}
+var GEO_GAME={cont:''};
+function playGeo(kind){ var t={flag:'Bayroqni top',cap:'Poytaxtni top',country:'Davlatni top'}[kind];
+  gameStart(t+(GEO_GAME.cont?' · '+GEO_CONT[GEO_GAME.cont]:''),geoRounds(kind,GEO_GAME.cont)); GAME.again=function(){ playGeo(kind); }; }
+
+// ── Matematika: tez hisob (dastur hisoblaydi) ──
+function mathRounds(){
+  return Array.apply(null,{length:10}).map(function(){
+    var t=Math.floor(Math.random()*4), a,b,r,s;
+    if(t===0){ a=10+Math.floor(Math.random()*90); b=10+Math.floor(Math.random()*90); r=a+b; s=a+' + '+b; }
+    else if(t===1){ a=20+Math.floor(Math.random()*80); b=1+Math.floor(Math.random()*a); r=a-b; s=a+' − '+b; }
+    else if(t===2){ a=2+Math.floor(Math.random()*11); b=2+Math.floor(Math.random()*11); r=a*b; s=a+' × '+b; }
+    else { b=2+Math.floor(Math.random()*11); r=2+Math.floor(Math.random()*11); a=b*r; s=a+' : '+b; }
+    var set=[r]; [1,-1,2,-2,10,-10,b,-b].forEach(function(d){ if(set.length<4&&r+d>=0&&set.indexOf(r+d)<0&&Math.random()<.6) set.push(r+d); });
+    while(set.length<4){ var v=r+Math.floor(Math.random()*20)-10; if(v>=0&&set.indexOf(v)<0) set.push(v); }
+    var o=shuf(set); return {q:'<b style="font-size:30px">'+s+' = ?</b>',opts:o.map(String),ok:o.indexOf(r)};
+  });
+}
+// ── Kimyo: element belgisi ──
+var CHEM_EL="H|Vodorod;He|Geliy;Li|Litiy;Be|Berilliy;B|Bor;C|Uglerod;N|Azot;O|Kislorod;F|Ftor;Ne|Neon;Na|Natriy;Mg|Magniy;Al|Alyuminiy;Si|Kremniy;P|Fosfor;S|Oltingugurt;Cl|Xlor;Ar|Argon;K|Kaliy;Ca|Kalsiy;Ti|Titan;Cr|Xrom;Mn|Marganes;Fe|Temir;Co|Kobalt;Ni|Nikel;Cu|Mis;Zn|Rux;Br|Brom;Sr|Stronsiy;Ag|Kumush;Sn|Qalay;I|Yod;Ba|Bariy;W|Volfram;Pt|Platina;Au|Oltin;Hg|Simob;Pb|Qo'rg'oshin;U|Uran".split(';').map(function(r){ var p=r.split('|'); return {s:p[0],n:p[1]}; });
+function chemRounds(){
+  return shuf(CHEM_EL).slice(0,10).map(function(e,i){ var o=shuf([e].concat(_pick(CHEM_EL,3,[e])));
+    return i%2? {q:'<b style="font-size:34px">'+e.s+'</b><div class="ts tm" style="margin-top:6px">Qaysi element?</div>',opts:o.map(function(x){return x.n;}),ok:o.indexOf(e)}
+              : {q:'<b>'+e.n+'</b><div class="ts tm" style="margin-top:6px">Kimyoviy belgisi qaysi?</div>',opts:o.map(function(x){return x.s;}),ok:o.indexOf(e)}; });
+}
+
+// ── O'quvchining "O'yinlar" bo'limidagi fan o'yinlari ──
+function renderSubjGames(){
+  var el=document.getElementById('subj-games'); if(!el) return;
+  var sj=(typeof _curSubjFilter!=='undefined'&&_curSubjFilter)||(ME&&ME.subject)||'', cards=[];
+  if(sj==='geo'){
+    cards=[['playGeo(\'flag\')','🏳️','Bayroqni top','Dunyodagi '+GEO.length+' ta davlat'],['playGeo(\'cap\')','🏛️','Poytaxtni top','Davlat → poytaxt'],['playGeo(\'country\')','🌍','Davlatni top','Poytaxt → davlat']];
+  } else if(sj==='math'){ cards=[['gameStart(\'Tez hisob\',mathRounds());GAME.again=function(){gameStart(\'Tez hisob\',mathRounds());}','🧮','Tez hisob','Qo\'shish, ayirish, ko\'paytirish, bo\'lish']]; }
+  else if(sj==='chem'){ cards=[['gameStart(\'Element belgisi\',chemRounds());GAME.again=function(){gameStart(\'Element belgisi\',chemRounds());}','⚗️','Element belgisi','Belgi ↔ nomi']]; }
+  else if(sj==='eng'){ var n=fcDecks().filter(function(d){return d.subject==='eng'&&fcDeckVisible(d,true);}).length;
+    if(n) cards=[['openStSection(\'st-cards\')','🔤','So\'z o\'yinlari','Yodlash bo\'limidagi to\'plamlar: eshitib top, to\'g\'rimi?, tarjima']]; }
+  if(!cards.length){ el.innerHTML=''; return; }
+  el.innerHTML='<h3 style="margin:0 0 10px">'+_qEsc(subjName(sj))+' o\'yinlari</h3>'+
+    (sj==='geo'?'<div class="fx" style="gap:6px;flex-wrap:wrap;margin-bottom:10px">'+[['','Hammasi']].concat(Object.keys(GEO_CONT).map(function(k){return [k,GEO_CONT[k]];})).map(function(c){ return '<button type="button" class="btn bsm'+(GEO_GAME.cont===c[0]?' bpu':' bg')+'" onclick="GEO_GAME.cont=\''+c[0]+'\';renderSubjGames()">'+c[1]+'</button>'; }).join('')+'</div>':'')+
+    '<div class="gm-menu">'+cards.map(function(c){ return '<button class="gm-card" onclick="'+c[0]+'"><span>'+c[1]+'</span><b>'+c[2]+'</b><small>'+c[3]+'</small></button>'; }).join('')+'</div>';
+}
+</script>
+<style>
+.gm-q{text-align:center;font-size:22px;margin:10px 0 16px;line-height:1.4}
+.gm-flag{display:block;margin:0 auto 10px;max-width:100%;width:240px;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,.15)}
+.gm-opts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.gm-opt{padding:14px 10px;border-radius:12px;border:2px solid #dbe1ea;background:#fff;font:inherit;font-size:16px;font-weight:600;cursor:pointer;color:#111827;word-break:break-word}
+.gm-opt:hover{border-color:var(--pri)}
+.gm-opt.ok{background:#dcfce7;border-color:#16a34a}
+.gm-opt.bad{background:#fee2e2;border-color:#dc2626}
+.gm-menu{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.gm-card{display:flex;flex-direction:column;align-items:center;gap:4px;padding:16px 10px;border-radius:14px;border:1.5px solid #dbe1ea;background:#fff;cursor:pointer;font:inherit;color:#111827;text-align:center}
+.gm-card span{font-size:34px}.gm-card small{color:#64748b;font-size:12px}
+.gm-card:hover{border-color:var(--pri);transform:translateY(-1px)}
+@media(max-width:420px){.gm-opts{grid-template-columns:1fr}}
+</style>
+
 <!-- MUAMMO YOZISH (2026-10-01): xabar shu saytning serveri orqali admin Telegram'i va emailiga ketadi -->
 <style>
 #rep-fab{position:fixed;left:14px;bottom:14px;z-index:150;background:#fff;color:var(--pri,#25316d);border:1px solid rgba(37,49,109,.18);border-radius:999px;padding:8px 14px;font-size:13px;font-weight:700;box-shadow:0 4px 16px rgba(0,0,0,.12);cursor:pointer}
