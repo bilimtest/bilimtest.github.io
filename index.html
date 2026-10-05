@@ -10037,6 +10037,23 @@ function bioRounds(){
     return i%2? {q:'<b>'+x.o+'</b><div class="ts tm" style="margin-top:6px">Vazifasi qaysi?</div>',opts:o.map(function(z){return z.f;}),ok:o.indexOf(x)}
               : {q:'<b>'+x.f+'</b><div class="ts tm" style="margin-top:6px">Qaysi organ yoki qism?</div>',opts:o.map(function(z){return z.o;}),ok:o.indexOf(x)}; });
 }
+// ── Umumiy juftlik o'yini: "a|b;a|b" ro'yxati. both=true bo'lsa teskari savol ham (b -> a). ──
+function _pairs(raw){ return raw.split(';').map(function(r){ var p=r.split('|'); return {a:p[0],b:p[1]}; }); }
+function pairRounds(list,qa,qb,both,say,lang){
+  return shuf(list).slice(0,10).map(function(x,i){
+    var rev=both&&i%2, key=rev?'a':'b', ask=rev?x.b:x.a;
+    var pool=_uniq(list.map(function(y){return y[key];}).filter(function(v){return v!==x[key];}));
+    var o=shuf([x[key]].concat(shuf(pool).slice(0,3)));
+    return {q:'<b>'+_qEsc(ask)+'</b><div class="ts tm" style="margin-top:6px">'+(rev?qb:qa)+'</div>',say:say&&!rev?x.a:null,lang:lang,opts:o.map(_qEsc),ok:o.indexOf(x[key])};
+  });
+}
+var PHYS_U=_pairs("Kuch|Nyuton (N);Massa|Kilogramm (kg);Uzunlik|Metr (m);Vaqt|Sekund (s);Tezlik|m/s;Tezlanish|m/s²;Energiya|Joul (J);Quvvat|Vatt (W);Bosim|Paskal (Pa);Elektr toki kuchi|Amper (A);Kuchlanish|Volt (V);Elektr qarshilik|Om (Ω);Elektr zaryadi|Kulon (C);Chastota|Gers (Hz);Termodinamik harorat|Kelvin (K);Modda miqdori|Mol (mol);Yorug'lik kuchi|Kandela (cd);Elektr sig'imi|Farad (F);Magnit induksiya|Tesla (T);Hajm|m³;Zichlik|kg/m³;Impuls|kg·m/s");
+var PHYS_F=_pairs("F = m·a|Nyutonning ikkinchi qonuni;v = s / t|Tezlik;I = U / R|Om qonuni;E = m·c²|Massa va energiya bog'liqligi;N = A / t|Quvvat;p = F / S|Bosim;Ek = m·v² / 2|Kinetik energiya;Ep = m·g·h|Potensial energiya;ρ = m / V|Zichlik;Q = c·m·Δt|Isitish uchun issiqlik miqdori;A = F·s|Mexanik ish;P = m·g|Og'irlik kuchi");
+var LIT_W=_pairs("O'tkan kunlar|Abdulla Qodiriy;Mehrobdan chayon|Abdulla Qodiriy;Kecha va kunduz|Cho'lpon;Xamsa|Alisher Navoiy;Lison ut-tayr|Alisher Navoiy;Mahbub ul-qulub|Alisher Navoiy;Boburnoma|Zahiriddin Muhammad Bobur;Qutadg'u bilig|Yusuf Xos Hojib;Devonu lug'otit turk|Mahmud Koshg'ariy;Hibat ul-haqoyiq|Ahmad Yugnakiy;Shum bola|G'afur G'ulom;Sarob|Abdulla Qahhor;O'tmishdan ertaklar|Abdulla Qahhor;Sinchalak|Abdulla Qahhor;Qutlug' qon|Oybek;Navoiy (roman)|Oybek;Ulug'bek xazinasi|Odil Yoqubov;Ikki eshik orasi|O'tkir Hoshimov;Dunyoning ishlari|O'tkir Hoshimov;Yulduzli tunlar|Pirimqul Qodirov;Padarkush|Mahmudxo'ja Behbudiy");
+var INFO_T=_pairs("CPU|Markaziy protsessor;RAM|Tezkor xotira;ROM|Doimiy xotira;Bit|Axborotning eng kichik birligi;Bayt|8 bit;Kilobayt|1024 bayt;Algoritm|Masalani yechish uchun aniq ko'rsatmalar ketma-ketligi;Brauzer|Veb-sahifalarni ko'rish dasturi;Operatsion tizim|Kompyuter ishini boshqaradigan asosiy dastur;Monitor|Axborotni ekranga chiqarish qurilmasi;Printer|Axborotni qog'ozga chiqarish qurilmasi;Klaviatura|Matn va buyruq kiritish qurilmasi;URL|Internetdagi resurs manzili;Kompyuter virusi|Zarar yetkazuvchi dastur;Fayl|Nomlangan ma'lumotlar to'plami;Ikkilik sanoq sistemasi|Faqat 0 va 1 raqamlari ishlatiladi;Server|Boshqa kompyuterlarga xizmat ko'rsatuvchi kompyuter;HTML|Veb-sahifa belgilash tili");
+var RUS_W=_pairs("книга|kitob;дом|uy;вода|suv;хлеб|non;школа|maktab;учитель|o'qituvchi;ученик|o'quvchi;окно|deraza;дверь|eshik;солнце|quyosh;город|shahar;улица|ko'cha;друг|do'st;мама|ona;отец|ota;яблоко|olma;молоко|sut;собака|it;кошка|mushuk;птица|qush;цветок|gul;дерево|daraxt;море|dengiz;река|daryo;гора|tog';день|kun;ночь|tun;время|vaqt;работа|ish;красивый|chiroyli;большой|katta;маленький|kichik");
+var LANG_W=_pairs("kitob|Ot;daraxt|Ot;Toshkent|Ot;bola|Ot;chiroyli|Sifat;qizil|Sifat;baland|Sifat;shirin|Sifat;besh|Son;yuz|Son;birinchi|Son;o'nta|Son;o'qimoq|Fe'l;yozdi|Fe'l;yugurmoq|Fe'l;keldi|Fe'l;men|Olmosh;ular|Olmosh;bu|Olmosh;kim|Olmosh;hozir|Ravish;doimo|Ravish;asta-sekin|Ravish;piyoda|Ravish");
+function _pg(t,fn){ return 'gameStart(\''+t+'\','+fn+');GAME.again=function(){gameStart(\''+t+'\','+fn+');}'; }
 // ── O'quvchining "O'yinlar" bo'limidagi fan o'yinlari ──
 function renderSubjGames(){
   var el=document.getElementById('subj-games'); if(!el) return;
@@ -10046,6 +10063,11 @@ function renderSubjGames(){
   } else if(sj==='math'){ cards=[['gameStart(\'Tez hisob\',mathRounds());GAME.again=function(){gameStart(\'Tez hisob\',mathRounds());}','🧮','Tez hisob','Qo\'shish, ayirish, ko\'paytirish, bo\'lish']]; }
   else if(sj==='hist'){ cards=[['gameStart(\'Sanani top\',histRounds());GAME.again=function(){gameStart(\'Sanani top\',histRounds());}','📜','Sanani top','Voqea ↔ yil ('+HIST_EV.length+' ta voqea)']]; }
   else if(sj==='bio'){ cards=[['gameStart(\'Organni top\',bioRounds());GAME.again=function(){gameStart(\'Organni top\',bioRounds());}','🫀','Organni top','Organ ↔ vazifasi ('+BIO_ORG.length+' ta)']]; }
+  else if(sj==='phys'){ cards=[[_pg('Birlikni top','pairRounds(PHYS_U,\'Birligi qaysi?\')'),'📏','Birlikni top','Kattalik → SI birligi'],[_pg('Formulani top','pairRounds(PHYS_F,\'Bu qaysi formula?\',\'Formulasi qaysi?\',true)'),'🧲','Formulani top','Formula ↔ nomi']]; }
+  else if(sj==='lit'){ cards=[[_pg('Muallifni top','pairRounds(LIT_W,\'Muallifi kim?\')'),'📚','Muallifni top','Asar → muallif ('+LIT_W.length+' ta asar)']]; }
+  else if(sj==='info'){ cards=[[_pg('Atamani top','pairRounds(INFO_T,\'Ma\\\'nosi qaysi?\',\'Qaysi atama?\',true)'),'💻','Atamani top','Atama ↔ ma\'nosi']]; }
+  else if(sj==='rus'){ cards=[[_pg('Ruscha so\\\'zlar','pairRounds(RUS_W,\'Tarjimasini toping\',\'Ruschasini toping\',true,true,\'ru-RU\')'),'🇷🇺','So\'z tarjimasi','Ruscha ↔ o\'zbekcha, ovozi bilan']]; }
+  else if(sj==='lang'){ cards=[[_pg('So\\\'z turkumi','pairRounds(LANG_W,\'Qaysi so\\\'z turkumi?\')'),'✍️','So\'z turkumini top','Ot, sifat, son, fe\'l, olmosh, ravish']]; }
   else if(sj==='chem'){ cards=[['gameStart(\'Element belgisi\',chemRounds());GAME.again=function(){gameStart(\'Element belgisi\',chemRounds());}','⚗️','Element belgisi','Belgi ↔ nomi']]; }
   else if(sj==='eng'){ var n=fcDecks().filter(function(d){return d.subject==='eng'&&fcDeckVisible(d,true);}).length;
     if(n) cards=[['openStSection(\'st-cards\')','🔤','So\'z o\'yinlari','Yodlash bo\'limidagi to\'plamlar: eshitib top, to\'g\'rimi?, tarjima']]; }
