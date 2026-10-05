@@ -8330,11 +8330,31 @@ window.addEventListener('appinstalled',function(){
   if(b)b.style.display='none';
   _deferredPrompt=null;
 });
+// 2026-10-05: Samsung Internet (va ba'zan Chrome) beforeinstallprompt yubormaydi — tugma ko'rinmay qolardi.
+// Endi telefonda tugma doim chiqadi (ilova ichida ochilgan bo'lmasa); signal bo'lmasa — brauzerga mos yo'riqnoma.
+function _isStandalone(){ try{ return matchMedia('(display-mode: standalone)').matches||navigator.standalone===true; }catch(e){ return false; } }
+function _isMobileUA(){ return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent); }
+(function(){ function show(){ var b=document.getElementById('btn-install'); if(b&&!_isStandalone()&&_isMobileUA()) b.style.display='inline-flex'; }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',show); else show(); })();
 function installApp(){
   if(_deferredPrompt){
     _deferredPrompt.prompt();
     _deferredPrompt.userChoice.then(function(){_deferredPrompt=null;});
+    return;
   }
+  var ua=navigator.userAgent, steps;
+  if(/SamsungBrowser/i.test(ua)) steps=['Pastdagi <b>&#9776; menyu</b> tugmasini bosing','<b>"Sahifani qo\'shish"</b> (Add page to) ni tanlang','<b>"Bosh ekran"</b> ni tanlang va <b>"Qo\'shish"</b> ni bosing'];
+  else if(/iPhone|iPad|iPod/i.test(ua)) steps=['Pastdagi <b>Ulashish</b> (&#x2B06;&#xFE0F; kvadrat) tugmasini bosing','<b>"Bosh ekranga"</b> (Add to Home Screen) ni tanlang','<b>"Qo\'shish"</b> ni bosing'];
+  else if(/YaBrowser|Yandex/i.test(ua)) steps=['<b>&#8942; menyu</b> ni oching','<b>"Bosh ekranga qo\'shish"</b> ni tanlang'];
+  else steps=['Yuqori o\'ngdagi <b>&#8942; menyu</b> ni oching','<b>"Ilovani o\'rnatish"</b> yoki <b>"Bosh ekranga qo\'shish"</b> ni tanlang','<b>"O\'rnatish"</b> ni bosing'];
+  var ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(10,15,40,.55);z-index:10000;display:flex;align-items:center;justify-content:center;padding:16px';
+  ov.onclick=function(e){ if(e.target===ov) ov.remove(); };
+  ov.innerHTML='<div style="background:#fff;color:#1e2a3a;border-radius:16px;max-width:400px;width:100%;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.3)">'+
+    '<h3 style="margin:0 0 6px">&#x1F4F2; Ilovani telefonga o\'rnatish</h3><p style="margin:0 0 12px;font-size:13px;opacity:.75">BilimTest bosh ekranda oddiy ilova kabi ochiladi.</p>'+
+    '<ol style="margin:0 0 14px;padding-left:20px;line-height:1.7">'+steps.map(function(x){return '<li>'+x+'</li>';}).join('')+'</ol>'+
+    '<button class="btn bp" style="width:100%" onclick="this.closest(\'div[style*=fixed]\').remove()">Tushunarli</button></div>';
+  document.body.appendChild(ov);
 }
 if('serviceWorker' in navigator){
   var _swSessionStarted = false;
