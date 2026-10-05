@@ -10020,6 +10020,23 @@ function chemRounds(){
               : {q:'<b>'+e.n+'</b><div class="ts tm" style="margin-top:6px">Kimyoviy belgisi qaysi?</div>',opts:o.map(function(x){return x.s;}),ok:o.indexOf(e)}; });
 }
 
+// ── Tarix: sanani top (yil|voqea) ──
+var HIST_EV="1336|Amir Temur tug'ildi;1370|Amir Temur Movarounnahr hukmdori bo'ldi;1402|Anqara jangi (Amir Temur va Boyazid);1405|Amir Temur vafot etdi;1394|Mirzo Ulug'bek tug'ildi;1449|Mirzo Ulug'bek vafot etdi;1441|Alisher Navoiy tug'ildi;1483|Zahiriddin Muhammad Bobur tug'ildi;1526|Panipat jangi (Bobur);1219|Mo'g'ullarning O'rta Osiyoga bosqini boshlandi;1220|Chingizxon Buxoro va Samarqandni egalladi;1865|Toshkent Rossiya imperiyasi tomonidan bosib olindi;1867|Turkiston general-gubernatorligi tashkil etildi;1868|Buxoro amirligi Rossiyaga qaram bo'ldi;1873|Xiva xonligi Rossiya protektoratiga aylandi;1876|Qo'qon xonligi tugatildi;1924|O'zbekiston SSR tashkil topdi;1966|Toshkent zilzilasi;1991|O'zbekiston mustaqilligi e'lon qilindi;1992|O'zbekiston Konstitutsiyasi qabul qilindi;1453|Konstantinopol Usmonlilar tomonidan egallandi;1492|Kolumb Amerikaga yetib bordi;1498|Vasko da Gama Hindistonga dengiz yo'lini ochdi;1776|AQSH mustaqillik deklaratsiyasi qabul qilindi;1789|Fransuz inqilobi boshlandi;1914|Birinchi jahon urushi boshlandi;1918|Birinchi jahon urushi tugadi;1917|Rossiyada Oktabr to'ntarishi;1939|Ikkinchi jahon urushi boshlandi;1945|Ikkinchi jahon urushi tugadi;1961|Yuriy Gagarin koinotga uchdi;1969|Inson ilk bor Oyga qadam qo'ydi".replace(/\n/g,'').split(';').map(function(r){ var p=r.split('|'); return {y:+p[0],e:p[1]}; });
+function histRounds(){
+  return shuf(HIST_EV).slice(0,10).map(function(x,i){
+    if(i%2){ var o=shuf([x].concat(_pick(HIST_EV.filter(function(z){return z.y!==x.y;}),3,[x])));
+      return {q:'<b style="font-size:34px">'+x.y+'-yil</b><div class="ts tm" style="margin-top:6px">Shu yili nima bo\'lgan?</div>',opts:o.map(function(z){return z.e;}),ok:o.indexOf(x)}; }
+    var set=[x.y]; while(set.length<4){ var d=(3+Math.floor(Math.random()*40))*(Math.random()<.5?-1:1), v=x.y+d; if(v<=2026&&set.indexOf(v)<0) set.push(v); }
+    var o2=shuf(set); return {q:'<b>'+x.e+'</b><div class="ts tm" style="margin-top:6px">Qaysi yilda?</div>',opts:o2.map(String),ok:o2.indexOf(x.y)};
+  });
+}
+// ── Biologiya: organni top (vazifasi|organ) ──
+var BIO_ORG="Qonni butun tanaga haydaydi|Yurak;Gaz almashinuvi (nafas olish) sodir bo'ladi|O'pka;Qonni tozalab, siydik hosil qiladi|Buyrak;O't (safro) ishlab chiqaradi|Jigar;Insulin ishlab chiqaradi|Oshqozon osti bezi;Oshqozon shirasi bilan ovqatni hazm qiladi|Oshqozon;Oziq moddalar qonga so'riladi|Ingichka ichak;Suv so'riladi, najas hosil bo'ladi|Yo'g'on ichak;Fikrlaydi va butun nerv tizimini boshqaradi|Bosh miya;Ko'rish a'zosi|Ko'z;Eshitish va muvozanat a'zosi|Quloq;Hujayraning energiya stansiyasi (ATF hosil qiladi)|Mitoxondriya;O'simlik hujayrasida fotosintez sodir bo'ladi|Xloroplast;Irsiy axborot (DNK) saqlanadi|Yadro;Oqsil sintezlanadi|Ribosoma;Moddalarni to'plab, hujayradan chiqaradi|Golji apparati;Hujayra ichida hazm qilish|Lizosoma;Hujayrani o'rab, moddalar o'tishini boshqaradi|Hujayra membranasi;Kislorodni tashiydi|Eritrotsit;Qon ivishini ta'minlaydi|Trombotsit;Organizmni mikroblardan himoya qiladi|Leykotsit;O'simlikda suv va mineral moddalarni yuqoriga o'tkazadi|Ksilema;Barg orqali gaz almashinuvi va suv bug'lanishi|Og'izchalar (ustitsalar);Suyaklarga birikib, tanani harakatlantiradi|Skelet muskullari".split(';').map(function(r){ var p=r.split('|'); return {f:p[0],o:p[1]}; });
+function bioRounds(){
+  return shuf(BIO_ORG).slice(0,10).map(function(x,i){ var o=shuf([x].concat(_pick(BIO_ORG,3,[x])));
+    return i%2? {q:'<b>'+x.o+'</b><div class="ts tm" style="margin-top:6px">Vazifasi qaysi?</div>',opts:o.map(function(z){return z.f;}),ok:o.indexOf(x)}
+              : {q:'<b>'+x.f+'</b><div class="ts tm" style="margin-top:6px">Qaysi organ yoki qism?</div>',opts:o.map(function(z){return z.o;}),ok:o.indexOf(x)}; });
+}
 // ── O'quvchining "O'yinlar" bo'limidagi fan o'yinlari ──
 function renderSubjGames(){
   var el=document.getElementById('subj-games'); if(!el) return;
@@ -10027,6 +10044,8 @@ function renderSubjGames(){
   if(sj==='geo'){
     cards=[['playGeo(\'flag\')','🏳️','Bayroqni top','Dunyodagi '+GEO.length+' ta davlat'],['playGeo(\'cap\')','🏛️','Poytaxtni top','Davlat → poytaxt'],['playGeo(\'country\')','🌍','Davlatni top','Poytaxt → davlat']];
   } else if(sj==='math'){ cards=[['gameStart(\'Tez hisob\',mathRounds());GAME.again=function(){gameStart(\'Tez hisob\',mathRounds());}','🧮','Tez hisob','Qo\'shish, ayirish, ko\'paytirish, bo\'lish']]; }
+  else if(sj==='hist'){ cards=[['gameStart(\'Sanani top\',histRounds());GAME.again=function(){gameStart(\'Sanani top\',histRounds());}','📜','Sanani top','Voqea ↔ yil ('+HIST_EV.length+' ta voqea)']]; }
+  else if(sj==='bio'){ cards=[['gameStart(\'Organni top\',bioRounds());GAME.again=function(){gameStart(\'Organni top\',bioRounds());}','🫀','Organni top','Organ ↔ vazifasi ('+BIO_ORG.length+' ta)']]; }
   else if(sj==='chem'){ cards=[['gameStart(\'Element belgisi\',chemRounds());GAME.again=function(){gameStart(\'Element belgisi\',chemRounds());}','⚗️','Element belgisi','Belgi ↔ nomi']]; }
   else if(sj==='eng'){ var n=fcDecks().filter(function(d){return d.subject==='eng'&&fcDeckVisible(d,true);}).length;
     if(n) cards=[['openStSection(\'st-cards\')','🔤','So\'z o\'yinlari','Yodlash bo\'limidagi to\'plamlar: eshitib top, to\'g\'rimi?, tarjima']]; }
