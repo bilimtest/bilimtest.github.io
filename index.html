@@ -9728,6 +9728,8 @@ history.pushState(null, '', location.href);
       <button class="btn bpu bsm" id="fc-photo-btn" style="display:none" onclick="fcCamOpen()">&#x1F4F7; Lug'atni rasmga olish</button>
       <input type="file" id="fc-photo-inp" accept="image/*" capture="environment" style="display:none" onchange="fcPhotoChosen(this)">
       <input type="file" id="fc-gal-inp" accept="image/*" style="display:none" onchange="fcPhotoChosen(this)">
+      <button class="btn bpu bsm" id="fc-file-btn" style="display:none" onclick="var i=document.getElementById('fc-file-inp');i.value='';i.click()">&#x1F4C1; Fayldan yuklash</button>
+      <input type="file" id="fc-file-inp" accept="image/*,.pdf,.docx,.txt" style="display:none" onchange="fcFileChosen(this)">
     </div>
     <div id="fc-photo-st" class="alt ai" style="display:none;margin-bottom:10px"></div>
     <div id="fc-paste-box" style="display:none;margin-bottom:12px">
@@ -9909,7 +9911,17 @@ function fcTeacherAllowed(){ return !!(ME&&(ME.role==='admin'||FC_ALLOWED_SUBJ.i
 function updateTeacherCardsTab(){ var b=document.getElementById('tc-k-tab'); if(b) b.style.display=fcTeacherAllowed()?'':'none'; }
 
 // ── Lug'at rasmidan qo'shish (faqat ingliz tili) ──
-function fcPhotoToggle(){ var b=document.getElementById('fc-photo-btn'), s=document.getElementById('fc-subj'); if(b) b.style.display=(s&&s.value==='eng')?'':'none'; }
+function fcPhotoToggle(){ var s=document.getElementById('fc-subj'), on=!!(s&&s.value==='eng'); ['fc-photo-btn','fc-file-btn'].forEach(function(id){ var b=document.getElementById(id); if(b) b.style.display=on?'':'none'; }); }
+// Fayldan: rasm (kichraytiriladi), PDF / Word (.docx) / TXT (o'z holicha, 6 MB gacha)
+function fcFileChosen(inp){
+  var f=inp.files&&inp.files[0]; if(!f) return;
+  var st=document.getElementById('fc-photo-st');
+  if(/^image\//.test(f.type)){ fcPhotoChosen(inp); return; }
+  if(!/\.(pdf|docx|txt)$/i.test(f.name)){ st.style.display='block'; st.className='alt ar'; st.textContent="❌ Faqat rasm, PDF, Word (.docx) yoki TXT fayl yuklang"; return; }
+  if(f.size>6*1024*1024){ st.style.display='block'; st.className='alt ar'; st.textContent="❌ Fayl juda katta (6 MB gacha)"; return; }
+  var rd=new FileReader(); rd.onload=function(){ fcSendVocab(String(rd.result).split(',')[1], f.name); };
+  rd.onerror=function(){ st.style.display='block'; st.className='alt ar'; st.textContent="❌ Fayl o'qilmadi"; }; rd.readAsDataURL(f);
+}
 function fcPickPhoto(){ var i=document.getElementById('fc-photo-inp'); i.value=''; i.click(); }
 function _fcShrink(file){
   return new Promise(function(res,rej){
@@ -9926,10 +9938,10 @@ async function fcPhotoChosen(inp){
   var f=inp.files&&inp.files[0]; if(!f) return;
   try{ fcSendVocab(await _fcShrink(f)); }catch(e){ var st=document.getElementById('fc-photo-st'); st.style.display='block'; st.className='alt ar'; st.textContent='❌ '+e.message; }
 }
-async function fcSendVocab(b64){
+async function fcSendVocab(b64,fname){
   var st=document.getElementById('fc-photo-st'); st.style.display='block'; st.className='alt ai'; st.textContent="⏳ Rasm o'qilmoqda (20–40 soniya)...";
   try{
-    var r=await fetch(DB_SERVER+'/vocab_image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({data:b64,filename:'lugat.jpg'})});
+    var r=await fetch(DB_SERVER+'/vocab_image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({data:b64,filename:fname||'lugat.jpg'})});
     var j=await r.json(); if(!r.ok) throw new Error(j.error||('HTTP '+r.status));
     var add=(j.pairs||[]).map(function(p){ return {f:String(p.f).replace(/^\s*\d+\s*[\.\)\-:]?\s*/,''),b:String(p.b).replace(/^\s*\d+\s*[\.\)\-:]?\s*/,'')}; })
       .filter(function(p){ return p.f&&p.b&&!/^[\d\s.,]+$/.test(p.f); });
