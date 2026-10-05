@@ -8352,7 +8352,6 @@ function installApp(){
   ov.onclick=function(e){ if(e.target===ov) ov.remove(); };
   ov.innerHTML='<div style="background:#fff;color:#1e2a3a;border-radius:16px;max-width:400px;width:100%;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.3)">'+
     '<h3 style="margin:0 0 6px">&#x1F4F2; Ilovani telefonga o\'rnatish</h3><p style="margin:0 0 12px;font-size:13px;opacity:.75">BilimTest bosh ekranda oddiy ilova kabi ochiladi.</p>'+
-    (/Android/i.test(ua)?'<div style="background:#fef3c7;color:#78350f;border-radius:10px;padding:10px 12px;font-size:13px;margin-bottom:12px;line-height:1.5"><b>Sayt Telegram yoki boshqa ilova ichida ochilganmi?</b> (tepada &#x2715; tugmasi bo'lsa) — u yerda o'rnatib bo'lmaydi. Avval tepadagi <b>&#8942;</b> ni bosib, <b>"Brauzerda ochish"</b> ni tanlang, keyin quyidagilarni bajaring.</div>':'')+
     '<ol style="margin:0 0 14px;padding-left:20px;line-height:1.7">'+steps.map(function(x){return '<li>'+x+'</li>';}).join('')+'</ol>'+
     '<button class="btn bp" style="width:100%" onclick="this.closest(\'div[style*=fixed]\').remove()">Tushunarli</button></div>';
   document.body.appendChild(ov);
