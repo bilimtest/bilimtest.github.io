@@ -910,7 +910,7 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#f8fafc}
     </div>
     <div class="card">
       <h3 style="margin-bottom:8px">&#x1F3C5; Milliy sertifikat bazasi</h3>
-      <p style="font-size:13px;color:var(--mut);margin-bottom:10px">Biologiya, tarix, geografiya, ona tili va adabiyot uchun AI original savol yozadi. Har savolni boshqa AI'lar javobini bilmasdan ikki marta mustaqil yechib tekshiradi — hammasi bir xil javob bersagina savol bazaga qo'shiladi. Fanda 45 ta savol bo'lgach, o'quvchilarga ochiladi.</p>
+      <p style="font-size:13px;color:var(--mut);margin-bottom:10px">Biologiya, tarix, geografiya, ona tili va adabiyot bo'yicha bazadagi savollar. Bu yerda ularni tahrirlash va o'chirish mumkin. Fanda 45 ta savol bo'lgach, o'quvchilarga ochiladi.</p>
       <div id="admin-ms-bank"></div>
     </div>
     <div class="card">
@@ -4366,8 +4366,6 @@ function msAdminRender(){
   el.innerHTML='<div class="fx" style="gap:6px;flex-wrap:wrap;margin-bottom:10px">'+Object.keys(MS_AI_SUBJ).map(function(k){
       return '<button type="button" class="btn'+(k===A.subj?' bp':'')+'" style="padding:6px 12px" onclick="_msAdm.edit=null;msAdminLoad(\''+k+'\')">'+MS_AI_SUBJ[k].ic+' '+MS_AI_SUBJ[k].name+'</button>'; }).join('')+'</div>'+
     '<div class="alt ai" style="margin-bottom:10px">Bazada <b>'+A.bank.length+'</b> ta savol'+(A.bank.length>=need?' — o\'quvchilarga <b>ochiq</b>.':' — o\'quvchiga ochilishi uchun yana <b>'+(need-A.bank.length)+'</b> ta kerak.')+'</div>'+
-    '<button type="button" class="btn bp" style="width:100%;margin-bottom:12px" '+(A.busy?'disabled':'')+' onclick="msAdminGen()">'+(A.busy?'&#x23F3; AI savol yozib, tekshirmoqda (2–4 daqiqa)...':'&#x2728; AI bilan yangi savollar qo\'shish')+'</button>'+
-    '<p class="ts tm">Fonda ham har kuni oz-ozdan qo\'shiladi.</p>'+
     '<details style="margin-top:12px"><summary style="cursor:pointer;font-weight:700">&#x1F4DA; Bazadagi savollar ('+A.bank.length+')</summary>'+
     A.bank.map(function(q,i){return _msAdmQ(q,i,'b');}).join('')+'</details>';
 }
