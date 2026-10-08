@@ -4382,11 +4382,155 @@ var MS_O_BIO=[
   {t:'Jinsga bog\'liq irsiylanish',h:1,o:function(){ var x=_pick(['daltonizm','gemofiliya']);
     return {q:x+' X xromosomaga birikkan retsessiv belgi. Ona bu belgi bo\'yicha kasal, ota sog\'lom.', p:[['O\'g\'il farzandlarning necha foizi kasal bo\'ladi?', 100],['Qiz farzandlarning necha foizi tashuvchi bo\'ladi?', 100]]}; }}
 ];
+// ─── TARIX, GEOGRAFIYA, ONA TILI — 2026-10-08 (dastur yaratadi; faktlar jadvali qo'lda) ───
+// Tarix voqealari: HIST_EV (o'yinlar bilan umumiy jadval, yillar takrorlanmaydi). Geografiya: GEO (195 davlat).
+function _cent(y){ return Math.floor((y-1)/100)+1; }
+function _romanC(c){ return ['','I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII','XIII','XIV','XV','XVI','XVII','XVIII','XIX','XX','XXI'][c]+' asr'; }
+var MS_HIST_DYN={
+  'Temuriylar':['Amir Temur','Mirzo Ulug\'bek','Shohruh Mirzo','Husayn Boyqaro'],
+  'Shayboniylar':['Muhammad Shayboniyxon','Ubaydullaxon','Abdullaxon II'],
+  'Boburiylar':['Zahiriddin Muhammad Bobur','Humoyun','Akbar','Shoh Jahon'],
+  'Mang\'itlar (Buxoro amirligi)':['Amir Haydar','Amir Nasrullo','Amir Muzaffar','Said Olimxon']
+};
+var MS_HIST_WORK=[['Muhammad al-Xorazmiy','"Al-kitob al-muxtasar fi hisob al-jabr val-muqobala"'],['Abu Rayhon Beruniy','"Qadimgi xalqlardan qolgan yodgorliklar"'],['Abu Ali ibn Sino','"Tib qonunlari"'],['Mirzo Ulug\'bek','"Ziji jadidi Ko\'ragoniy"'],['Zahiriddin Muhammad Bobur','"Boburnoma"'],['Mahmud Koshg\'ariy','"Devonu lug\'otit turk"'],['Yusuf Xos Hojib','"Qutadg\'u bilig"'],['Imom al-Buxoriy','"Al-Jome\' as-sahih"']];
+function _histEv(){ return _pick(HIST_EV); }
+function _histOther(x,k){ return shuf(HIST_EV.filter(function(z){return z.y!==x.y;})).slice(0,k); }
+var MS_T_HIST=[
+  {t:'Sanalar',s:1,e:1,f:function(){ var x=_histEv(); return {q:'"'+x.e+'" voqeasi qaysi yilda sodir bo\'lgan?', a:x.y, w:_histOther(x,3).map(function(z){return z.y;})}; }},
+  {t:'Sanalar',s:1,e:1,f:function(){ var x=_histEv(); return {q:x.y+'-yilda qaysi voqea sodir bo\'lgan?', a:x.e, w:_histOther(x,3).map(function(z){return z.e;})}; }},
+  {t:'Asrlar',s:2,f:function(){ var x=_histEv(), c=_cent(x.y); return {q:'"'+x.e+'" voqeasi qaysi asrda sodir bo\'lgan?', a:_romanC(c), w:[c-1,c+1,c-2,c+2].filter(function(v){return v>=1&&v<=21;}).map(_romanC)}; }},
+  {t:'Asrlar',s:2,h:1,f:function(){ var c=_pick([13,14,15,18,19,20]), inn=HIST_EV.filter(function(z){return _cent(z.y)===c;}), out=HIST_EV.filter(function(z){return _cent(z.y)!==c;});
+    if(!inn.length) return MS_T_HIST[2].f(); var x=_pick(inn);
+    return {q:'Quyidagi voqealardan qaysi biri '+_romanC(c)+'da sodir bo\'lgan?', a:x.e, w:shuf(out).slice(0,3).map(function(z){return z.e;})}; }},
+  {t:'Xronologiya',s:3,h:1,f:function(){ var ev=shuf(HIST_EV).slice(0,4), ok=ev.slice().sort(function(a,b){return a.y-b.y;}), L='abcd';
+    var lab=function(order){ return order.map(function(z){return L[ev.indexOf(z)];}).join(' → '); };
+    var w=[], tries=0; while(w.length<3&&tries++<50){ var o=lab(shuf(ev)); if(o!==lab(ok)&&w.indexOf(o)<0) w.push(o); }
+    return {q:'Voqealarni xronologik tartibda joylashtiring: '+ev.map(function(z,i){return L[i]+') '+z.e;}).join('; ')+'.', a:lab(ok), w:w}; }},
+  {t:'Xronologiya',s:3,h:1,f:function(){ var p=shuf(HIST_EV).slice(0,2).sort(function(a,b){return a.y-b.y;}), d=p[1].y-p[0].y;
+    return {q:'"'+p[0].e+'" voqeasidan "'+p[1].e+'" voqeasigacha necha yil o\'tgan?', a:d, w:[d+10,d-10>0?d-10:d+20,d+1,d+100]}; }},
+  {t:'Sulolalar',s:4,f:function(){ var ks=Object.keys(MS_HIST_DYN), k=_pick(ks), other=[]; ks.forEach(function(z){ if(z!==k) other=other.concat(MS_HIST_DYN[z]); });
+    return {q:'Quyidagi hukmdorlardan qaysi biri '+k+' sulolasiga mansub?', a:_pick(MS_HIST_DYN[k]), w:shuf(other).slice(0,3)}; }},
+  {t:'Sulolalar',s:4,h:1,f:function(){ var ks=Object.keys(MS_HIST_DYN), k=_pick(ks), other=[]; ks.forEach(function(z){ if(z!==k) other=other.concat(MS_HIST_DYN[z]); });
+    var c=_bioCount(MS_HIST_DYN[k],other,5); return {q:'Quyidagi hukmdorlardan nechtasi '+k+' sulolasiga mansub? '+c.items.join(', ')+'.', a:c.k, w:_bioCountW(c.k,5)}; }},
+  {t:'Allomalar',s:5,e:1,f:function(){ var x=_pick(MS_HIST_WORK); return {q:x[1]+' asarining muallifi kim?', a:x[0], w:shuf(MS_HIST_WORK.filter(function(z){return z!==x;})).slice(0,3).map(function(z){return z[0];})}; }},
+  {t:'Allomalar',s:5,f:function(){ var x=_pick(MS_HIST_WORK); return {q:x[0]+' qaysi asarning muallifi?', a:x[1], w:shuf(MS_HIST_WORK.filter(function(z){return z!==x;})).slice(0,3).map(function(z){return z[1];})}; }},
+  {t:'Sanalar',s:6,h:1,f:function(){ var p=shuf(HIST_EV).slice(0,2), opts=[], a=p[0].y+'; '+p[1].y;
+    var w=[p[1].y+'; '+p[0].y, p[0].y+'; '+(p[1].y+_pick([-12,-5,5,12])), (p[0].y+_pick([-20,-3,3,20]))+'; '+p[1].y];
+    return {q:'Voqealar yillarini moslang: a) '+p[0].e+'; b) '+p[1].e+'. (javob: a; b)', a:a, w:w}; }}
+];
+var MS_O_HIST=[
+  {t:'Sanalar',o:function(){ var p=shuf(HIST_EV).slice(0,2); return {q:'Quyidagi voqealarning yilini yozing.', p:[[p[0].e+' — yili.', p[0].y],[p[1].e+' — yili.', p[1].y]]}; }},
+  {t:'Asrlar',o:function(){ var x=_histEv(); return {q:'"'+x.e+'" voqeasi.', p:[['Qaysi yilda sodir bo\'lgan?', x.y],['Bu qaysi asr (raqam bilan, masalan 15)?', _cent(x.y)]]}; }},
+  {t:'Xronologiya',h:1,o:function(){ var p=shuf(HIST_EV).slice(0,3).sort(function(a,b){return a.y-b.y;});
+    return {q:'Voqealar: "'+p[0].e+'", "'+p[1].e+'", "'+p[2].e+'".', p:[['Birinchi va ikkinchi voqea orasida necha yil o\'tgan?', p[1].y-p[0].y],['Birinchi va uchinchi voqea orasida necha yil o\'tgan?', p[2].y-p[0].y]]}; }}
+  ,{t:'Xronologiya',h:1,o:null}
+];
+MS_O_HIST[3].o=function(){ var ev=shuf(HIST_EV).slice(0,4), ok=ev.slice().sort(function(a,b){return a.y-b.y;});
+  return {q:'Voqealar: '+ev.map(function(z,i){return (i+1)+') '+z.e;}).join('; ')+'.', p:[['Eng birinchi sodir bo\'lgan voqea raqami.', ev.indexOf(ok[0])+1],['Eng oxirgi sodir bo\'lgan voqea raqami.', ev.indexOf(ok[3])+1]]}; };
+
+var MS_GEO_CONT={O:'Osiyo',E:'Yevropa',A:'Afrika',S:'Shimoliy Amerika',J:'Janubiy Amerika',K:'Okeaniya'};
+var MS_GEO_UZ=[['Andijon','Andijon'],['Buxoro','Buxoro'],['Farg\'ona','Farg\'ona'],['Jizzax','Jizzax'],['Xorazm','Urganch'],['Namangan','Namangan'],['Navoiy','Navoiy'],['Qashqadaryo','Qarshi'],['Samarqand','Samarqand'],['Sirdaryo','Guliston'],['Surxondaryo','Termiz'],['Qoraqalpog\'iston Respublikasi','Nukus'],['Toshkent viloyati','Nurafshon']];
+function _geoCap(){ return _pick(GEO.filter(function(x){return x.cap&&x.cap!==x.n;})); }
+var MS_T_GEO=[
+  {t:'Davlatlar va poytaxtlar',s:1,e:1,f:function(){ var x=_geoCap(), ds=shuf(GEO.filter(function(y){return y!==x&&y.cap&&y.k===x.k;})).slice(0,3);
+    return {q:x.n+'ning poytaxti qaysi shahar?', a:x.cap, w:ds.map(function(y){return y.cap;})}; }},
+  {t:'Davlatlar va poytaxtlar',s:1,e:1,f:function(){ var x=_geoCap(), ds=shuf(GEO.filter(function(y){return y!==x&&y.cap&&y.k===x.k;})).slice(0,3);
+    return {q:x.cap+' qaysi davlatning poytaxti?', a:x.n, w:ds.map(function(y){return y.n;})}; }},
+  {t:'Materiklar',s:2,e:1,f:function(){ var x=_pick(GEO); return {q:x.n+' qaysi qit\'ada (dunyo qismida) joylashgan?', a:MS_GEO_CONT[x.k], w:Object.keys(MS_GEO_CONT).filter(function(k){return k!==x.k;}).map(function(k){return MS_GEO_CONT[k];})}; }},
+  {t:'Materiklar',s:2,h:1,f:function(){ var k=_pick(['O','E','A','S','J']), A=GEO.filter(function(x){return x.k===k;}).map(function(x){return x.n;}), B=GEO.filter(function(x){return x.k!==k;}).map(function(x){return x.n;});
+    var c=_bioCount(A,B,6); return {q:'Quyidagi davlatlardan nechtasi '+MS_GEO_CONT[k]+'da joylashgan? '+c.items.join(', ')+'.', a:c.k, w:_bioCountW(c.k,6)}; }},
+  {t:'O\'zbekiston',s:3,f:function(){ var x=_pick(MS_GEO_UZ.filter(function(z){return z[0]!==z[1];})); return {q:x[1]+' shahri qaysi hududning markazi?', a:x[0], w:shuf(MS_GEO_UZ.filter(function(z){return z!==x;})).slice(0,3).map(function(z){return z[0];})}; }},
+  {t:'O\'zbekiston',s:3,f:function(){ var x=_pick(MS_GEO_UZ.filter(function(z){return z[0]!==z[1];})); return {q:x[0]+(/Respublikasi|viloyati/.test(x[0])?'':' viloyati')+'ning markazi qaysi shahar?', a:x[1], w:shuf(MS_GEO_UZ.filter(function(z){return z!==x;})).slice(0,3).map(function(z){return z[1];})}; }},
+  {t:'Xarita masshtabi',s:4,f:function(){ var M=_pick([100000,200000,500000,1000000,2500000]), d=_ri(2,12), km=d*M/100000;
+    return {q:'Xarita masshtabi 1:'+_fmt(M)+'. Xaritada ikki shahar orasidagi masofa '+d+' sm. Joydagi masofa necha km?', a:_num(km), w:[_num(km*10), _num(km/10), _num(km+d)]}; }},
+  {t:'Xarita masshtabi',s:4,h:1,f:function(){ var M=_pick([200000,500000,1000000,2000000]), d=_ri(3,40), km=d*M/100000;
+    return {q:'Joydagi masofa '+_num(km)+' km. Masshtabi 1:'+_fmt(M)+' bo\'lgan xaritada bu masofa necha sm bo\'ladi?', a:_num(d), w:[_num(d*10), _num(d/10), _num(d+2)]}; }},
+  {t:'Vaqt mintaqalari',s:5,h:1,f:function(){ var l1=_pick([0,15,30,45,60,75,90,105,120,135]), dl=_pick([15,30,45,60,75,90]), l2=l1+dl, h=_ri(1,12), h2=(h+dl/15)%24;
+    return {q:'Mahalliy vaqt '+l1+'° sharqiy uzunlikda soat '+h+':00. Shu paytda '+l2+'° sharqiy uzunlikda mahalliy vaqt soat nechchi? (15° — 1 soat)', a:h2+':00', w:[((h-dl/15+24)%24)+':00', ((h+dl/15+1)%24)+':00', ((h+dl/15+12)%24)+':00']}; }},
+  {t:'Atmosfera',s:6,f:function(){ var t0=_ri(10,32), H=_pick([1000,1500,2000,2500,3000,4000]), t=t0-6*H/1000;
+    return {q:'Tog\' etagida havo harorati +'+t0+'°C. Balandlik har 1000 m oshganda harorat 6°C pasayadi. '+_fmt(H)+' m balandlikdagi harorat qancha (°C)?', a:_num(t), w:[_num(t0-H/100), _num(t0+6*H/1000), _num(t0-6*H/100)]}; }},
+  {t:'Atmosfera',s:6,h:1,f:function(){ var m=_pick([10,12,15,20,24]), r=_pick([20,25,40,50,60,75,80]), a=m*r/100;
+    return {q:'Havo haroratida 1 m³ havoda ko\'pi bilan '+m+' g suv bug\'i bo\'lishi mumkin. Nisbiy namlik '+r+'%. 1 m³ havoda necha gramm suv bug\'i bor?', a:_num(a), w:[_num(m*100/r), _num(a+1), _num(a*2)]}; }},
+  {t:'Aholi',s:7,h:1,f:function(){ var S=_pick([20,25,40,50,80,100])*1000, d=_ri(3,90), P=S*d;
+    return {q:'Viloyat maydoni '+_fmt(S)+' km², aholisi '+_fmt(P)+' kishi. Aholi zichligini (kishi/km²) toping.', a:d, w:[d*10, Math.round(d/2)||d+3, d+5]}; }},
+  {t:'Yer va Quyosh',s:5,h:1,f:function(){ var lat=_pick([10,20,30,35,40,41,50,55,60,65]);
+    return {q:'Bahorgi tengkunlik kuni tushda '+lat+'° shimoliy kenglikda Quyoshning ufqdan balandligi necha gradus bo\'ladi? (h = 90° − φ)', a:90-lat+'°', w:[lat+'°', (90-lat+23)+'°', (180-lat)+'°']}; }}
+];
+var MS_O_GEO=[
+  {t:'Xarita masshtabi',o:function(){ var M=_pick([100000,200000,500000,1000000]), d=_ri(2,9);
+    return {q:'Xarita masshtabi 1:'+_fmt(M)+'. Xaritada ikki nuqta orasidagi masofa '+d+' sm.', p:[['1 sm xaritada necha km ga teng?', _num(M/100000)],['Joydagi masofa (km).', _num(d*M/100000)]]}; }},
+  {t:'Atmosfera',o:function(){ var t0=_pick([12,18,24,30]), H=_pick([1000,2000,3000,4000]);
+    return {q:'Tog\' etagida harorat +'+t0+'°C (har 1000 m da 6°C pasayadi).', p:[[_fmt(H)+' m balandlikdagi harorat (°C).', _num(t0-6*H/1000)],['Harorat 0°C bo\'ladigan balandlik (m).', _num(Math.round(t0/6*1000))]]}; }},
+  {t:'Vaqt mintaqalari',h:1,o:function(){ var dl=_pick([30,45,60,75,90]), h=_ri(6,15);
+    return {q:'A nuqta 30° sharqiy, B nuqta '+(30+dl)+'° sharqiy uzunlikda. A da mahalliy vaqt soat '+h+':00 (15° — 1 soat).', p:[['Mahalliy vaqtlar farqi (soat).', dl/15],['B dagi mahalliy vaqt (faqat soat, masalan 14).', (h+dl/15)%24]]}; }},
+  {t:'Aholi',h:1,o:function(){ var S=_pick([20,40,50,100])*1000, d=_ri(5,80), g=_pick([2,3,4,5]);
+    return {q:'Hududning maydoni '+_fmt(S)+' km², aholisi '+_fmt(S*d)+' kishi.', p:[['Aholi zichligi (kishi/km²).', d],['Aholi '+g+' marta ko\'paysa, zichlik qancha bo\'ladi?', d*g]]}; }}
+];
+
+var MS_ONA_WORK=[['"Navoiy" (roman)','Oybek'],['"O\'g\'ri"','Abdulla Qahhor'],['"Ufq"','Said Ahmad'],['"Bahor qaytmaydi"','O\'tkir Hoshimov'],['"Diyonat"','Odil Yoqubov'],['"O\'tkan kunlar"','Abdulla Qodiriy'],['"Mehrobdan chayon"','Abdulla Qodiriy'],['"Kecha va kunduz"','Cho\'lpon'],['"Shum bola"','G\'afur G\'ulom'],['"Sarob"','Abdulla Qahhor'],['"Qutlug\' qon"','Oybek'],['"Ikki eshik orasi"','O\'tkir Hoshimov'],['"Dunyoning ishlari"','O\'tkir Hoshimov'],['"Sariq devni minib"','Xudoyberdi To\'xtaboyev'],['"Yulduzli tunlar"','Pirimqul Qodirov'],['"Boburnoma"','Zahiriddin Muhammad Bobur'],['"Qutadg\'u bilig"','Yusuf Xos Hojib']];
+var MS_ONA_XAMSA=['"Hayrat ul-abror"','"Farhod va Shirin"','"Layli va Majnun"','"Sab\'ai sayyor"','"Saddi Iskandariy"'];
+var MS_ONA_NAV=['"Mahbub ul-qulub"','"Lison ut-tayr"','"Muhokamat ul-lug\'atayn"','"Majolis un-nafois"'];
+var MS_ONA_POS={
+  'ot':['kitob','daraxt','maktab','osmon','qalam','shahar','daryo','ustoz','bulut','do\'stlik'],
+  'sifat':['chiroyli','baland','qizil','aqlli','shirin','keng','yashil','mehribon','toza','sovuq'],
+  'fe\'l':['yozmoq','o\'qimoq','bormoq','kelmoq','ishlamoq','kulmoq','yugurmoq','o\'ylamoq','gapirmoq','tinglamoq'],
+  'son':['besh','o\'n','yuz','yetti','ming','uchinchi'],
+  'olmosh':['men','sen','biz','ular','kim','nima']
+};
+var MS_ONA_ANT=[['boy','kambag\'al'],['tez','sekin'],['quvonch','qayg\'u'],['ochiq','yopiq'],['to\'g\'ri','noto\'g\'ri'],['savob','gunoh'],['arzon','qimmat'],['katta','kichik'],['issiq','sovuq'],['baland','past'],['yaxshi','yomon'],['oq','qora'],['kirmoq','chiqmoq'],['kun','tun'],['do\'st','dushman'],['keng','tor'],['uzoq','yaqin'],['yengil','og\'ir'],['eski','yangi']];
+var MS_ONA_SYL=['bahor','kuz','qish','yoz','quyosh','yulduz','kapalak','qaldirg\'och','sumalak','paxtakor','ishchi','dehqon','vatanparvar','mehnatkash','ona','bola','qo\'shiq','she\'riyat','xalq','mustaqillik','kitob','maktab','daraxt','o\'quvchi','kompyuter','daftar','qalam','bog\'bon','o\'zbekiston','universitet','tabiat','go\'zallik','oila','sinfdosh','kutubxona','shahar','muallim','do\'stlik','gul','tog\''];
+function _syl(w){ return (w.replace(/o'/g,'O').match(/[aeiouO]/g)||[]).length; }
+var MS_ONA_CASE=[['bosh','',''],['qaratqich','-ning','ning'],['tushum','-ni','ni'],['jo\'nalish','-ga','ga'],['o\'rin-payt','-da','da'],['chiqish','-dan','dan']];
+var MS_ONA_NOUN=['maktab','uy','bog\'','shahar','daryo','kitob','dala','bozor','vatan','olma','qalam','do\'st','ustoz','bola','ona','zamin','yo\'l','osmon','dengiz','tog\''];
+var MS_T_ONA=[
+  {t:'Adabiyot: asar va muallif',s:5,e:1,f:function(){ var x=_pick(MS_ONA_WORK), au=[]; MS_ONA_WORK.forEach(function(z){ if(z[1]!==x[1]&&au.indexOf(z[1])<0) au.push(z[1]); });
+    return {q:x[0]+' asarining muallifi kim?', a:x[1], w:shuf(au).slice(0,3)}; }},
+  {t:'Adabiyot: asar va muallif',s:5,f:function(){ var x=_pick(MS_ONA_WORK); return {q:'Quyidagi asarlardan qaysi biri '+x[1]+' qalamiga mansub?', a:x[0], w:shuf(MS_ONA_WORK.filter(function(z){return z[1]!==x[1];})).slice(0,3).map(function(z){return z[0];})}; }},
+  {t:'Alisher Navoiy ijodi',s:6,h:1,f:function(){ var c=_bioCount(MS_ONA_XAMSA,MS_ONA_NAV,6);
+    return {q:'Alisher Navoiyning quyidagi asarlaridan nechtasi "Xamsa" tarkibiga kiradi? '+c.items.join(', ')+'.', a:c.k, w:_bioCountW(c.k,6)}; }},
+  {t:'Alisher Navoiy ijodi',s:6,f:function(){ var i=_ri(0,4); return {q:'Alisher Navoiyning "Xamsa"sidagi '+(i+1)+'-doston qaysi?', a:MS_ONA_XAMSA[i], w:shuf(MS_ONA_XAMSA.filter(function(z,k){return k!==i;})).slice(0,3)}; }},
+  {t:'Alisher Navoiy ijodi',s:6,h:1,f:function(){ var x=_pick(MS_ONA_NAV), w=shuf(MS_ONA_XAMSA).slice(0,3), all=shuf([x].concat(w)); return {q:'Alisher Navoiyning '+all.join(', ')+' asarlaridan qaysi biri "Xamsa" tarkibiga KIRMAYDI?', a:x, w:w}; }},
+  {t:'Fonetika',s:1,e:1,f:function(){ var w=_pick(MS_ONA_SYL), n=_syl(w); return {q:'"'+w+'" so\'zida nechta bo\'g\'in bor?', a:n, w:[n+1,n-1>0?n-1:n+2,n+2]}; }},
+  {t:'Fonetika',s:1,h:1,f:function(){ var ws=shuf(MS_ONA_SYL).slice(0,5), k=ws.filter(function(w){return _syl(w)===3;}).length;
+    return {q:'Quyidagi so\'zlardan nechtasi uch bo\'g\'inli? '+ws.join(', ')+'.', a:k, w:_bioCountW(k,5)}; }},
+  {t:'Kelishiklar',s:3,e:1,f:function(){ var n=_pick(MS_ONA_NOUN), c=_pick(MS_ONA_CASE.slice(1));
+    return {q:'"'+n+c[2]+'" so\'zi qaysi kelishikda?', a:c[0]+' kelishigi', w:MS_ONA_CASE.filter(function(z){return z!==c;}).map(function(z){return z[0]+' kelishigi';}).slice(0,3)}; }},
+  {t:'Kelishiklar',s:3,f:function(){ var c=_pick(MS_ONA_CASE.slice(1)); return {q:c[0]+' kelishigining qo\'shimchasini aniqlang.', a:c[1], w:MS_ONA_CASE.slice(1).filter(function(z){return z!==c;}).map(function(z){return z[1];}).slice(0,3)}; }},
+  {t:'So\'z turkumlari',s:2,f:function(){ var ks=Object.keys(MS_ONA_POS), k=_pick(ks), w=_pick(MS_ONA_POS[k]);
+    return {q:'"'+w+'" so\'zi qaysi so\'z turkumiga kiradi?', a:k, w:ks.filter(function(z){return z!==k;}).slice(0,3)}; }},
+  {t:'So\'z turkumlari',s:2,h:1,f:function(){ var ks=Object.keys(MS_ONA_POS), k=_pick(ks), other=[]; ks.forEach(function(z){ if(z!==k) other=other.concat(MS_ONA_POS[z]); });
+    var c=_bioCount(MS_ONA_POS[k],other,6); return {q:'Quyidagi so\'zlardan nechtasi '+k+' turkumiga kiradi? '+c.items.join(', ')+'.', a:c.k, w:_bioCountW(c.k,6)}; }},
+  {t:'Leksikologiya',s:4,f:function(){ var x=_pick(MS_ONA_ANT), r=Math.random()<.5, a=r?x[1]:x[0], b=r?x[0]:x[1];
+    return {q:'"'+b+'" so\'zining zid ma\'noli (antonim) jufti qaysi?', a:a, w:shuf(MS_ONA_ANT.filter(function(z){return z!==x;})).slice(0,3).map(function(z){return z[Math.random()<.5?0:1];})}; }}
+];
+var MS_ONA_SYN=[['chiroyli','go\'zal'],['quvonch','shodlik'],['aqlli','dono'],['vatan','yurt'],['jasur','botir'],['yuz','chehra'],['ulkan','bahaybat'],['mehnat','ish'],['zamin','yer'],['dil','qalb']];
+MS_T_ONA=MS_T_ONA.concat([
+  {t:'Leksikologiya',s:4,e:1,f:function(){ var x=_pick(MS_ONA_SYN), r=Math.random()<.5, a=r?x[1]:x[0], b=r?x[0]:x[1];
+    return {q:'"'+b+'" so\'zining ma\'nodoshi (sinonimi) qaysi?', a:a, w:shuf(MS_ONA_ANT).slice(0,5).map(function(z){return z[0];}).filter(function(v){return v!==a&&v!==b;}).slice(0,3)}; }},
+  {t:'Leksikologiya',s:4,h:1,f:function(){ var syn=_pick(MS_ONA_SYN), ant=shuf(MS_ONA_ANT).slice(0,3);
+    return {q:'Qaysi qatorda ma\'nodosh (sinonim) so\'zlar berilgan?', a:syn[0]+' — '+syn[1], w:ant.map(function(z){return z[0]+' — '+z[1];})}; }},
+  {t:'Kelishiklar',s:3,h:1,f:function(){ var cs=shuf(MS_ONA_CASE.slice(1)).slice(0,4), tgt=cs[0], ns=shuf(MS_ONA_NOUN).slice(0,4);
+    var opts=cs.map(function(c,i){ return ns[i]+c[2]; });
+    return {q:'Qaysi so\'z '+tgt[0]+' kelishigida?', a:opts[0], w:opts.slice(1)}; }},
+  {t:'Fonetika',s:1,f:function(){ var ws=shuf(MS_ONA_SYL).slice(0,4), mx=ws.slice().sort(function(a,b){return _syl(b)-_syl(a);});
+    if(_syl(mx[0])===_syl(mx[1])) return MS_T_ONA[4].f();
+    return {q:'Quyidagi so\'zlardan qaysi birida bo\'g\'in eng ko\'p: '+ws.join(', ')+'?', a:mx[0], w:mx.slice(1)}; }}
+]);
+var MS_O_ONA=[
+  {t:'Fonetika',o:function(){ var ws=shuf(MS_ONA_SYL).slice(0,2); return {q:'So\'zlar: "'+ws[0]+'", "'+ws[1]+'".', p:[['"'+ws[0]+'" so\'zidagi bo\'g\'inlar soni.', _syl(ws[0])],['"'+ws[1]+'" so\'zidagi bo\'g\'inlar soni.', _syl(ws[1])]]}; }},
+  {t:'Alisher Navoiy ijodi',h:1,o:function(){ var c=_bioCount(MS_ONA_XAMSA,MS_ONA_NAV,6);
+    return {q:'Alisher Navoiy asarlari: '+c.items.join(', ')+'.', p:[['Ulardan nechtasi "Xamsa" tarkibiga kiradi?', c.k],['"Xamsa" jami nechta dostondan iborat?', 5]]}; }},
+  {t:'So\'z turkumlari',h:1,o:function(){ var ks=['ot','sifat','fe\'l'], pool=[]; ks.forEach(function(k){ pool=pool.concat(_bioPickN(MS_ONA_POS[k],_ri(1,3)).map(function(w){return [w,k];})); }); pool=shuf(pool);
+    return {q:'So\'zlar: '+pool.map(function(z){return z[0];}).join(', ')+'.', p:[['Nechtasi ot?', pool.filter(function(z){return z[1]==='ot';}).length],['Nechtasi fe\'l?', pool.filter(function(z){return z[1]==='fe\'l';}).length]]}; }}
+];
 var MS_SUBJECTS={
   math:{name:'Matematika',ic:'&#x1F4D0;',T:MS_T_MATH,O:MS_O_MATH},
   phys:{name:'Fizika',ic:'&#x269B;&#xFE0F;',T:MS_T_PHYS,O:MS_O_PHYS},
   chem:{name:'Kimyo',ic:'&#x1F9EA;',T:MS_T_CHEM,O:MS_O_CHEM},
-  bio:{name:'Biologiya',ic:'&#x1F9EC;',T:MS_T_BIO,O:MS_O_BIO}
+  bio:{name:'Biologiya',ic:'&#x1F9EC;',T:MS_T_BIO,O:MS_O_BIO},
+  hist:{name:'Tarix',ic:'&#x1F3DB;&#xFE0F;',T:MS_T_HIST,O:MS_O_HIST},
+  geo:{name:'Geografiya',ic:'&#x1F30D;',T:MS_T_GEO,O:MS_O_GEO},
+  ona:{name:'Ona tili va adabiyot',ic:'&#x1F4D6;',T:MS_T_ONA,O:MS_O_ONA}
 };
 var MS_SPEC={minutes:150, easy:10, main:22, match:3, open:10, pts:{easy:1.3, main:2.2, match:2.2, oa:1.5, ob:1.7}};
 // bir imtihon ichida bir xil savol matni chiqmasin: takror bo'lsa qayta yaratiladi
