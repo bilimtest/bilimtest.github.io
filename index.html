@@ -4390,7 +4390,9 @@ var MS_HIST_DYN={
   'Temuriylar':['Amir Temur','Mirzo Ulug\'bek','Shohruh Mirzo','Husayn Boyqaro'],
   'Shayboniylar':['Muhammad Shayboniyxon','Ubaydullaxon','Abdullaxon II'],
   'Boburiylar':['Zahiriddin Muhammad Bobur','Humoyun','Akbar','Shoh Jahon'],
-  'Mang\'itlar (Buxoro amirligi)':['Amir Haydar','Amir Nasrullo','Amir Muzaffar','Said Olimxon']
+  'Mang\'itlar (Buxoro amirligi)':['Amir Haydar','Amir Nasrullo','Amir Muzaffar','Said Olimxon'],
+  'Somoniylar':['Ismoil Somoniy','Nasr II','Ahmad ibn Asad'],
+  'Xorazmshohlar (Anushteginiylar)':['Alouddin Muhammad','Jaloliddin Manguberdi','Takash']
 };
 var MS_HIST_WORK=[['Muhammad al-Xorazmiy','"Al-kitob al-muxtasar fi hisob al-jabr val-muqobala"'],['Abu Rayhon Beruniy','"Qadimgi xalqlardan qolgan yodgorliklar"'],['Abu Ali ibn Sino','"Tib qonunlari"'],['Mirzo Ulug\'bek','"Ziji jadidi Ko\'ragoniy"'],['Zahiriddin Muhammad Bobur','"Boburnoma"'],['Mahmud Koshg\'ariy','"Devonu lug\'otit turk"'],['Yusuf Xos Hojib','"Qutadg\'u bilig"'],['Imom al-Buxoriy','"Al-Jome\' as-sahih"']];
 function _histEv(){ return _pick(HIST_EV); }
@@ -4398,7 +4400,7 @@ function _histOther(x,k){ return shuf(HIST_EV.filter(function(z){return z.y!==x.
 var MS_T_HIST=[
   {t:'Sanalar',s:1,e:1,f:function(){ var x=_histEv(); return {q:'"'+x.e+'" voqeasi qaysi yilda sodir bo\'lgan?', a:x.y, w:_histOther(x,3).map(function(z){return z.y;})}; }},
   {t:'Sanalar',s:1,e:1,f:function(){ var x=_histEv(); return {q:x.y+'-yilda qaysi voqea sodir bo\'lgan?', a:x.e, w:_histOther(x,3).map(function(z){return z.e;})}; }},
-  {t:'Asrlar',s:2,f:function(){ var x=_histEv(), c=_cent(x.y); return {q:'"'+x.e+'" voqeasi qaysi asrda sodir bo\'lgan?', a:_romanC(c), w:[c-1,c+1,c-2,c+2].filter(function(v){return v>=1&&v<=21;}).map(_romanC)}; }},
+  {t:'Asrlar',s:2,f:function(){ var x=_histEv(), c=_cent(x.y); return {q:'"'+x.e+'" voqeasi qaysi asrda sodir bo\'lgan?', a:_romanC(c), w:[c-1,c+1,c-2,c+2,c-3].filter(function(v){return v>=1&&v<=21;}).slice(0,3).map(_romanC)}; }},
   {t:'Asrlar',s:2,h:1,f:function(){ var c=_pick([13,14,15,18,19,20]), inn=HIST_EV.filter(function(z){return _cent(z.y)===c;}), out=HIST_EV.filter(function(z){return _cent(z.y)!==c;});
     if(!inn.length) return MS_T_HIST[2].f(); var x=_pick(inn);
     return {q:'Quyidagi voqealardan qaysi biri '+_romanC(c)+'da sodir bo\'lgan?', a:x.e, w:shuf(out).slice(0,3).map(function(z){return z.e;})}; }},
@@ -4523,6 +4525,95 @@ var MS_O_ONA=[
   {t:'So\'z turkumlari',h:1,o:function(){ var ks=['ot','sifat','fe\'l'], pool=[]; ks.forEach(function(k){ pool=pool.concat(_bioPickN(MS_ONA_POS[k],_ri(1,3)).map(function(w){return [w,k];})); }); pool=shuf(pool);
     return {q:'So\'zlar: '+pool.map(function(z){return z[0];}).join(', ')+'.', p:[['Nechtasi ot?', pool.filter(function(z){return z[1]==='ot';}).length],['Nechtasi fe\'l?', pool.filter(function(z){return z[1]==='fe\'l';}).length]]}; }}
 ];
+// ─── QIYIN SHABLONLAR (agentlik namunalari darajasi) — 2026-10-08 ───────────
+function _poly(cs){ // [a2,a1,a0] → "4x² − 12x + 8"
+  var out=''; [[cs[0],'x²'],[cs[1],'x'],[cs[2],'']].forEach(function(p){ var c=p[0]; if(!c) return;
+    var s=(c<0?'−':'+'), v=Math.abs(c), t=(v===1&&p[1]?'':v)+p[1]; out+=out?' '+s+' '+t:(c<0?'−':'')+t; });
+  return out||'0';
+}
+MS_T_MATH=MS_T_MATH.concat([
+  {t:'Progressiya',s:3,h:1,f:function(){ var a1=_ri(-5,9), d=_ri(1,5), i=_ri(3,10), k=_ri(12,20), a=function(n){return a1+(n-1)*d;};
+    var S1=a(i)+a(i+2), S2=a(k)+a(k+2), ans=a(i+1)+a(k+1);
+    return {q:'Arifmetik progressiyada a'+i+' + a'+(i+2)+' = '+S1+' va a'+k+' + a'+(k+2)+' = '+S2+'. a'+(i+1)+' + a'+(k+1)+' ni toping.', a:ans, w:[S1+S2, ans+d, ans-2*d]}; }},
+  {t:'Viyet teoremasi',s:3,h:1,f:function(){ var r1, r2; do{ r1=_ri(-6,6); r2=_ri(-6,6); }while(!r1||!r2||r1+r2===0); var A=_pick([1,2,3]), b=-A*(r1+r2), c=A*r1*r2;
+    return {q:_poly([A,b,c])+' = 0 tenglamaning ildizlari x₁ va x₂ bo\'lsa, 1/x₁ + 1/x₂ ni hisoblang.', a:_frac(-b,c), w:[_frac(b,c), _frac(c,-b), _frac(-c,b)]}; }},
+  {t:'Ifodalar',s:2,e:1,f:function(){ var k=_ri(2,9), p=_ri(2,9), q=_ri(1,9);
+    return {q:'Agar x − y = '+k+' bo\'lsa, '+p+'x + '+q+' − '+p+'y ning qiymatini toping.', a:p*k+q, w:[p*k-q, p*k, (p+q)*k]}; }},
+  {t:'Natural sonlar',s:1,h:1,f:function(){ var N=_pick([12,18,20,24,30,36,40,42,48]), best=1e9; for(var a=1;a<=N;a++) if(N%a===0) best=Math.min(best,a+2*(N/a)-1);
+    return {q:'a va b natural sonlar uchun a · b = '+N+' bo\'lsa, a + 2b − 1 ifodaning eng kichik qiymatini toping.', a:best, w:[best+1, best-1, N/2+1]}; }},
+  {t:'To\'plamlar',s:7,h:1,f:function(){ var U=10, a1=_ri(-9,-3), a2=_ri(-2,4), b1=_ri(a2-4,a2), b2=_ri(5,9);
+    var cnt=0; for(var x=-U;x<=U;x++){ if(!((x>=a1&&x<=a2)||(x>=b1&&x<=b2))) cnt++; }
+    return {q:'U = {x | −10 ≤ x ≤ 10, x ∈ Z} universal to\'plam, A = {x | '+a1+' ≤ x ≤ '+a2+', x ∈ Z}, B = {x | '+b1+' ≤ x ≤ '+b2+', x ∈ Z}. (A ∪ B)\' to\'plamning elementlari sonini toping.', a:cnt, w:[cnt+1, 21-cnt, cnt+2]}; }},
+  {t:'Ehtimollik',s:7,h:1,f:function(){ var n=_ri(3,9), m=_ri(3,9), T=n+m;
+    return {q:'Qopchada '+n+' ta moviy va '+m+' ta qizil shar bor. Qaytarmasdan ketma-ket olingan ikki sharning ikkalasi ham moviy bo\'lish ehtimolini toping.', a:_frac(n*(n-1),T*(T-1)), w:[_frac(n*n,T*T), _frac(n,T), _frac(n-1,T-1)]}; }},
+  {t:'Vektorlar',s:6,h:1,f:function(){ var A=_ri(2,6), B=_ri(2,6), p=_ri(1,5), q=_ri(1,3); var v=p*p*A*A+q*q*B*B-p*q*A*B, r=Math.round(Math.sqrt(v));
+    var f=function(x){ var s=Math.round(Math.sqrt(x)); return s*s===x?String(s):'√'+x; };
+    return {q:'|a| = '+A+', |b| = '+B+', a va b vektorlar orasidagi burchak 60°. |'+(p===1?'':p)+'a − '+(q===1?'':q)+'b| ni toping.', a:f(v), w:[f(v+2*p*q*A*B), f(p*p*A*A+q*q*B*B), String(Math.abs(p*A-q*B))]}; }},
+  {t:'Funksiya',s:4,h:1,f:function(){ var c=_ri(-5,5), p=_ri(2,4)*(Math.random()<.5?-1:1), q=_ri(-5,5)||1;
+    var ok=[p*p, 2*p*q, q*q+c], w1=[p*p, -2*p*q, q*q+c], w2=[p, 2*p*q, q*q+c], w3=[p*p, p*q, q*q+c];
+    return {q:'f(x) = x² '+(c<0?'− '+(-c):'+ '+c)+' va g(x) = '+_poly([0,p,q])+' bo\'lsa, f(g(x)) ni toping.', a:_poly(ok), w:[_poly(w1),_poly(w2),_poly(w3)]}; }},
+  {t:'Hosila',s:5,h:1,f:function(){ var k=_ri(1,6), m=_ri(-5,5), t=_ri(-3,3)||2, v=4*t*t*t-2*k*t;
+    return {q:'f(t) = t⁴ − '+(k===1?'':k)+'t²'+(m?(m<0?' − '+(-m):' + '+m):'')+' bo\'lsa, f\'('+t+') ni hisoblang.', a:v, w:[t*t*t*t-k*t*t+m, 4*t*t*t-k*t, v+2*k]}; }},
+  {t:'Geometriya',s:6,e:1,f:function(){ var d=_pick([10,20,30,40,50,60,70,80]);
+    return {q:'Ikki to\'g\'ri chiziq kesishishidan hosil bo\'lgan qo\'shni burchaklarning ayirmasi '+d+'° ga teng. Kichik burchakni toping.', a:(180-d)/2+'°', w:[(180+d)/2+'°', (90-d)+'°', d+'°']}; }},
+  {t:'Geometriya',s:6,h:1,f:function(){ var m=_ri(3,9), P=m+_ri(6,14);
+    return {q:'ABC teng yonli (AB = BC) uchburchakning BD medianasi '+m+' cm. ABD uchburchak perimetri '+P+' cm bo\'lsa, ABC uchburchak perimetrini (cm) toping.', a:2*(P-m), w:[2*P, 2*P-m, P+m]}; }}
+]);
+MS_O_MATH=MS_O_MATH.concat([
+  {t:'Integral',h:1,o:function(){ var k=_ri(2,9);
+    return {q:'f(x) = '+k+'√x va g(x) = '+k+'x funksiyalar berilgan.', p:[['Funksiyalar grafiklari nechta umumiy nuqtaga ega?', 2],['Grafiklar bilan chegaralangan shakl yuzini toping (kasr ko\'rinishida, masalan 2/3).', _frac(k,6)]]}; }},
+  {t:'Kvadrat tenglama',h:1,o:function(){ var r1=_ri(-7,-1), r2=_ri(1,8), A=_pick([1,2]);
+    return {q:_poly([A,-A*(r1+r2),A*r1*r2])+' = 0 tenglama berilgan.', p:[['Ildizlari ko\'paytmasini toping.', r1*r2],['Ildizlari orasidagi masofani (|x₁ − x₂|) toping.', r2-r1]]}; }}
+]);
+var MS_NUC=[['Po',209,84],['U',238,92],['C',14,6],['Ra',226,88],['Pb',206,82],['Fe',56,26],['Na',23,11],['Al',27,13]];
+MS_T_PHYS=MS_T_PHYS.concat([
+  {t:'Kinematika',s:1,e:1,f:function(){ var v=_pick([10,12,16,20,24,30]), a=_pick([1,2,4,5]);
+    return {q:'Avtomobilning boshlang\'ich tezligi '+v+' m/s, tezlanishi −'+a+' m/s². U qancha masofa (m) bosib o\'tib to\'xtaydi?', a:_num(v*v/(2*a)), w:[_num(v*v/a), _num(v/a), _num(v*v/(4*a))]}; }},
+  {t:'Dinamika',s:2,h:1,f:function(){ var mu=_pick([0.2,0.25,0.4,0.5]), v=_pick([10,12,14,16,20]), s=v*v/(20*mu);
+    return {q:'Tormoz bergan avtomobil asfaltda '+_num(s)+' m iz qoldirib to\'xtadi. Ishqalanish koeffitsiyenti '+_num(mu)+' bo\'lsa, dastlabki tezligini (m/s) toping. (g = 10 m/s²)', a:v, w:[v*2, _num(v/2), _num(Math.round(v*1.41))]}; }},
+  {t:'Dinamika',s:2,h:1,f:function(){ var m=_pick([0.5,1,2]), L=_pick([0.5,1,2]), v=_pick([2,3,4,5]), T=m*(10+v*v/L);
+    return {q:L+' m uzunlikdagi ipga bog\'langan '+_num(m)+' kg massali shar vertikal tekislikda aylanmoqda. Pastki nuqtada tezligi '+v+' m/s. Ipning tarangligini (N) toping. (g = 10 m/s²)', a:_num(T), w:[_num(m*(v*v/L-10)), _num(m*v*v/L), _num(m*10)]}; }},
+  {t:'Energiya',s:3,h:1,f:function(){ var vk=_pick([36,72,108,144,216]), v=vk/3.6, h=_pick([500,1000,2000,3600,7200]);
+    return {q:_fmt(h)+' m balandlikda '+vk+' km/h tezlik bilan uchayotgan samolyotning potensial energiyasi kinetik energiyasidan necha marta katta? (g = 10 m/s²)', a:_num(2*10*h/(v*v)), w:[_num(10*h/(v*v)), _num(2*10*h/(vk*vk)), _num(4*10*h/(v*v))]}; }},
+  {t:'Tebranish va to\'lqin',s:5,h:1,f:function(){ var n=_pick([3,4,5]), lam=_pick([5,10,20]), d=(n-1)*lam, v=_pick([0.1,0.2,0.5]);
+    return {q:'Suv sirtidagi to\'lqinning 1- va '+n+'-do\'ngliklari orasidagi masofa '+d+' cm, tarqalish tezligi '+_num(v)+' m/s. To\'lqinning tebranish davrini (s) toping.', a:_num(lam/100/v), w:[_num(d/100/v), _num(v/(lam/100)), _num(lam/100/v/2)]}; }},
+  {t:'Molekulyar fizika',s:4,h:1,f:function(){ var v=_pick([200,300,400,500]), rho=_pick([1,2,3,4,6,12]), p=v*v*rho/3;
+    return {q:'Ideal gazning bosimi '+_fmt(p)+' Pa, zichligi '+rho+' kg/m³. Molekulalarning o\'rtacha kvadratik tezligini (m/s) toping.', a:v, w:[_num(Math.round(Math.sqrt(p/rho))), v*2, _num(Math.round(v/Math.sqrt(3)))]}; }},
+  {t:'Elektr',s:6,f:function(){ var E=_pick([4.5,6,9,12]), r=_pick([0.25,0.5,1]), I=_pick([1,2,3]);
+    return {q:'Tok manbaining EYuK '+_num(E)+' V, ichki qarshiligi '+_num(r)+' Ω. Manba zanjirga '+I+' A tok bermoqda. Qutblaridagi kuchlanishni (V) toping.', a:_num(E-I*r), w:[_num(E+I*r), _num(E), _num(I*r)]}; }},
+  {t:'Elektr',s:6,h:1,f:function(){ var q=_pick([1,2,3]), r1=_pick([0.5,0.3,0.6]), r2=_pick([0.1,0.2]), W=9e9*q*q*1e-16*(1/r2-1/r1)*1e6;
+    return {q:'Har birining zaryadi '+q+'·10⁻⁸ C bo\'lgan ikki nuqtaviy zaryad havoda '+_num(r1*100)+' cm masofada turibdi. Ular '+_num(r2*100)+' cm gacha yaqinlashtirildi. Bajarilgan ishni (μJ) toping. (k = 9·10⁹ N·m²/C²)', a:_num(Math.round(W*100)/100), w:[_num(Math.round(W*50)/100), _num(Math.round(9e9*q*q*1e-16/r2*1e6*100)/100), _num(Math.round(W*200)/100)]}; }},
+  {t:'Atom fizikasi',s:7,h:1,f:function(){ var p=_pick([[3,2],[4,2],[5,2],[2,1],[3,1],[4,3]]), E=13.6*(1/(p[1]*p[1])-1/(p[0]*p[0]));
+    return {q:'Vodorod atomidagi elektron '+p[0]+'-kvant holatidan '+p[1]+'-kvant holatiga o\'tdi. Nurlangan fotonning energiyasini (eV) toping. (E₁ = −13,6 eV)', a:_num(Math.round(E*100)/100), w:[_num(Math.round(13.6/(p[1]*p[1])*100)/100), _num(Math.round(13.6*(1/p[1]-1/p[0])*100)/100), _num(Math.round(13.6/(p[0]*p[0])*100)/100)]}; }},
+  {t:'Atom fizikasi',s:7,e:1,f:function(){ var x=_pick(MS_NUC);
+    return {q:'Atom massasi '+x[1]+', tartib raqami '+x[2]+' bo\'lgan '+x[0]+' yadrosida nechta neytron bor?', a:x[1]-x[2], w:[x[1], x[2], x[1]+x[2]]}; }},
+  {t:'Nisbiylik nazariyasi',s:7,h:1,f:function(){ var x=_pick([['5/3','0,8c'],['5/4','0,6c'],['13/12','5/13c'],['13/5','12/13c']]);
+    return {q:'Harakatdagi jismning massasi m = ('+x[0]+')m₀. Jismning tezligini toping.', a:x[1], w:['0,8c','0,6c','0,5c','0,9c','12/13c','5/13c'].filter(function(v){return v!==x[1];}).slice(0,3)}; }},
+  {t:'O\'lchash',s:1,f:function(){ var L=_pick([12.5,17.2,25,40]), d=_pick([0.005,0.01,0.02,0.05]), e=d/L*100;
+    return {q:'Uzunlik l = ('+_num(L)+' ± '+_num(d)+') m deb o\'lchandi. Nisbiy xatolik (%) taxminan qancha? (0,01 gacha yaxlitlang)', a:_num(Math.round(e*100)/100), w:[_num(Math.round(e*1000)/100), _num(Math.round(e*10)/100), _num(Math.round(d*10000)/100)]}; }}
+]);
+var MS_AA=[['glitsin',75],['alanin',89],['serin',105],['valin',117],['leytsin',131]];
+var MS_GAS=[['H₂',2],['He',4],['CH₄',16],['N₂',28],['O₂',32],['CO₂',44],['NH₃',17],['Ar',40]];
+MS_T_CHEM=MS_T_CHEM.concat([
+  {t:'Reaksiya tezligi',s:6,h:1,f:function(){ var V=_pick([2,4,5,6,10]), n2=_ri(5,30), dn=_pick([10,20,30,40]), t=_pick([30,60,120]), r=dn/V/(t/60);
+    return {q:'Hajmi '+V+' l bo\'lgan reaktorda '+t+' s davomida moddaning miqdori '+(n2+dn)+' moldan '+n2+' molgacha kamaydi. Reaksiyaning o\'rtacha tezligini (mol/(l·min)) toping.', a:_num(Math.round(r*1000)/1000), w:[_num(Math.round(dn/V/t*1000)/1000), _num(Math.round(dn/(t/60)*1000)/1000), _num(Math.round(r*2*1000)/1000)]}; }},
+  {t:'Eritmalar',s:3,h:1,f:function(){ var w1=_pick([60,70,75,80,90]), w2=_pick([3,5,6,9,10,15]), m=_pick([10,20,30,40]), x=m*w1/w2-m;
+    return {q:w1+'% li sirka kislota essensiyasidan '+w2+'% li eritma tayyorlash uchun '+m+' g essensiyaga necha gramm suv qo\'shish kerak?', a:_num(Math.round(x*100)/100), w:[_num(Math.round(m*w1/w2*100)/100), _num(Math.round(m*w2/w1*100)/100), _num(Math.round((x+m)/2*100)/100)]}; }},
+  {t:'Gazlar',s:2,h:1,f:function(){ var g=_bioPickN(MS_GAS,2), f=_pick([20,25,40,50,60,75,80]), M=(g[0][1]*f+g[1][1]*(100-f))/100;
+    return {q:'Aralashmada hajm bo\'yicha '+f+'% '+g[0][0]+' va '+(100-f)+'% '+g[1][0]+' bor. Aralashmaning vodorodga nisbatan zichligini toping.', a:_num(Math.round(M/2*100)/100), w:[_num(Math.round(M*100)/100), _num(Math.round((g[0][1]+g[1][1])/4*100)/100), _num(Math.round(M/29*100)/100)]}; }},
+  {t:'Kristallogidratlar',s:3,h:1,f:function(){ var x=_pick([['MgSO₄·7H₂O',246,120],['CuSO₄·5H₂O',250,160],['Na₂CO₃·10H₂O',286,106]]), n=_pick([0.1,0.2,0.25,0.5]);
+    return {q:_num(x[1]*n)+' g '+x[0]+' tarkibidagi suvsiz tuzning massasini (g) toping.', a:_num(Math.round(x[2]*n*100)/100), w:[_num(Math.round((x[1]-x[2])*n*100)/100), _num(Math.round(x[1]*n*100)/100), _num(Math.round(x[2]*n*2*100)/100)]}; }},
+  {t:'Oqsillar',s:7,h:1,f:function(){ var k=_pick([2,3]), aa=_bioPickN(MS_AA,k), M=aa.reduce(function(s,a){return s+a[1];},0)-(k-1)*18, n=_pick([0.1,0.2,0.5]);
+    return {q:_num(Math.round(M*n*100)/100)+' g '+aa.map(function(a){return a[0];}).join('-')+' '+(k===2?'dipeptidi':'tripeptidi')+' to\'liq gidrolizlanishi uchun necha gramm suv sarflanadi?', a:_num(Math.round(n*(k-1)*18*100)/100), w:[_num(Math.round(n*k*18*100)/100), _num(Math.round(n*18*100)/100), _num(Math.round(n*(k-1)*36*100)/100)]}; }},
+  {t:'Uglevodlar',s:7,h:1,f:function(){ var n=_pick([0.1,0.2,0.5,1]);
+    return {q:_num(342*n)+' g maltoza to\'liq gidrolizlandi. Hosil bo\'lgan glukoza massasini (g) toping.', a:_num(360*n), w:[_num(180*n), _num(342*n), _num(171*n)]}; }}
+]);
+MS_O_CHEM=MS_O_CHEM.concat([
+  {t:'Kristallogidratlar',h:1,o:function(){ var n=_pick([0.1,0.2,0.25,0.5]);
+    return {q:_num(246*n)+' g MgSO₄·7H₂O suvda eritildi (Mr(MgSO₄) = 120, Mr(H₂O) = 18).', p:[['Eritmadagi MgSO₄ massasi (g).', _num(Math.round(120*n*100)/100)],['Kristallogidrat tarkibidagi suv massasi (g).', _num(Math.round(126*n*100)/100)]]}; }},
+  {t:'Reaksiya tezligi',h:1,o:function(){ var V=_pick([2,5,10]), c0=_pick([2,3,4]), c1=_pick([0.5,1]), t=_pick([10,20,40]);
+    return {q:V+' l idishda moddaning konsentratsiyasi '+t+' s ichida '+c0+' mol/l dan '+_num(c1)+' mol/l gacha kamaydi.', p:[['O\'rtacha tezlik (mol/(l·s)).', _num(Math.round((c0-c1)/t*1000)/1000)],['Sarflangan modda miqdori (mol).', _num((c0-c1)*V)]]}; }}
+]);
 var MS_SUBJECTS={
   math:{name:'Matematika',ic:'&#x1F4D0;',T:MS_T_MATH,O:MS_O_MATH},
   phys:{name:'Fizika',ic:'&#x269B;&#xFE0F;',T:MS_T_PHYS,O:MS_O_PHYS},
@@ -4535,8 +4626,9 @@ var MS_SUBJECTS={
 var MS_SPEC={minutes:150, easy:10, main:22, match:3, open:10, pts:{easy:1.3, main:2.2, match:2.2, oa:1.5, ob:1.7}};
 // bir imtihon ichida bir xil savol matni chiqmasin: takror bo'lsa qayta yaratiladi
 function _msUniq(make,seen){ var r; for(var i=0;i<30;i++){ r=make(); if(!seen[r.q]) break; } seen[r.q]=1; return r; }
+function _msClean0(t){ return String(t).replace(/ [+−-] 0x(?![²³⁰-⁹])/g,'').replace(/ [+−-] 0(?=[)|])/g,''); }
 function _msChoice(gen,n,pts,id,seen){
-  var g=seen?_msUniq(gen.f,seen):gen.f(), a=String(typeof g.a==='number'?_num(g.a):g.a), w=(g.w||[]).map(function(x){return typeof x==='number'?_num(x):String(x);});
+  var g=seen?_msUniq(gen.f,seen):gen.f(); g.q=_msClean0(g.q); var a=String(typeof g.a==='number'?_num(g.a):g.a), w=(g.w||[]).map(function(x){return typeof x==='number'?_num(x):String(x);});
   return {id:id, subject:'ms', topic:'Milliy sertifikat', text:'('+String(pts).replace('.',',')+' ball) '+g.q, options:_opts(a,w), correct:[0], isMulti:false, msTopic:gen.t, msPts:pts, msNo:n};
 }
 function _msFill(g,n,id,seen){
@@ -4573,7 +4665,7 @@ function msGenerate(subj){
   for(var i=0;i<MS_SPEC.easy;i++,n++) qs.push(_msChoice(easy[i%easy.length],n,P.easy,id(),seen));
   // 11–32: sohalar tartibida (1→7), har sohadan aralash
   // 11–32: 10 ta qiyin (ko'p bosqichli) + 12 ta oddiy, sohalar tartibida
-  var nH=Math.min(10,hard.length), hp=shuf(hard).slice(0,nH), np=[]; while(np.length<MS_SPEC.main-nH) np=np.concat(shuf(all));
+  var nH=Math.min(14,hard.length), hp=shuf(hard).slice(0,nH), np=[]; while(np.length<MS_SPEC.main-nH) np=np.concat(shuf(all));
   var main=hp.concat(np.slice(0,MS_SPEC.main-nH)).sort(function(a,b){return a.s-b.s||(a.h?1:0)-(b.h?1:0);});
   main.forEach(function(g){ qs.push(_msChoice(g,n,P.main,id(),seen)); n++; });
   // 33–35: moslashtirish — 3 savol, 6 ta UMUMIY variant (A–F), aralashtirilmaydi
@@ -4585,8 +4677,8 @@ function msGenerate(subj){
   // 36–45: yozma (a, b)
   // 36–45: 6 oddiy + 4 qiyin (oxirida)
   var oN=SB.O.filter(function(g){return !g.h;}), oH=SB.O.filter(function(g){return g.h;}), op1=[], op2=[];
-  while(op1.length<6) op1=op1.concat(shuf(oN)); while(op2.length<4) op2=op2.concat(shuf(oH));
-  op1.slice(0,6).concat(op2.slice(0,4)).forEach(function(g){ qs.push(_msFill(g,n,id(),seen)); n++; });
+  while(op1.length<5) op1=op1.concat(shuf(oN)); while(op2.length<5) op2=op2.concat(shuf(oH));
+  op1.slice(0,5).concat(op2.slice(0,5)).forEach(function(g){ qs.push(_msFill(g,n,id(),seen)); n++; });
   return qs;
 }
 // Manba: avval server bazasi (rasmiy ruxsat kelgach to'ldiriladi), bo'lmasa — generator
@@ -10459,7 +10551,7 @@ function chemRounds(){
 }
 
 // ── Tarix: sanani top (yil|voqea) ──
-var HIST_EV="1336|Amir Temur tug'ildi;1370|Amir Temur Movarounnahr hukmdori bo'ldi;1402|Anqara jangi (Amir Temur va Boyazid);1405|Amir Temur vafot etdi;1394|Mirzo Ulug'bek tug'ildi;1449|Mirzo Ulug'bek vafot etdi;1441|Alisher Navoiy tug'ildi;1483|Zahiriddin Muhammad Bobur tug'ildi;1526|Panipat jangi (Bobur);1219|Mo'g'ullarning O'rta Osiyoga bosqini boshlandi;1220|Chingizxon Buxoro va Samarqandni egalladi;1865|Toshkent Rossiya imperiyasi tomonidan bosib olindi;1867|Turkiston general-gubernatorligi tashkil etildi;1868|Buxoro amirligi Rossiyaga qaram bo'ldi;1873|Xiva xonligi Rossiya protektoratiga aylandi;1876|Qo'qon xonligi tugatildi;1924|O'zbekiston SSR tashkil topdi;1966|Toshkent zilzilasi;1991|O'zbekiston mustaqilligi e'lon qilindi;1992|O'zbekiston Konstitutsiyasi qabul qilindi;1453|Konstantinopol Usmonlilar tomonidan egallandi;1492|Kolumb Amerikaga yetib bordi;1498|Vasko da Gama Hindistonga dengiz yo'lini ochdi;1776|AQSH mustaqillik deklaratsiyasi qabul qilindi;1789|Fransuz inqilobi boshlandi;1914|Birinchi jahon urushi boshlandi;1918|Birinchi jahon urushi tugadi;1917|Rossiyada Oktabr to'ntarishi;1939|Ikkinchi jahon urushi boshlandi;1945|Ikkinchi jahon urushi tugadi;1961|Yuriy Gagarin koinotga uchdi;1969|Inson ilk bor Oyga qadam qo'ydi".replace(/\n/g,'').split(';').map(function(r){ var p=r.split('|'); return {y:+p[0],e:p[1]}; });
+var HIST_EV="1336|Amir Temur tug'ildi;1370|Amir Temur Movarounnahr hukmdori bo'ldi;1402|Anqara jangi (Amir Temur va Boyazid);1405|Amir Temur vafot etdi;1394|Mirzo Ulug'bek tug'ildi;1449|Mirzo Ulug'bek vafot etdi;1441|Alisher Navoiy tug'ildi;1483|Zahiriddin Muhammad Bobur tug'ildi;1526|Panipat jangi (Bobur);1219|Mo'g'ullarning O'rta Osiyoga bosqini boshlandi;1220|Chingizxon Buxoro va Samarqandni egalladi;1865|Toshkent Rossiya imperiyasi tomonidan bosib olindi;1867|Turkiston general-gubernatorligi tashkil etildi;1868|Buxoro amirligi Rossiyaga qaram bo'ldi;1873|Xiva xonligi Rossiya protektoratiga aylandi;1876|Qo'qon xonligi tugatildi;1924|O'zbekiston SSR tashkil topdi;1966|Toshkent zilzilasi;1991|O'zbekiston mustaqilligi e'lon qilindi;1992|O'zbekiston Konstitutsiyasi qabul qilindi;1453|Konstantinopol Usmonlilar tomonidan egallandi;1492|Kolumb Amerikaga yetib bordi;1498|Vasko da Gama Hindistonga dengiz yo'lini ochdi;1776|AQSH mustaqillik deklaratsiyasi qabul qilindi;1789|Fransuz inqilobi boshlandi;1914|Birinchi jahon urushi boshlandi;1918|Birinchi jahon urushi tugadi;1917|Rossiyada Oktabr to'ntarishi;1939|Ikkinchi jahon urushi boshlandi;1945|Ikkinchi jahon urushi tugadi;1961|Yuriy Gagarin koinotga uchdi;1969|Inson ilk bor Oyga qadam qo'ydi;1066|Gastings jangi (Angliya);1096|Birinchi salib yurishi boshlandi;1206|Temuchin qurultoyda Chingizxon deb e'lon qilindi;1215|Angliyada \"Buyuk erkinliklar xartiyasi\" qabul qilindi;1227|Chingizxon vafot etdi;1258|Bag'dod mo'g'ullar tomonidan egallandi;1380|Kulikovo jangi;1391|Amir Temur va To'xtamish o'rtasida Qunduzcha jangi;1395|Terek daryosi bo'yidagi jang (Amir Temur va To'xtamish);1398|Amir Temurning Hindiston yurishi;1404|Samarqanddagi Bibixonim masjidi qurib bitkazildi;1409|Mirzo Ulug'bek Samarqand hokimi bo'ldi;1420|Samarqanddagi Ulug'bek madrasasi qurib bitkazildi;1447|Shohruh Mirzo vafot etdi;1469|Husayn Boyqaro Hirot taxtiga o'tirdi;1497|Bobur Samarqandni egalladi;1500|Muhammad Shayboniyxon Samarqandni egalladi;1501|Alisher Navoiy vafot etdi;1507|Shayboniyxon Hirotni egalladi;1510|Shayboniyxon Marv yaqinidagi jangda halok bo'ldi;1512|G'ijduvon jangi;1517|Martin Lyuter boshchiligida Reformatsiya boshlandi;1519|Magellan dunyo bo'ylab sayohatga chiqdi;1530|Zahiriddin Muhammad Bobur vafot etdi;1556|Akbar Boburiylar taxtiga o'tirdi;1598|Abdullaxon II vafot etdi;1688|Angliyada \"Shonli inqilob\";1709|Qo'qon xonligi tashkil topdi;1740|Nodirshoh Buxoro va Xivani bosib oldi;1804|Xiva xonligida Qo'ng'irotlar sulolasi hokimiyatga keldi;1812|Napoleonning Rossiyaga yurishi;1815|Vaterloo jangi;1842|Buxoro amiri Nasrullo Qo'qonni egalladi;1848|Yevropada inqiloblar to'lqini;1861|Rossiyada krepostnoylik huquqi bekor qilindi;1864|Chimkent va Turkiston shaharlari Rossiya tomonidan egallandi;1866|Xo'jand Rossiya tomonidan egallandi;1869|Suvaysh kanali ochildi;1871|Germaniya yagona davlatga birlashtirildi;1888|Kaspiyorti temir yo'li Samarqandgacha yetkazildi;1898|Andijon qo'zg'oloni (Dukchi eshon);1899|Samarqand–Toshkent temir yo'li ishga tushirildi;1905|Rossiyada birinchi inqilob;1916|Jizzax qo'zg'oloni;1920|Buxoro Xalq Sovet Respublikasi tuzildi;1922|SSSR tashkil topdi;1929|Jahon iqtisodiy inqirozi boshlandi;1930|O'zbekiston SSR poytaxti Samarqanddan Toshkentga ko'chirildi;1933|Germaniyada Gitler hokimiyatga keldi;1937|Ommaviy qatag'onlar avjiga chiqdi;1940|O'zbek yozuvi kirill alifbosiga o'tkazildi;1941|Germaniya SSSRga hujum qildi;1947|Hindiston mustaqillikka erishdi;1949|Xitoy Xalq Respublikasi tashkil topdi;1950|Koreya urushi boshlandi;1955|Varshava shartnomasi tashkiloti tuzildi;1957|Birinchi sun'iy Yer yo'ldoshi uchirildi;1963|AQSH prezidenti Jon Kennedi o'ldirildi;1975|Vyetnam urushi tugadi;1977|Toshkent metropoliteni ishga tushirildi;1979|Sovet qo'shinlari Afg'onistonga kiritildi;1985|SSSRda \"qayta qurish\" siyosati boshlandi;1986|Chernobil AES halokati;1989|O'zbek tiliga davlat tili maqomi berildi;1990|O'zbekistonda Prezident lavozimi joriy etildi;1993|Yevropa Ittifoqi to'g'risidagi shartnoma kuchga kirdi;1994|So'm O'zbekistonning milliy valyutasi sifatida muomalaga kiritildi;1997|Kadrlar tayyorlash milliy dasturi qabul qilindi;2001|Shanxay hamkorlik tashkiloti tuzildi".replace(/\n/g,'').split(';').map(function(r){ var p=r.split('|'); return {y:+p[0],e:p[1]}; });
 function histRounds(){
   return shuf(HIST_EV).slice(0,10).map(function(x,i){
     if(i%2){ var o=shuf([x].concat(_gPick(HIST_EV.filter(function(z){return z.y!==x.y;}),3,[x])));
