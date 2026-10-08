@@ -4265,10 +4265,128 @@ MS_T_MATH=MS_T_MATH.concat([
   {t:'Tenglamalar sistemasi',s:3,h:1,f:function(){ var x=_ri(-6,7), y=_ri(-6,7), a=_ri(2,4), b=_ri(2,5);
     return {q:a+'x + '+b+'y = '+(a*x+b*y)+' va x − y = '+(x-y)+' sistemasi yechimi (x; y) bo\'lsa, x·y ni toping.', a:x*y, w:[x+y, x-y, x*y+1]}; }}
 ]);
+// ─── BIOLOGIYA — 2026-10-08 (dastur yaratadi; javobni dastur hisoblaydi, faktlar jadvali qo'lda) ───
+// Standart darslik qiymatlari: nukleotidlar orasi 0,34 nm; glikoliz 1 mol glukoza → 200 kJ (80 kJ 2 ATF da, 120 kJ issiqlik);
+// to'liq parchalanish 1 mol → 2800 kJ, 38 ATF (1520 kJ), 1280 kJ issiqlik; 1 g oqsil/uglevod 17,6 kJ, yog' 38,9 kJ.
+var MS_BIO_2N=[['Odam',46],['It',78],['Mushuk',38],['No\'xat',14],['Piyoz',16],['Makkajo\'xori',20],['Sholi',24],['Kartoshka',48],['Qoramol',60],['Ot',64],['Quyon',44],['Drozofila',8],['Yumshoq bug\'doy',42]];
+var MS_BIO_GYMNO=['qarag\'ay','archa','pixta','kedr','tilog\'och','sagovnik','gingko'];
+var MS_BIO_ANGIO=['olma','eman','qayin','lola','bug\'doy','terak','kungaboqar','g\'o\'za'];
+var MS_BIO_MONO=['bug\'doy','sholi','makkajo\'xori','arpa','lola','piyoz','sarimsoq'];
+var MS_BIO_DICOT=['no\'xat','loviya','g\'o\'za','olma','kungaboqar','kartoshka','pomidor'];
+var MS_BIO_CLS={
+  'sutemizuvchilar':['delfin','kit','ko\'rshapalak','ot','tulen','yexidna'],
+  'qushlar':['pingvin','tuyaqush','kaptar','burgut','kolibri'],
+  'sudralib yuruvchilar':['timsoh','toshbaqa','kaltakesak','ilon'],
+  'suvda hamda quruqlikda yashovchilar':['baqa','salamandra','triton','qurbaqa'],
+  'baliqlar':['akula','laqqa','zog\'ora baliq','skat']
+};
+var MS_BIO_HEART=[['zog\'ora baliq',2],['laqqa',2],['baqa',3],['triton',3],['kaltakesak',3],['ilon',3],['timsoh',4],['kaptar',4],['ot',4],['delfin',4]];
+var MS_BIO_VIT=[['A','shabko\'rlik'],['D','raxit'],['C','singa (lavsha)'],['B₁','beri-beri']];
+var MS_BIO_HORM=[['insulin','me\'da osti bezi'],['tiroksin','qalqonsimon bez'],['adrenalin','buyrak usti bezi'],['o\'sish gormoni','gipofiz']];
+var MS_BIO_ORG=[['ribosoma','oqsil sintezi'],['mitoxondriya','ATF sintezi (energiya hosil qilish)'],['xloroplast','fotosintez'],['lizosoma','moddalarni parchalash (hazm qilish)'],['Golji majmuasi','moddalarni to\'plash va hujayradan chiqarish'],['yadro','irsiy axborotni saqlash']];
+var MS_BIO_MONOMER=[['oqsil','aminokislota'],['kraxmal','glukoza'],['selluloza','glukoza'],['glikogen','glukoza'],['DNK','nukleotid'],['RNK','nukleotid'],['fermentlar','aminokislota']];
+function _bioPickN(arr,n){ return shuf(arr.slice()).slice(0,n); }
+// n ta nom: k tasi A to'plamdan, qolgani B dan — "nechtasi A ga mansub?"
+function _bioCount(A,B,n){ var k=_ri(1,Math.min(4,A.length,n-1)); var items=shuf(_bioPickN(A,k).concat(_bioPickN(B,n-k))); return {items:items,k:k}; }
+function _bioCountW(k,n){ var w=[]; for(var x=0;x<=n;x++) if(x!==k) w.push(x); return shuf(w); }
+function _dnaCompl(s,rna){ return s.split('').map(function(c){ return {A:rna?'U':'T',T:'A',G:'C',C:'G'}[c]; }).join(''); }
+function _rndDna(n){ var s=''; do{ s=''; for(var i=0;i<n;i++) s+='ATGC'[_ri(0,3)]; }while(s.indexOf('A')<0||s.indexOf('T')<0); return s; }
+
+var MS_T_BIO=[
+  // 1 — hujayra
+  {t:'Hujayra organoidlari',s:1,e:1,f:function(){ var x=_pick(MS_BIO_ORG); var w=MS_BIO_ORG.filter(function(y){return y[0]!==x[0];}).map(function(y){return y[1];});
+    return {q:'Hujayrada '+x[0]+' qanday vazifani bajaradi?', a:x[1], w:shuf(w)}; }},
+  {t:'Hujayra organoidlari',s:1,f:function(){ var x=_pick(MS_BIO_ORG); var w=MS_BIO_ORG.filter(function(y){return y[0]!==x[0];}).map(function(y){return y[0];});
+    return {q:'Hujayrada "'+x[1]+'" vazifasini qaysi organoid bajaradi?', a:x[0], w:shuf(w)}; }},
+  {t:'Biopolimerlar',s:1,e:1,f:function(){ var x=_pick(MS_BIO_MONOMER); var w=['aminokislota','glukoza','nukleotid','glitserin va yog\' kislotalari'].filter(function(v){return v!==x[1];});
+    return {q:x[0]+'ning monomeri nima?', a:x[1], w:w}; }},
+  {t:'Nuklein kislotalar',s:1,f:function(){ var n=_pick([6,9,12]), s=_rndDna(n), r=_dnaCompl(s,true);
+    var mut=function(x){ var i=_ri(0,x.length-1), c={A:'G',G:'A',U:'C',C:'U'}[x[i]]; return x.slice(0,i)+c+x.slice(i+1); }; var cand=[_dnaCompl(s,false), s.replace(/T/g,'U'), r.split('').reverse().join(''), mut(r), mut(r), mut(r)], w=[]; cand.forEach(function(x){ if(x!==r&&w.indexOf(x)<0) w.push(x); }); return {q:'DNKning bir zanjiri: '+s+'. Shu zanjir asosida sintezlangan i-RNK nukleotidlar ketma-ketligini aniqlang.', a:r, w:w.slice(0,3)}; }},
+  {t:'Nuklein kislotalar',s:1,h:1,f:function(){ var N=_pick([100,150,200,250,300,400]), pA=_pick([10,15,20,30,35,40]), A=N*2*pA/100, G=N-A;
+    return {q:'DNK fragmentida '+N+' juft nukleotid bor, ulardan '+pA+'% i adenin. Shu fragmentdagi vodorod bog\'lar sonini toping.', a:2*A+3*G, w:[3*A+2*G, 2*A+3*G+N, 2*N]}; }},
+  {t:'Nuklein kislotalar',s:1,h:1,f:function(){ var k=_pick([60,90,120,150,180,240,300]); var aa=k/3;
+    return {q:'i-RNK molekulasi '+k+' ta nukleotiddan iborat (stop kodon hisobga olinmasin). Shu i-RNK asosida sintezlangan oqsildagi peptid bog\'lar sonini toping.', a:aa-1, w:[aa, k-1, k/2]}; }},
+  // 2 — energiya almashinuvi, fotosintez
+  {t:'Energiya almashinuvi',s:2,e:1,f:function(){ var n=_ri(1,6);
+    return {q:n+' mol glukoza glikoliz bosqichida parchalanganda necha mol ATF hosil bo\'ladi?', a:2*n, w:[38*n, 36*n, n]}; }},
+  {t:'Energiya almashinuvi',s:2,f:function(){ var n=_ri(1,5);
+    return {q:n+' mol glukoza hujayrada to\'liq (kislorodli) parchalanganda jami necha mol ATF hosil bo\'ladi?', a:38*n, w:[36*n, 2*n, 40*n]}; }},
+  {t:'Energiya almashinuvi',s:2,h:1,f:function(){ var n=_ri(1,6), m=180*n;
+    return {q:m+' g glukoza glikoliz bosqichida parchalandi. Issiqlik sifatida tarqalgan energiyani (kJ) toping.', a:120*n, w:[80*n, 200*n, 1280*n]}; }},
+  {t:'Fotosintez',s:2,f:function(){ var n=_ri(1,5);
+    return {q:'Fotosintezda '+n+' mol glukoza hosil bo\'lishi uchun necha mol CO₂ yutiladi?', a:6*n, w:[n, 12*n, 3*n]}; }},
+  {t:'Fotosintez',s:2,h:1,f:function(){ var n=_pick([0.5,1,2,3]);
+    return {q:'Fotosintezda '+_num(180*n)+' g glukoza hosil bo\'ldi. Ajralib chiqqan kislorod hajmini (l, n.sh.) toping.', a:_num(134.4*n), w:[_num(22.4*n), _num(67.2*n), _num(268.8*n)]}; }},
+  // 3 — botanika
+  {t:'O\'simliklar sistematikasi',s:3,f:function(){ var c=_bioCount(MS_BIO_GYMNO,MS_BIO_ANGIO,5);
+    return {q:'Quyidagi o\'simliklardan nechtasi ochiq urug\'lilarga mansub? '+c.items.join(', ')+'.', a:c.k, w:_bioCountW(c.k,5)}; }},
+  {t:'O\'simliklar sistematikasi',s:3,f:function(){ var c=_bioCount(MS_BIO_MONO,MS_BIO_DICOT,6);
+    return {q:'Quyidagi o\'simliklardan nechtasi bir pallalilar sinfiga mansub? '+c.items.join(', ')+'.', a:c.k, w:_bioCountW(c.k,6)}; }},
+  // 4 — zoologiya
+  {t:'Hayvonlar sistematikasi',s:4,h:1,f:function(){ var keys=Object.keys(MS_BIO_CLS), cls=_pick(keys), other=[]; keys.forEach(function(k){ if(k!==cls) other=other.concat(MS_BIO_CLS[k]); });
+    var c=_bioCount(MS_BIO_CLS[cls],other,6);
+    return {q:'Quyidagi hayvonlardan nechtasi '+cls+' sinfiga mansub? '+c.items.join(', ')+'.', a:c.k, w:_bioCountW(c.k,6)}; }},
+  {t:'Qon aylanish sistemasi',s:4,e:1,f:function(){ var x=_pick(MS_BIO_HEART);
+    return {q:x[0]+'ning yuragi necha kamerali?', a:x[1]+' kamerali', w:[2,3,4,1].filter(function(v){return v!==x[1];}).map(function(v){return v+' kamerali';})}; }},
+  // 5 — odam
+  {t:'Vitaminlar',s:5,e:1,f:function(){ var x=_pick(MS_BIO_VIT);
+    return {q:x[0]+' vitamini yetishmasligi qaysi kasallikka olib keladi?', a:x[1], w:MS_BIO_VIT.filter(function(y){return y[0]!==x[0];}).map(function(y){return y[1];})}; }},
+  {t:'Ichki sekretsiya bezlari',s:5,e:1,f:function(){ var x=_pick(MS_BIO_HORM);
+    return {q:x[0]+' gormoni qaysi bezda ishlab chiqariladi?', a:x[1], w:MS_BIO_HORM.filter(function(y){return y[0]!==x[0];}).map(function(y){return y[1];})}; }},
+  {t:'Moddalar almashinuvi',s:5,h:1,f:function(){ var o=_ri(5,9)*10, y=_ri(1,4)*10, u=_ri(10,40)*10; var t=Math.round((o*17.6+y*38.9+u*17.6)*10)/10;
+    return {q:'Ovqat tarkibida '+o+' g oqsil, '+y+' g yog\' va '+u+' g uglevod bor. To\'liq parchalanganda qancha energiya (kJ) ajraladi? (1 g oqsil va uglevod — 17,6 kJ, 1 g yog\' — 38,9 kJ)', a:_num(t), w:[_num(Math.round((o+y+u)*17.6*10)/10), _num(Math.round((o*38.9+y*17.6+u*17.6)*10)/10), _num(Math.round((o+u)*17.6*10)/10)]}; }},
+  // 6 — genetika
+  {t:'Xromosomalar',s:6,e:1,f:function(){ var x=_pick(MS_BIO_2N);
+    return {q:x[0]+'ning somatik hujayrasida '+x[1]+' ta xromosoma bor. Uning jinsiy hujayrasida nechta xromosoma bo\'ladi?', a:x[1]/2, w:[x[1], x[1]*2, x[1]/2-1]}; }},
+  {t:'Xromosomalar',s:6,h:1,f:function(){ var x=_pick(MS_BIO_2N), k=_ri(2,4), b=Math.pow(2,k);
+    return {q:x[0]+' (2n = '+x[1]+') zigotasi maydalanish bosqichida '+k+' marta bo\'lindi. Hosil bo\'lgan barcha blastomerlardagi jami xromosomalar sonini toping.', a:b*x[1], w:[b*x[1]/2, k*x[1], (b-1)*x[1]]}; }},
+  {t:'Xromosomalar',s:6,h:1,f:function(){ var x=_pick(MS_BIO_2N);
+    return {q:x[0]+' (2n = '+x[1]+') hujayrasida meyozning I profazasida nechta bivalent hosil bo\'ladi?', a:x[1]/2, w:[x[1], x[1]*2, x[1]/4]}; }},
+  {t:'Irsiylanish qonuniyatlari',s:6,f:function(){ var N=_ri(4,30)*4;
+    return {q:'Ikki geterozigota (Aa × Aa) chatishtirilganda '+N+' ta nasl olindi (to\'liq dominantlik). Ulardan nechtasi retsessiv belgili bo\'ladi?', a:N/4, w:[N/2, 3*N/4, 0]}; }},
+  {t:'Irsiylanish qonuniyatlari',s:6,h:1,f:function(){ var N=_ri(2,20)*16;
+    return {q:'Digeterozigota organizmlar (AaBb × AaBb) chatishtirilganda '+N+' ta nasl olindi (to\'liq dominantlik). Ulardan nechtasi ikkala belgi bo\'yicha dominant bo\'ladi?', a:9*N/16, w:[3*N/16, N/16, N/4]}; }},
+  {t:'Jinsga bog\'liq irsiylanish',s:6,h:1,f:function(){ var x=_pick(['daltonizm','gemofiliya']);
+    return {q:x+' X xromosomaga birikkan retsessiv belgi. Ona bu belgi bo\'yicha tashuvchi (geterozigota), ota sog\'lom. Oiladagi barcha farzandlarning necha foizi '+x+' bilan kasal bo\'lishi mumkin?', a:'25%', w:['50%','0%','100%']}; }},
+  {t:'Qon guruhlari',s:6,h:1,f:function(){ var P=[['I(0)','ii'],['II(A) gomozigota','IᴬIᴬ'],['II(A) geterozigota','Iᴬi'],['III(B) gomozigota','IᴮIᴮ'],['III(B) geterozigota','Iᴮi'],['IV(AB)','IᴬIᴮ']];
+    var m=_pick(P), f=_pick(P), al=function(g){ return g.replace(/I(?=[ᴬᴮ])/g,'').match(/[ᴬᴮi]/g); };
+    var grp=function(a,b){ var s=[a,b].sort().join(''); return s==='ii'?'I(0)':s==='iᴬ'||s==='ᴬᴬ'?'II(A)':s==='iᴮ'||s==='ᴮᴮ'?'III(B)':'IV(AB)'; };
+    var cnt={}; al(m[1]).forEach(function(a){ al(f[1]).forEach(function(b){ var g=grp(a,b); cnt[g]=(cnt[g]||0)+1; }); });
+    var tgt=_pick(['I(0)','II(A)','III(B)','IV(AB)']), pc=(cnt[tgt]||0)*25;
+    var w=[0,25,50,75,100].filter(function(v){return v!==pc;}).map(function(v){return v+'%';});
+    return {q:'Ona qon guruhi '+m[0]+' ('+m[1]+'), ota '+f[0]+' ('+f[1]+'). Farzandlarning necha foizi '+tgt+' qon guruhiga ega bo\'lishi mumkin?', a:pc+'%', w:shuf(w)}; }},
+  {t:'Populyatsiya genetikasi',s:7,h:1,f:function(){ var q=_pick([1,2,3,4,5,6])/10, p=Math.round((1-q)*10)/10, N=_ri(2,20)*100;
+    return {q:'Xardi-Vaynberg qonuniga ko\'ra populyatsiyada retsessiv a genining chastotasi '+_num(q)+' ga teng. '+_fmt(N)+' ta organizmdan nechtasi geterozigota (Aa) bo\'ladi?', a:Math.round(2*p*q*N), w:[Math.round(p*q*N), Math.round(q*q*N), Math.round(p*p*N)]}; }}
+];
+var MS_O_BIO=[
+  {t:'Nuklein kislotalar',o:function(){ var N=_pick([100,150,200,300,400,500]), pA=_pick([10,15,20,30,35,40]), A=N*2*pA/100, G=N-A;
+    return {q:'DNK fragmentining uzunligi '+_num(N*0.34)+' nm, nukleotidlarining '+pA+'% i adenin.', p:[['Fragmentdagi vodorod bog\'lar sonini toping.', 2*A+3*G],['Guanin nukleotidlari sonini toping.', G]]}; }},
+  {t:'Nuklein kislotalar',h:1,o:function(){ var n=_pick([90,120,150,180,240,300]);
+    return {q:'i-RNK molekulasida '+(n-1)+' ta fosfodiefir bog\' bor (stop kodon hisobga olinmasin).', p:[['Shu i-RNK asosida sintezlangan oqsildagi aminokislotalar sonini toping.', n/3],['i-RNK sintezlangan DNK qismining uzunligini (nm) toping.', _num(Math.round(n*0.34*100)/100)]]}; }},
+  {t:'Energiya almashinuvi',o:function(){ var n=_ri(2,8);
+    return {q:(180*n)+' g glukoza glikoliz bosqichida parchalandi.', p:[['Hosil bo\'lgan sut kislotasi miqdorini (mol) toping.', 2*n],['Issiqlik sifatida tarqalgan energiyani (kJ) toping.', 120*n]]}; }},
+  {t:'Energiya almashinuvi',h:1,o:function(){ var n=_ri(2,6);
+    return {q:n+' mol glukoza hujayrada to\'liq (kislorodli) parchalandi.', p:[['Hosil bo\'lgan ATF miqdorini (mol) toping.', 38*n],['Issiqlik sifatida tarqalgan energiyani (kJ) toping.', 1280*n]]}; }},
+  {t:'Fotosintez',o:function(){ var n=_pick([1,2,3,4]);
+    return {q:'Fotosintez natijasida '+(180*n)+' g glukoza hosil bo\'ldi.', p:[['Yutilgan CO₂ miqdorini (mol) toping.', 6*n],['Ajralgan kislorod hajmini (l, n.sh.) toping.', _num(134.4*n)]]}; }},
+  {t:'Moddalar almashinuvi',o:function(){ var o=_ri(4,9)*10, y=_ri(2,7)*10, u=_ri(20,45)*10;
+    return {q:'Kunlik ovqatda '+o+' g oqsil, '+y+' g yog\' va '+u+' g uglevod bor (1 g oqsil va uglevod — 17,6 kJ, 1 g yog\' — 38,9 kJ).', p:[['Yog\'dan ajraladigan energiyani (kJ) toping.', _num(Math.round(y*38.9*10)/10)],['Jami ajraladigan energiyani (kJ) toping.', _num(Math.round((o*17.6+y*38.9+u*17.6)*10)/10)]]}; }},
+  {t:'Xromosomalar',o:function(){ var x=_pick(MS_BIO_2N), k=_ri(2,4), b=Math.pow(2,k);
+    return {q:x[0]+' zigotasi (2n = '+x[1]+') maydalanish bosqichida '+k+' marta bo\'lindi.', p:[['Hosil bo\'lgan blastomerlar sonini toping.', b],['Barcha blastomerlardagi jami xromosomalar sonini toping.', b*x[1]]]}; }},
+  {t:'Xromosomalar',h:1,o:function(){ var x=_pick(MS_BIO_2N.filter(function(y){return y[0]!=='No\'xat'&&y[0]!=='Piyoz'&&y[0]!=='Makkajo\'xori'&&y[0]!=='Sholi'&&y[0]!=='Kartoshka'&&y[0]!=='Yumshoq bug\'doy';}));
+    return {q:x[0]+'ning somatik hujayrasida '+x[1]+' ta xromosoma bor.', p:[['Uning tuxum hujayrasidagi autosomalar sonini toping.', x[1]/2-1],['Meyozning I profazasidagi hujayrada xromatidalar sonini toping.', x[1]*2]]}; }},
+  {t:'Irsiylanish qonuniyatlari',h:1,o:function(){ var N=_ri(3,20)*16;
+    return {q:'Digeterozigota organizmlar (AaBb × AaBb) chatishtirildi va '+N+' ta nasl olindi (to\'liq dominantlik).', p:[['Ikkala belgi bo\'yicha retsessiv nasllar sonini toping.', N/16],['Ikkala belgi bo\'yicha dominant nasllar sonini toping.', 9*N/16]]}; }},
+  {t:'Populyatsiya genetikasi',h:1,o:function(){ var q=_pick([1,2,3,4,5,6])/10, p=Math.round((1-q)*10)/10, N=_ri(2,20)*100;
+    return {q:'Populyatsiyada '+_fmt(N)+' ta organizm bor, retsessiv gomozigotalar (aa) soni '+_fmt(Math.round(q*q*N))+' ta (Xardi-Vaynberg qonuni bajariladi).', p:[['Dominant gomozigotalar (AA) sonini toping.', Math.round(p*p*N)],['Geterozigotalar (Aa) sonini toping.', Math.round(2*p*q*N)]]}; }},
+  {t:'Jinsga bog\'liq irsiylanish',h:1,o:function(){ var x=_pick(['daltonizm','gemofiliya']);
+    return {q:x+' X xromosomaga birikkan retsessiv belgi. Ona bu belgi bo\'yicha kasal, ota sog\'lom.', p:[['O\'g\'il farzandlarning necha foizi kasal bo\'ladi?', 100],['Qiz farzandlarning necha foizi tashuvchi bo\'ladi?', 100]]}; }}
+];
 var MS_SUBJECTS={
   math:{name:'Matematika',ic:'&#x1F4D0;',T:MS_T_MATH,O:MS_O_MATH},
   phys:{name:'Fizika',ic:'&#x269B;&#xFE0F;',T:MS_T_PHYS,O:MS_O_PHYS},
-  chem:{name:'Kimyo',ic:'&#x1F9EA;',T:MS_T_CHEM,O:MS_O_CHEM}
+  chem:{name:'Kimyo',ic:'&#x1F9EA;',T:MS_T_CHEM,O:MS_O_CHEM},
+  bio:{name:'Biologiya',ic:'&#x1F9EC;',T:MS_T_BIO,O:MS_O_BIO}
 };
 var MS_SPEC={minutes:150, easy:10, main:22, match:3, open:10, pts:{easy:1.3, main:2.2, match:2.2, oa:1.5, ob:1.7}};
 // bir imtihon ichida bir xil savol matni chiqmasin: takror bo'lsa qayta yaratiladi
@@ -4329,6 +4447,7 @@ function msGenerate(subj){
 }
 // Manba: avval server bazasi (rasmiy ruxsat kelgach to'ldiriladi), bo'lmasa — generator
 async function msLoad(subj){
+  if(MS_AI_SUBJ[subj]) return {qs:msGenerate(subj), src:'gen'};
   try{
     var r=await fetchVM(DB_SERVER,'/ms_set?subject='+encodeURIComponent(subj));
     if(r.ok){ var j=await r.json(); if(j&&(j.questions||[]).length>=20) return {qs:j.questions, src:'bank'}; }
@@ -4407,7 +4526,7 @@ function renderMsSection(skip){
   if(!skip&&!_msStats) msLoadStats().then(function(st){ if(st) renderMsSection(true); });
   el.innerHTML='<div class="aqt-grid">'+Object.keys(MS_SUBJECTS).map(function(k){ var s=MS_SUBJECTS[k];
     return '<button type="button" class="aqt-card" onclick="startMs(\''+k+'\')"><span class="aqt-ic">'+s.ic+'</span><b>'+s.name+'</b><small>45 savol · 150 daqiqa</small></button>'; }).join('')+
-    Object.keys(MS_AI_SUBJ).map(function(k){ var s=MS_AI_SUBJ[k], c=_msStats&&_msStats.counts?(_msStats.counts[k]||0):null, need=(_msStats&&_msStats.need)||45, open=c!=null&&c>=need;
+    Object.keys(MS_AI_SUBJ).filter(function(k){ return !MS_SUBJECTS[k]; }).map(function(k){ var s=MS_AI_SUBJ[k], c=_msStats&&_msStats.counts?(_msStats.counts[k]||0):null, need=(_msStats&&_msStats.need)||45, open=c!=null&&c>=need;
       return open?'<button type="button" class="aqt-card" onclick="startMs(\''+k+'\')"><span class="aqt-ic">'+s.ic+'</span><b>'+s.name+'</b><small>45 savol · 150 daqiqa</small></button>'
                  :'<button type="button" class="aqt-card" disabled style="opacity:.55"><span class="aqt-ic">'+s.ic+'</span><b>'+s.name+'</b><small>Tez orada</small></button>'; }).join('')+'</div>'+
     '<div class="ts tm" style="margin-top:10px;line-height:1.55">Tuzilma: 1–10 — 1,3 ball; 11–32 — 2,2 ball; 33–35 — moslashtirish (6 variant), 2,2 ball; 36–45 — yozma a) 1,5 + b) 1,7 ball. Jami 100 ball → 75 ballik shkala. Natija <b>taxminiy</b>. Savollar har safar yangi, javoblarini dastur hisoblaydi.</div><div id="ms-msg" class="mt8"></div>';
@@ -10103,8 +10222,8 @@ function gameAns(k,btn){
   if(k===R.ok){ G.score++; btn.classList.add('ok'); } else { btn.classList.add('bad'); if(bs[R.ok]) bs[R.ok].classList.add('ok'); }
   setTimeout(function(){ G.i++; gameShow(); }, k===R.ok?650:1500);
 }
-function _pick(arr,n,not){ return shuf(arr.filter(function(x){return not.indexOf(x)<0;})).slice(0,n); }
-function _mc(right,pool,n){ var o=shuf([right].concat(_pick(pool,(n||4)-1,[right]))); return {opts:o,ok:o.indexOf(right)}; }
+function _gPick(arr,n,not){ return shuf(arr.filter(function(x){return not.indexOf(x)<0;})).slice(0,n); }
+function _mc(right,pool,n){ var o=shuf([right].concat(_gPick(pool,(n||4)-1,[right]))); return {opts:o,ok:o.indexOf(right)}; }
 
 // ── Ingliz tili: to'plamdagi so'zlar bilan ──
 function _uniq(a){ var s={}; return a.filter(function(x){ var k=String(x).toLowerCase(); if(s[k]) return false; s[k]=1; return true; }); }
@@ -10113,7 +10232,7 @@ function engRounds(d,kind){
   return shuf(cs).slice(0,10).map(function(c,i){
     var m;
     if(kind==='listen'){ m=_mc(c.f,en); return {q:'🎧 Eshitgan so\'zingizni tanlang',say:c.f,lang:'en-US',opts:m.opts.map(_qEsc),ok:m.ok}; }
-    if(kind==='tf'){ var right=Math.random()<.5, other=_pick(uz,1,[c.b])[0], shown=right||!other?c.b:other;
+    if(kind==='tf'){ var right=Math.random()<.5, other=_gPick(uz,1,[c.b])[0], shown=right||!other?c.b:other;
       return {q:'<b>'+_qEsc(c.f)+'</b> — '+_qEsc(shown)+'<div class="ts tm" style="margin-top:6px">Tarjima to\'g\'rimi?</div>',say:c.f,lang:'en-US',opts:['✅ To\'g\'ri','❌ Noto\'g\'ri'],ok:shown===c.b?0:1}; }
     if(i%2===0){ m=_mc(c.b,uz); return {q:'<b>'+_qEsc(c.f)+'</b><div class="ts tm" style="margin-top:6px">Tarjimasini toping</div>',say:c.f,lang:'en-US',opts:m.opts.map(_qEsc),ok:m.ok}; }
     m=_mc(c.f,en); return {q:'<b>'+_qEsc(c.b)+'</b><div class="ts tm" style="margin-top:6px">Inglizchasini toping</div>',opts:m.opts.map(_qEsc),ok:m.ok};
@@ -10174,7 +10293,7 @@ function mathRounds(){
 // ── Kimyo: element belgisi ──
 var CHEM_EL="H|Vodorod;He|Geliy;Li|Litiy;Be|Berilliy;B|Bor;C|Uglerod;N|Azot;O|Kislorod;F|Ftor;Ne|Neon;Na|Natriy;Mg|Magniy;Al|Alyuminiy;Si|Kremniy;P|Fosfor;S|Oltingugurt;Cl|Xlor;Ar|Argon;K|Kaliy;Ca|Kalsiy;Ti|Titan;Cr|Xrom;Mn|Marganes;Fe|Temir;Co|Kobalt;Ni|Nikel;Cu|Mis;Zn|Rux;Br|Brom;Sr|Stronsiy;Ag|Kumush;Sn|Qalay;I|Yod;Ba|Bariy;W|Volfram;Pt|Platina;Au|Oltin;Hg|Simob;Pb|Qo'rg'oshin;U|Uran".split(';').map(function(r){ var p=r.split('|'); return {s:p[0],n:p[1]}; });
 function chemRounds(){
-  return shuf(CHEM_EL).slice(0,10).map(function(e,i){ var o=shuf([e].concat(_pick(CHEM_EL,3,[e])));
+  return shuf(CHEM_EL).slice(0,10).map(function(e,i){ var o=shuf([e].concat(_gPick(CHEM_EL,3,[e])));
     return i%2? {q:'<b style="font-size:34px">'+e.s+'</b><div class="ts tm" style="margin-top:6px">Qaysi element?</div>',opts:o.map(function(x){return x.n;}),ok:o.indexOf(e)}
               : {q:'<b>'+e.n+'</b><div class="ts tm" style="margin-top:6px">Kimyoviy belgisi qaysi?</div>',opts:o.map(function(x){return x.s;}),ok:o.indexOf(e)}; });
 }
@@ -10183,7 +10302,7 @@ function chemRounds(){
 var HIST_EV="1336|Amir Temur tug'ildi;1370|Amir Temur Movarounnahr hukmdori bo'ldi;1402|Anqara jangi (Amir Temur va Boyazid);1405|Amir Temur vafot etdi;1394|Mirzo Ulug'bek tug'ildi;1449|Mirzo Ulug'bek vafot etdi;1441|Alisher Navoiy tug'ildi;1483|Zahiriddin Muhammad Bobur tug'ildi;1526|Panipat jangi (Bobur);1219|Mo'g'ullarning O'rta Osiyoga bosqini boshlandi;1220|Chingizxon Buxoro va Samarqandni egalladi;1865|Toshkent Rossiya imperiyasi tomonidan bosib olindi;1867|Turkiston general-gubernatorligi tashkil etildi;1868|Buxoro amirligi Rossiyaga qaram bo'ldi;1873|Xiva xonligi Rossiya protektoratiga aylandi;1876|Qo'qon xonligi tugatildi;1924|O'zbekiston SSR tashkil topdi;1966|Toshkent zilzilasi;1991|O'zbekiston mustaqilligi e'lon qilindi;1992|O'zbekiston Konstitutsiyasi qabul qilindi;1453|Konstantinopol Usmonlilar tomonidan egallandi;1492|Kolumb Amerikaga yetib bordi;1498|Vasko da Gama Hindistonga dengiz yo'lini ochdi;1776|AQSH mustaqillik deklaratsiyasi qabul qilindi;1789|Fransuz inqilobi boshlandi;1914|Birinchi jahon urushi boshlandi;1918|Birinchi jahon urushi tugadi;1917|Rossiyada Oktabr to'ntarishi;1939|Ikkinchi jahon urushi boshlandi;1945|Ikkinchi jahon urushi tugadi;1961|Yuriy Gagarin koinotga uchdi;1969|Inson ilk bor Oyga qadam qo'ydi".replace(/\n/g,'').split(';').map(function(r){ var p=r.split('|'); return {y:+p[0],e:p[1]}; });
 function histRounds(){
   return shuf(HIST_EV).slice(0,10).map(function(x,i){
-    if(i%2){ var o=shuf([x].concat(_pick(HIST_EV.filter(function(z){return z.y!==x.y;}),3,[x])));
+    if(i%2){ var o=shuf([x].concat(_gPick(HIST_EV.filter(function(z){return z.y!==x.y;}),3,[x])));
       return {q:'<b style="font-size:34px">'+x.y+'-yil</b><div class="ts tm" style="margin-top:6px">Shu yili nima bo\'lgan?</div>',opts:o.map(function(z){return z.e;}),ok:o.indexOf(x)}; }
     var set=[x.y]; while(set.length<4){ var d=(3+Math.floor(Math.random()*40))*(Math.random()<.5?-1:1), v=x.y+d; if(v<=2026&&set.indexOf(v)<0) set.push(v); }
     var o2=shuf(set); return {q:'<b>'+x.e+'</b><div class="ts tm" style="margin-top:6px">Qaysi yilda?</div>',opts:o2.map(String),ok:o2.indexOf(x.y)};
@@ -10192,7 +10311,7 @@ function histRounds(){
 // ── Biologiya: organni top (vazifasi|organ) ──
 var BIO_ORG="Qonni butun tanaga haydaydi|Yurak;Gaz almashinuvi (nafas olish) sodir bo'ladi|O'pka;Qonni tozalab, siydik hosil qiladi|Buyrak;O't (safro) ishlab chiqaradi|Jigar;Insulin ishlab chiqaradi|Oshqozon osti bezi;Oshqozon shirasi bilan ovqatni hazm qiladi|Oshqozon;Oziq moddalar qonga so'riladi|Ingichka ichak;Suv so'riladi, najas hosil bo'ladi|Yo'g'on ichak;Fikrlaydi va butun nerv tizimini boshqaradi|Bosh miya;Ko'rish a'zosi|Ko'z;Eshitish va muvozanat a'zosi|Quloq;Hujayraning energiya stansiyasi (ATF hosil qiladi)|Mitoxondriya;O'simlik hujayrasida fotosintez sodir bo'ladi|Xloroplast;Irsiy axborot (DNK) saqlanadi|Yadro;Oqsil sintezlanadi|Ribosoma;Moddalarni to'plab, hujayradan chiqaradi|Golji apparati;Hujayra ichida hazm qilish|Lizosoma;Hujayrani o'rab, moddalar o'tishini boshqaradi|Hujayra membranasi;Kislorodni tashiydi|Eritrotsit;Qon ivishini ta'minlaydi|Trombotsit;Organizmni mikroblardan himoya qiladi|Leykotsit;O'simlikda suv va mineral moddalarni yuqoriga o'tkazadi|Ksilema;Barg orqali gaz almashinuvi va suv bug'lanishi|Og'izchalar (ustitsalar);Suyaklarga birikib, tanani harakatlantiradi|Skelet muskullari".split(';').map(function(r){ var p=r.split('|'); return {f:p[0],o:p[1]}; });
 function bioRounds(){
-  return shuf(BIO_ORG).slice(0,10).map(function(x,i){ var o=shuf([x].concat(_pick(BIO_ORG,3,[x])));
+  return shuf(BIO_ORG).slice(0,10).map(function(x,i){ var o=shuf([x].concat(_gPick(BIO_ORG,3,[x])));
     return i%2? {q:'<b>'+x.o+'</b><div class="ts tm" style="margin-top:6px">Vazifasi qaysi?</div>',opts:o.map(function(z){return z.f;}),ok:o.indexOf(x)}
               : {q:'<b>'+x.f+'</b><div class="ts tm" style="margin-top:6px">Qaysi organ yoki qism?</div>',opts:o.map(function(z){return z.o;}),ok:o.indexOf(x)}; });
 }
