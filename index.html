@@ -1391,7 +1391,7 @@ function startDbPolling(){
       if(true){
         if(mergeLocalAdds(remote,local)){ remote.v=(remote.v||0)+1; dbSetRaw(JSON.stringify(remote)); sbPush(remote); }
         else dbSetRaw(JSON.stringify(remote));
-        rememberSyncedIds(remote);
+        rememberSyncedIds(remote); try{ syncTimerUI(); }catch(_e){}
         renderNotifBell(); try{ updateCardsTab(); updateStatsTab(); }catch(e){}
         // Ustoz "Natijalar" tabida bolsa - jadval avtomatik yangilanadi
         if(ME && ME.role==='teacher' && document.getElementById('tc-r') && document.getElementById('tc-r').classList.contains('on')) { loadResults(); }
@@ -1520,7 +1520,7 @@ async function sbResolveConflict(localDb){
       if(!res2.ok) return false;
     }
     try{ dbSetRaw(JSON.stringify(remote)); }catch(e){}
-    rememberSyncedIds(remote);
+    rememberSyncedIds(remote); try{ syncTimerUI(); }catch(_e){}
     console.warn('Baza boshqa qurilmada yangilangan edi - yangi nusxa yuklandi'+(added?(' ('+added+' ta natija qo\'shildi)'):''));
     showSyncNotice('Ma\'lumotlar boshqa qurilmada yangilangan edi - yangi nusxa yuklandi. Sahifani yangilang.');
     return true;
@@ -2723,9 +2723,9 @@ async function syncFromCloud() {
       var _adds = localEmpty ? 0 : mergeLocalAdds(remote, local);
       if (_adds) remote.v = (remote.v||0) + 1;
       try { dbSetRaw(JSON.stringify(remote)); } catch(e) {}
-      rememberSyncedIds(remote);
+      rememberSyncedIds(remote); try{ syncTimerUI(); }catch(_e){}
       if (_adds) sbPush(remote);
-    } else { rememberSyncedIds(remote); }
+    } else { rememberSyncedIds(remote); try{ syncTimerUI(); }catch(_e){} }
   } catch(e) {
     console.warn('syncFromCloud xato:', e);
   }
@@ -3244,6 +3244,7 @@ async function doRegister(){
 function goMyPanel(){ if(typeof ME!=='undefined'&&ME){ afterLogin(); } else showPg('pg-home'); }
 function afterLogin(){
   setTimeout(function(){ try{ maybeStartTour(); }catch(e){} },0);
+  setTimeout(function(){ try{ syncTimerUI(); }catch(e){} },0); // taymer belgisi har kirishda bazadan
   setTimeout(function(){ try{ renderContactBoxes(); }catch(e){} },0);
   setTimeout(function(){ try{ updateCardsTab(); updateStatsTab(); }catch(e){} },0);
   try{ var _sessData={id:ME.id, t:_authToken||null, exp:Date.now()+7*24*60*60*1000}; sessionStorage.setItem('et_sess', JSON.stringify(_sessData)); localStorage.setItem('et_sess_persist', JSON.stringify(_sessData)); }catch(e){}
