@@ -3361,7 +3361,8 @@ function selectTopicByName(t,el){
   var timerTimeRow=document.getElementById('timer-time-row-preview');
   var isTeacher=ME&&ME.role==='teacher';
   if(timerTeacher)timerTeacher.style.display=isTeacher?'flex':'none';
-  if(timerTimeRow)timerTimeRow.style.display=(isTeacher&&document.getElementById('timer-toggle-preview')&&document.getElementById('timer-toggle-preview').checked)?'flex':'none';
+  var timerOn=syncTimerUI();
+  if(timerTimeRow)timerTimeRow.style.display=(isTeacher&&timerOn)?'flex':'none';
   // Agar shu mavzu egasi bolgan ustoz "Imtihon" rejimini ochirib qoygan bolsa -
   // butunlay yashirmaymiz, balki KULRANG (nofaol) qilib, sababini yozib qoyamiz,
   // shunda oquvchi nega bosilmayotganini tushunadi.
@@ -3401,6 +3402,21 @@ function loadMyHist(){
 }
 
 function shuf(a){var b=a.slice();for(var i=b.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=b[i];b[i]=b[j];b[j]=t;}return b;}
+// TUZATISH (2026-10-14): "Test rejimini tanlang" kartasidagi taymer belgisi
+// HTML'da doim checked yozilgan edi va bazadagi qiymat faqat Sozlamalar
+// ochilganda o'qilardi - shuning uchun ustoz kirgach taymer o'chiq bo'lsa ham
+// "Yoqiq" ko'rinardi (testning o'zi esa to'g'ri, taymersiz boshlanardi).
+// Endi ikkala joydagi belgi, yozuv, vaqt qatori har safar bazadan olinadi.
+function syncTimerUI(){
+  var db=getDB();
+  var on=db.timerEnabled!==false;
+  var mins=String(db.timerMinutes||15);
+  ['timer-toggle','timer-toggle-preview'].forEach(function(id){var el=document.getElementById(id);if(el)el.checked=on;});
+  ['timer-label','timer-label-preview'].forEach(function(id){var el=document.getElementById(id);if(el)el.textContent=on?'Yoqiq':'O\'chiq';});
+  var row=document.getElementById('timer-time-row'); if(row) row.style.display=on?'flex':'none';
+  ['timer-minutes','timer-minutes-preview'].forEach(function(id){var el=document.getElementById(id);if(el)el.value=mins;});
+  return on;
+}
 function saveTimerPref(val){
   var db=getDB();
   db.timerEnabled=val;
@@ -7109,12 +7125,7 @@ function initSettings(){
   // avval bu qadam yoq edi, shuning uchun checkbox har doim "Yoqiq" korsatardi,
   // hatto siz avval ochirib qoygan bolsangiz ham (haqiqiy qiymat togri saqlanar,
   // lekin ekranda notogri korinardi).
-  var tOn=db.timerEnabled!==false;
-  var tMins=db.timerMinutes||15;
-  ['timer-toggle','timer-toggle-preview'].forEach(function(id){var el=document.getElementById(id);if(el)el.checked=tOn;});
-  ['timer-label','timer-label-preview'].forEach(function(id){var el=document.getElementById(id);if(el)el.textContent=tOn?'Yoqiq':'O\'chiq';});
-  ['timer-time-row'].forEach(function(id){var el=document.getElementById(id);if(el)el.style.display=tOn?'flex':'none';});
-  ['timer-minutes','timer-minutes-preview'].forEach(function(id){var el=document.getElementById(id);if(el)el.value=String(tMins);});
+  syncTimerUI();
   renderMyClassesBySubj();
   // Load saved Supabase config
   var savedUrl=localStorage.getItem('sb_url')||'';
