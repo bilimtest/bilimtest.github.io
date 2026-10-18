@@ -903,9 +903,9 @@ html[data-px=night] #tab-rg.on{background:#7a4fd6!important;color:#fff!important
       <div class="darea" id="drop-area" onclick="document.getElementById('exe-inp').click()">
         <div style="font-size:36px">📂</div>
         <div style="font-weight:700;margin-top:6px">Bosing yoki faylni shu yerga tashlang</div>
-        <div class="ts tm">.exe, Word, Excel, CSV, PDF, TXT, rasm</div>
+        <div class="ts tm">.exe, Word, Excel, PowerPoint, CSV, PDF, TXT, rasm</div>
       </div>
-      <input type="file" id="exe-inp" accept=".exe,.docx,.doc,.xlsx,.xls,.csv,.pdf,.txt,.rtf,.odt,.ods,.jpg,.jpeg,.png" multiple style="display:none">
+      <input type="file" id="exe-inp" accept=".exe,.docx,.doc,.xlsx,.xls,.pptx,.ppt,.csv,.pdf,.txt,.rtf,.odt,.ods,.odp,.jpg,.jpeg,.png" multiple style="display:none">
       <div id="imp-msg" style="margin-top:10px"></div>
     </div>
     <div class="card" style="border:2px solid var(--purd)">
@@ -1328,7 +1328,7 @@ var INIT_META = [{"topic": "Guruhlash qonuni", "questionsToAsk": 20}, {"topic": 
 
 var SK = 'edutest_v3';
 // APP_VER sw.js dagi CACHE bilan bir xil bo'lishi SHART (sw versiyasini oshirganda buni ham oshiring)
-var APP_VER = 'bilimtest-v112';
+var APP_VER = 'bilimtest-v113';
 (function(){
   try{
     if('serviceWorker' in navigator && navigator.serviceWorker.controller) return; // SW bor - o'zining yangilanish banneri ishlaydi
@@ -3189,8 +3189,10 @@ async function doRegister(){
   ME=nu;afterLogin();
 }
 // 2026-10-12: natija sahifasidagi "Bosh sahifa" — hisobdan chiqarmaydi, o'z paneliga qaytaradi
-function goMyPanel(){ if(typeof ME!=='undefined'&&ME){ afterLogin(); } else showPg('pg-home'); }
+function goMyPanel(){ if(typeof ME!=='undefined'&&ME){ window._keepSubj=true; afterLogin(); } else showPg('pg-home'); }
 function afterLogin(){
+  if(ME&&ME.role==='student'&&!window._keepSubj){ try{ sessionStorage.removeItem('bt_subj_'+ME.id); }catch(e){} }
+  window._keepSubj=false;
   setTimeout(function(){ try{ maybeStartTour(); }catch(e){} },0);
   setTimeout(function(){ try{ syncTimerUI(); }catch(e){} },0); // taymer belgisi har kirishda bazadan
   document.documentElement.classList.add('et-auth');
@@ -3332,26 +3334,27 @@ function initStudentSubject(){
   try{ saved=sessionStorage.getItem(_subjKey()); }catch(e){}   // faqat shu seans: qayta kirganda fan yana so'raladi
   if(_curSubjFilter&&list.indexOf(_curSubjFilter)<0) _curSubjFilter=null;
   if(!_curSubjFilter&&saved&&list.indexOf(saved)>=0) _curSubjFilter=saved;
-  if(!_curSubjFilter&&list.length===1) _curSubjFilter=list[0];
   renderSubjGate(list);
 }
 function renderSubjGate(list){
   list=list||myStudentSubjects();
   var pg=document.getElementById('pg-topic'), gate=document.getElementById('subj-gate'), bar=document.getElementById('subj-bar');
-  var needSubj=_sectionNeedsSubj(), need=!_curSubjFilter&&list.length>1;   // fan hamma bo'limdan oldin so'raladi
+  var needSubj=_sectionNeedsSubj(), need=!_curSubjFilter&&list.length>=1;   // fan hamma bo'limdan oldin so'raladi
   pg.classList.toggle('no-subj',need);
   gate.style.display=need?'':'none';
+  var tps=document.getElementById('tp-sub'); if(tps) tps.textContent=need?'Avval fanni tanlang':'Qaysi mavzuni ishlaysiz?';
   if(need){
     gate.innerHTML='<div class="card"><h2 style="margin:0 0 4px">Qaysi fanni o\'qiymiz?</h2><p class="ts tm" style="margin:0 0 14px">Fanni tanlang — testlar, kartochkalar va o\'yinlar shu fan bo\'yicha chiqadi.</p>'+
       '<div class="sg-grid">'+list.map(function(s){return '<button class="sg-card" onclick="setStudentSubject(\''+s+'\')"><span style="font-size:34px">'+subjEmoji(s)+'</span><b>'+_qEsc(subjName(s))+'</b></button>';}).join('')+'</div></div>';
   }
   bar.style.display=(_curSubjFilter&&!need&&needSubj)?'':'none';
   if(_curSubjFilter) bar.innerHTML='<span class="sg-cur">'+subjEmoji(_curSubjFilter)+' '+_qEsc(subjName(_curSubjFilter))+'</span>'+
-    (list.length>1?'<button class="btn bg bsm" onclick="setStudentSubject(null)">&#x1F504; Fanni almashtirish</button>':'');
+    '<button class="btn bg bsm" onclick="setStudentSubject(null)">&#x1F504; Fanni almashtirish</button>';
   renderStHub();
 }
 function setStudentSubject(s){
   _curSubjFilter=s; _curFolder=null;
+  if(s){ setTimeout(function(){ try{ maybeStartTour(); }catch(e){} },0); }
   try{ if(s) sessionStorage.setItem(_subjKey(),s); else sessionStorage.removeItem(_subjKey()); localStorage.removeItem(_subjKey()); }catch(e){}
   applySubjectTheme(s);
   renderTopics();
@@ -7836,7 +7839,7 @@ async function distributedExeImport(files, folderName, msg){
           if(fr && !fr.error){
             var origFilename=filesData[localIdx] && filesData[localIdx].filename;
             if(origFilename){
-              fr.topic=origFilename.replace(/\.(exe|docx?|pdf|txt|xlsx|xlsm|xls|csv|rtf|odt|ods|jpe?g|png)$/i,'');
+              fr.topic=origFilename.replace(/\.(exe|docx?|pdf|txt|xlsx|xlsm|xls|csv|rtf|odt|ods|pptx?|odp|jpe?g|png)$/i,'');
             }
           }
           allFileResults[startFileIdx+localIdx]=fr;
@@ -8171,7 +8174,7 @@ function sendToServer(file,msg,server){
             if(result.error)throw new Error(result.error);
             if(!result.questions||!result.questions.length)throw new Error('Savollar topilmadi');
             var qs=result.questions.map(function(q){if(q.image){q.img=q.image;delete q.image;}if(q.isMulti===undefined)q.isMulti=(q.correct||[]).length>1;return q;});
-            var topicFromFilename=file.name.replace(/\.(exe|docx?|pdf|txt|xlsx|xlsm|xls|csv|rtf|odt|ods|jpe?g|png)$/i,'');
+            var topicFromFilename=file.name.replace(/\.(exe|docx?|pdf|txt|xlsx|xlsm|xls|csv|rtf|odt|ods|pptx?|odp|jpe?g|png)$/i,'');
             await saveImportedQs({qs:qs,topic:topicFromFilename,questionsToAsk:result.questionsToAsk},msg);
             resolve(true);
           }catch(e){
@@ -8210,7 +8213,7 @@ function getMyFolders(){
 }
 var _fpPendingFile=null;
 var _pendingImportSubject=null; // fan tanlash
-function isDocFile(name){ return /\.(docx|doc|pdf|txt|xlsx|xlsm|xls|csv|rtf|odt|ods)$/i.test(name); }
+function isDocFile(name){ return /\.(docx|doc|pdf|txt|xlsx|xlsm|xls|csv|rtf|odt|ods|pptx|ppt|odp)$/i.test(name); }
 function isExeFile(name){ return /\.exe$/i.test(name); }
 function isImageFile(name){ return /\.(jpe?g|png)$/i.test(name); }
 var _fpMode='import';
@@ -8243,7 +8246,7 @@ function askFolderThenImport(file,mode){
       return '<div class="tbtn" style="text-align:left;padding:10px 12px" onclick="submitFP(\''+esc+'\',false)">&#x1F4D8; '+fn+'</div>';
     }).join('');
   }
-  var defaultName=file.name.replace(/\.(exe|docx?|pdf|txt|xlsx|xlsm|xls|csv|rtf|odt|ods|jpe?g|png)$/i,'').replace(/[\s_-]*\d+$/,'')||'Yangi fayl';
+  var defaultName=file.name.replace(/\.(exe|docx?|pdf|txt|xlsx|xlsm|xls|csv|rtf|odt|ods|pptx?|odp|jpe?g|png)$/i,'').replace(/[\s_-]*\d+$/,'')||'Yangi fayl';
   document.getElementById('fp-newname').value=defaultName;
   document.getElementById('fp-modal').style.display='flex';
 }
@@ -8383,7 +8386,7 @@ function importMultipleFiles(files,suggestedFolder){
   var imgFiles=valid.filter(function(f){return isImageFile(f.name);});
   var unsupported=valid.filter(function(f){return !isExeFile(f.name)&&!isDocFile(f.name)&&!isImageFile(f.name);});
   if(!exeFiles.length && !docFiles.length && !imgFiles.length){
-    msg.innerHTML='<div class="alt ar">&#x274C; Qollab-quvvatlanmaydigan fayl turi. Faqat .exe, Word (.docx, .doc), Excel (.xlsx, .xls), .csv, .pdf, .txt, .rtf, .odt, .jpg, .png fayllar qabul qilinadi.</div>';
+    msg.innerHTML='<div class="alt ar">&#x274C; Qollab-quvvatlanmaydigan fayl turi. Faqat .exe, Word (.docx, .doc), Excel (.xlsx, .xls), PowerPoint (.pptx, .ppt), .csv, .pdf, .txt, .rtf, .odt, .jpg, .png fayllar qabul qilinadi.</div>';
     return;
   }
   var unsupportedNote=unsupported.length?(' ('+unsupported.length+' ta qollab-quvvatlanmaydigan fayl otkazib yuborildi)'):'';
@@ -8424,7 +8427,7 @@ function askFolderThenImportBatch(exeFiles, docFiles, imgFiles, suggestedFolder,
   }
   var totalCount=(exeFiles?exeFiles.length:0)+(docFiles?docFiles.length:0)+(imgFiles?imgFiles.length:0);
   var firstFile=(docFiles&&docFiles[0])||(imgFiles&&imgFiles[0])||(exeFiles&&exeFiles[0])||{name:''};
-  var defaultName=suggestedFolder||firstFile.name.replace(/\.(exe|docx?|pdf|txt|xlsx|xlsm|xls|csv|rtf|odt|ods|jpe?g|png)$/i,'').replace(/[\s_-]*\d+$/,'')||('Kitob ('+totalCount+' ta fayl)');
+  var defaultName=suggestedFolder||firstFile.name.replace(/\.(exe|docx?|pdf|txt|xlsx|xlsm|xls|csv|rtf|odt|ods|pptx?|odp|jpe?g|png)$/i,'').replace(/[\s_-]*\d+$/,'')||('Kitob ('+totalCount+' ta fayl)');
   document.getElementById('fp-newname').value=defaultName;
   document.getElementById('fp-modal').style.display='flex';
 }
@@ -8485,7 +8488,7 @@ async function importDocumentFiles(files, suggestedFolder, unsupportedNote){
   var msg=document.getElementById('imp-msg');
   var folderName=suggestedFolder;
   if(!folderName && files.length>1){
-    var defaultName=files[0].name.replace(/\.(docx?|pdf|txt|xlsx|xlsm|xls|csv|rtf|odt|ods)$/i,'').replace(/[\s_-]*\d+$/,'')||'Kitob 1';
+    var defaultName=files[0].name.replace(/\.(docx?|pdf|txt|xlsx|xlsm|xls|csv|rtf|odt|ods|pptx?|odp)$/i,'').replace(/[\s_-]*\d+$/,'')||'Kitob 1';
     folderName=prompt('Bu '+files.length+' ta faylni bitta "kitob" nomiga birlashtiramiz.\nKitob nomini tasdiqlang yoki ozgartiring:', defaultName);
     if(folderName===null)return;
     folderName=folderName.trim()||'Kitob';
@@ -9743,7 +9746,7 @@ function restoreSession(){
   var u=(getDB().users||[]).filter(function(x){return x.id===s.id;})[0];
   if(!u) return;
   if(u.role==='teacher'&&u.approved===false){ try{sessionStorage.removeItem('et_sess');localStorage.removeItem('et_sess_persist');}catch(e){} document.documentElement.classList.remove('et-restoring'); return; }
-  _authToken=s.t||null; ME=u; afterLogin();
+  _authToken=s.t||null; ME=u; window._keepSubj=true; afterLogin();
   // 2026-10-02: oxirgi ochiq tab (masalan "Tekshirish") tiklanadi
   setTimeout(function(){ try{ var t=sessionStorage.getItem('et_tab'); if(!t||!document.getElementById(t)) return;
     if(typeof openStSection==='function'&&/^st-/.test(t)) { openStSection(t); return; }
@@ -9818,6 +9821,12 @@ function appBack(){
   var prev=_navStack.pop();
   // 2026-10-08: kirgan foydalanuvchi bosh menyu / kirish oynasiga qaytarilmaydi
   while(prev&&ME&&(prev.pg==='pg-home'||prev.pg==='pg-auth')) prev=_navStack.pop();
+  // 2026-10-18: o'quvchi panelidan (fan tanlangan) orqaga — fan tanlash oynasiga
+  if(ME&&ME.role==='student'&&_curSubjFilter&&vis('pg-topic')&&(!prev||prev.pg!=='pg-topic')){
+    if(prev) _navStack.push(prev);
+    setStudentSubject(null); window.scrollTo(0,0); return true;
+  }
+  if(ME&&ME.role==='student'&&!_curSubjFilter&&vis('pg-topic')){ _navStack.length=0; return false; }   // fan tanlash — panel boshi
   if(prev&&document.getElementById(prev.pg)){
     _navBusy=true;
     try{
@@ -10667,6 +10676,7 @@ function _tourMarkSeen(){
 }
 function maybeStartTour(){
   if(!ME||_tourSeen()) return;
+  if(ME.role==='student'&&!_curSubjFilter) return;   // avval fan tanlanadi — setStudentSubject keyin chaqiradi
   setTimeout(function(){ if(ME&&!(S&&S.mode)&&!_tourSeen()) startTour(); },900);
 }
 function _tourTxt(el){ return el?String(el.textContent||'').replace(/\s+/g,' ').trim():''; }
