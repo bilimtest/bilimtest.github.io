@@ -542,12 +542,12 @@ html[data-px=night] #tab-rg.on{background:#7a4fd6!important;color:#fff!important
           </select>
         </div>
         <div class="fg">
-          <label>Telefon raqam</label>
+          <label id="rg-phone-lb">Telefon raqam</label>
           <div style="display:flex;gap:8px;flex-wrap:wrap"><input type="tel" id="rg-phone" inputmode="tel" autocomplete="tel" placeholder="+998 90 123 45 67" oninput="rgPhoneChanged()" style="flex:1;min-width:150px"><button type="button" class="btn bpu bsm" id="rg-phone-btn" onclick="rgPhoneStart()">&#x1F4F1; Telegram orqali tasdiqlash</button></div>
           <p class="ts tm" id="rg-phone-st" style="margin-top:5px">Telegram raqamingizni yozing &#8594; tugmani bosing &#8594; botda "Telefon raqamni yuborish" ni bosing &#8594; "Saytga qaytish". Raqamlar mos bo'lsa tasdiqlanadi.</p>
         </div>
         <div id="rg-email-fg" class="fg" style="display:none">
-          <label>Email</label>
+          <label id="rg-email-lb">Email</label>
           <div style="display:flex;gap:8px;flex-wrap:wrap"><input type="email" id="rg-email" placeholder="masalan@gmail.com" autocomplete="off" oninput="rgEmailChanged()" style="flex:1;min-width:150px"><button type="button" class="btn bpu bsm" id="rg-email-btn" onclick="rgEmailSend()">Kod yuborish</button></div>
           <div id="rg-ecode-row" style="display:none;gap:8px;margin-top:8px;flex-wrap:wrap"><input type="text" id="rg-ecode" inputmode="numeric" maxlength="6" placeholder="Emailga kelgan 6 xonali kod" style="flex:1;min-width:150px"><button type="button" class="btn bp bsm" onclick="rgEmailCheck()">Tasdiqlash</button></div>
           <p class="ts" id="rg-email-st" style="margin-top:5px"></p>
@@ -1351,7 +1351,7 @@ var INIT_META = [{"topic": "Guruhlash qonuni", "questionsToAsk": 20}, {"topic": 
 
 var SK = 'edutest_v3';
 // APP_VER sw.js dagi CACHE bilan bir xil bo'lishi SHART (sw versiyasini oshirganda buni ham oshiring)
-var APP_VER = 'bilimtest-v121';
+var APP_VER = 'bilimtest-v122';
 (function(){
   try{
     if('serviceWorker' in navigator && navigator.serviceWorker.controller) return; // SW bor - o'zining yangilanish banneri ishlaydi
@@ -2814,7 +2814,7 @@ function myTeacherSubjects(){
 }
 function myTeachClasses(){
   if(!ME || ME.role!=='teacher') return null; // admin - cheklovsiz
-  return (ME.teachClasses && ME.teachClasses.length) ? ME.teachClasses : null;
+  return userClassList(ME);   // sinf belgilanmagan bo'lsa bo'sh ro'yxat: hech kimning ma'lumoti ko'rinmaydi
 }
 function studentVisibleToMe(student){
   if(!ME || ME.role==='admin') return true;
@@ -3068,6 +3068,9 @@ function goAuth(role){
   document.getElementById('rg-subj-fg').style.display=isT?'block':'none';
   document.getElementById('rg-tcls-fg').style.display=isT?'block':'none'; if(isT){ try{ fillRegTeacherClasses(); }catch(e){} }
   document.getElementById('rg-email-fg').style.display='block';
+  var _pl=document.getElementById('rg-phone-lb'), _el=document.getElementById('rg-email-lb');
+  if(_pl) _pl.textContent=isT?'Telefon raqam (ixtiyoriy)':'Telefon raqam (ixtiyoriy)';
+  if(_el) _el.textContent=isT?'Email':'Email (ixtiyoriy)';
   document.getElementById('tab-rg').style.display=isA?'none':'flex';
   document.getElementById('auth-err').innerHTML='';
   var db=getDB();
