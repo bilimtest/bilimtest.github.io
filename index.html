@@ -1351,7 +1351,7 @@ var INIT_META = [{"topic": "Guruhlash qonuni", "questionsToAsk": 20}, {"topic": 
 
 var SK = 'edutest_v3';
 // APP_VER sw.js dagi CACHE bilan bir xil bo'lishi SHART (sw versiyasini oshirganda buni ham oshiring)
-var APP_VER = 'bilimtest-v123';
+var APP_VER = 'bilimtest-v124';
 (function(){
   try{
     if('serviceWorker' in navigator && navigator.serviceWorker.controller) return; // SW bor - o'zining yangilanish banneri ishlaydi
@@ -2300,7 +2300,7 @@ function computeMyStandingTier(){
 }
 
 var SYMBOLS_BY_SUBJECT={
-  math:['=','≠','≈','≡','±','∓','a/b','√','∛','∜','ⁿ√','xⁿ','π','∞','≤','≥','∑','∏','∫','∮','÷','×','∆','∇','∈','∉','∪','∩','⊂','⊆','⊄','→','⇒','⇔','↦','∀','∃','∴','∵','¬','∧','∨','⊕','%','‰','∠','⊥','∥','!','|','(',')','[',']','{','}','ℝ','ℕ','ℤ','ℚ','ℂ',
+  math:['=','≠','≈','≡','±','∓','a/b','√','∛','∜','ⁿ√','xⁿ','xₙ','1½','∫ₐᵇ','lim','log','ln','sin','cos','tg','ctg','|x|','( )','vec','sistema','π','∞','≤','≥','∑','∏','∫','∮','÷','×','∆','∇','∈','∉','∪','∩','⊂','⊆','⊄','→','⇒','⇔','↦','∀','∃','∴','∵','¬','∧','∨','⊕','%','‰','∠','⊥','∥','!','|','(',')','[',']','{','}','ℝ','ℕ','ℤ','ℚ','ℂ',
     'α','β','γ','δ','ε','θ','λ','μ','ν','ξ','ρ','σ','τ','φ','χ','ψ','ω','Γ','Δ','Θ','Λ','Ξ','Π','Σ','Φ','Ψ','Ω',
     '⁰','¹','²','³','⁴','⁵','⁶','⁷','⁸','⁹','⁺','⁻',
     '₀','₁','₂','₃','₄','₅','₆','₇','₈','₉'],
@@ -3577,7 +3577,7 @@ function _oaCanon(s){
   try{ s=s.normalize('NFKC'); }catch(e){}
   s=s.toLowerCase();
   s=s.replace(/[’`ʻʼ‘´ʹ′]/g,"'").replace(/[−–—‒]/g,'-').replace(/[×·⋅]/g,'*').replace(/÷/g,'/');
-  s=s.replace(/√/g,'sqrt').replace(/π/g,'pi');
+  s=s.replace(/√/g,'sqrt').replace(/π/g,'pi').replace(/±/g,'+-').replace(/≤/g,'<=').replace(/≥/g,'>=').replace(/!=/g,'<>').replace(/≠/g,'<>').replace(/≈/g,'~').replace(/∞/g,' inf ').replace(/°/g,'deg');
   s=s.replace(/[а-яёўқғҳ]/g,function(c){ return _OA_CYR[c]!==undefined?_OA_CYR[c]:c; });
   return s.replace(/\s+/g,' ').trim();
 }
@@ -3589,7 +3589,7 @@ function _oaParseNum(s){ // boshidagi son: {v,rest} yoki null
   if(m[1]==='-') v=-v;
   return {v:v,rest:m[5]||''};
 }
-function _oaKey(s){ return s.replace(/'/g,'').replace(/[^a-z0-9^*\/+\-=√.]/g,'').replace(/^\.+|\.+$/g,''); }
+function _oaKey(s){ return s.replace(/'/g,'').replace(/[^a-z0-9^*\/+\-=√.<>~|]/g,'').replace(/^\.+|\.+$/g,''); }
 function _oaUnit(r){ return r.replace(/'/g,'').replace(/[^a-z]/g,''); }
 // ── FORMULA (LaTeX) qo'llab-quvvatlash (2026-10-20): \frac, \sqrt, ^{}, \pi, \cdot... -> oddiy matn; ifodani hisoblab solishtirish ──
 function _oaIsLatex(s){ return /\\[a-zA-Z]|\^\{|_\{/.test(String(s==null?'':s)); }
@@ -3618,8 +3618,28 @@ function _oaLatexToPlain(s){
       else if(cmd==='div') out+='/';
       else if(cmd==='pi') out+=' pi ';
       else if(cmd==='pm') out+='+-';
+      else if(cmd==='infty') out+=' inf ';
+      else if(cmd==='le'||cmd==='leq') out+='<=';
+      else if(cmd==='ge'||cmd==='geq') out+='>=';
+      else if(cmd==='ne'||cmd==='neq') out+='<>';
+      else if(cmd==='approx') out+='~';
+      else if(cmd==='sin'||cmd==='cos'||cmd==='tan'||cmd==='cot'||cmd==='log'||cmd==='ln'||cmd==='lg') out+=' '+cmd+' ';
+      else if(cmd==='tg') out+=' tan ';
+      else if(cmd==='ctg') out+=' cot ';
+      else if(cmd==='vert'||cmd==='lvert'||cmd==='rvert') out+='|';
+      else if(cmd==='infty') out+=' inf ';
+      else if(cmd==='le'||cmd==='leq') out+='<=';
+      else if(cmd==='ge'||cmd==='geq') out+='>=';
+      else if(cmd==='ne'||cmd==='neq') out+='<>';
+      else if(cmd==='approx') out+='~';
+      else if(cmd==='sin'||cmd==='cos'||cmd==='tan'||cmd==='cot'||cmd==='log'||cmd==='ln'||cmd==='lg') out+=' '+cmd+' ';
+      else if(cmd==='tg') out+=' tan ';
+      else if(cmd==='ctg') out+=' cot ';
+      else if(cmd==='vert'||cmd==='lvert'||cmd==='rvert') out+='|';
       else out+=' ';
       continue; }
+    if(c==='^'){ var dg=/^\^\s*\{?\s*\\circ\s*\}?/.exec(s.substr(i)); if(dg){ i+=dg[0].length; out+='deg'; continue; } }
+    if(c==='^'){ var dg=/^\^\s*\{?\s*\\circ\s*\}?/.exec(s.substr(i)); if(dg){ i+=dg[0].length; out+='deg'; continue; } }
     if(c==='^'||c==='_'){ i++; var t; if(s[i]==='{'){ var g=_oaBraced(s,i); i=g[1]; t=_oaLatexToPlain(g[0]); } else { var g2=_oaArg(s,i); i=g2[1]; t=_oaLatexToPlain(g2[0]); }
       out+=c==='^'?'^('+t+')':'_'+t; continue; }
     if(c==='{'||c==='}'){ i++; continue; }
@@ -3668,12 +3688,13 @@ function _oaEval(str){
   if(bad||p<s.length||!isFinite(r)) return NaN;
   return r;
 }
-function openMatch(user,accepted,opts){
+function _openMatch1(user,accepted,opts){
   opts=opts||{}; var numeric=opts.numeric!==false;
   if(_oaIsLatex(user)) user=_oaLatexToPlain(user);
   var u0=_oaWordsToDigits(_oaCanon(user)); if(!u0) return false;
   for(var i=0;i<(accepted||[]).length;i++){
-    var acc=accepted[i]; if(_oaIsLatex(acc)) acc=_oaLatexToPlain(acc);
+    var acc=accepted[i]; if(typeof acc==='string'&&acc.indexOf(';')>=0&&!_oaIsLatex(acc)) continue;   // "5; 7" — ko'p javobli, quyidagi to'plam tekshiruvi
+    if(_oaIsLatex(acc)) acc=_oaLatexToPlain(acc);
     var a0=_oaWordsToDigits(_oaCanon(acc)); if(!a0) continue;
     var u=u0;
     if(a0.indexOf('=')<0) u=u.replace(/^[a-z]\s*=\s*/,'');
@@ -3688,6 +3709,30 @@ function openMatch(user,accepted,opts){
       var eu=_oaEval(u), ea=_oaEval(a0);   // formula: kasr, ildiz, pi, daraja — qiymati bo'yicha
       if(isFinite(eu)&&isFinite(ea)&&Math.abs(eu-ea)<=1e-9*Math.max(1,Math.abs(ea))) return true;
     }
+  }
+  return false;
+}
+// Ko'p javobli savol: ustoz javobni "5; 7" deb yozsa, o'quvchi ikkalasini ham har qanday tartibda ("7 5", "5; 7", "5 va 7") yozishi kerak
+function _oaSplitSet(s){
+  s=String(s==null?'':s).trim();
+  var p=s.split(/\s*;\s*|\s+(?:va|and|yoki|или)\s+/i).map(function(x){return x.trim();}).filter(Boolean);
+  if(p.length<2) p=s.split(/\s*,\s+/).map(function(x){return x.trim();}).filter(Boolean);
+  if(p.length<2){ var w=s.split(/\s+/); if(w.length>=2&&w.every(function(x){return /^[-+−]?\d+(?:[.,]\d+)?(?:\/\d+)?$/.test(x);})) p=w; }
+  return p;
+}
+function openMatch(user,accepted,opts){
+  if(_openMatch1(user,accepted,opts)) return true;
+  var uPlain=_oaIsLatex(user)?_oaLatexToPlain(user):String(user==null?'':user), up=null;
+  for(var i=0;i<(accepted||[]).length;i++){
+    var a=accepted[i]; if(typeof a!=='string'||a.indexOf(';')<0||_oaIsLatex(a)) continue;
+    var ap=_oaSplitSet(a); if(ap.length<2) continue;
+    if(up===null) up=_oaSplitSet(uPlain);
+    if(up.length!==ap.length) continue;
+    var used=[], all=true;
+    for(var x=0;x<ap.length&&all;x++){ var hit=-1;
+      for(var y=0;y<up.length;y++){ if(used[y]) continue; if(_openMatch1(up[y],[ap[x]],opts)){ hit=y; break; } }
+      if(hit<0) all=false; else used[hit]=true; }
+    if(all) return true;
   }
   return false;
 }
@@ -3706,7 +3751,7 @@ function _openFxHtml(v, setCall){
       'autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="next" placeholder="Javobingizni yozing" '+
       'style="width:100%;box-sizing:border-box;font:inherit;font-size:18px;padding:12px 14px;border-radius:12px;border:1.5px solid #cbd5e1;margin-top:6px"></div>'+
     '<div id="open-fx"'+(isL?'':' style="display:none"')+'>'+
-      '<div style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 6px">'+bt('\\\\frac{#?}{#?}','a/b','Kasr')+bt('\\\\sqrt{#?}','&#8730;','Kvadrat ildiz')+bt('\\\\sqrt[#?]{#?}','&#8319;&#8730;','n-darajali ildiz')+bt('^{#?}','x&#8319;','Daraja')+bt('\\\\pi','&pi;','Pi')+'</div>'+
+      '<div style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 6px">'+bt('\\\\frac{#?}{#?}','a/b','Kasr')+bt('\\\\sqrt{#?}','&#8730;','Kvadrat ildiz')+bt('\\\\sqrt[#?]{#?}','&#8319;&#8730;','n-darajali ildiz')+bt('^{#?}','x&#8319;','Daraja')+bt('_{#?}','x&#8341;','Indeks')+bt('\\\\pi','&pi;','Pi')+bt('\\\\left(#?\\\\right)','( )','Qavs')+bt('\\\\left|#?\\\\right|','|x|','Modul')+bt('\\\\pm','&plusmn;','Plyus-minus')+bt('\\\\times','&times;','Ko\'paytirish')+bt('\\\\div','&divide;','Bo\'lish')+bt('\\\\le','&le;','Kichik yoki teng')+bt('\\\\ge','&ge;','Katta yoki teng')+bt('\\\\ne','&ne;','Teng emas')+bt('\\\\approx','&asymp;','Taxminan')+bt('\\\\infty','&infin;','Cheksizlik')+bt('^\\\\circ','&deg;','Gradus')+bt('\\\\sin\\\\left(#?\\\\right)','sin','Sinus')+bt('\\\\cos\\\\left(#?\\\\right)','cos','Kosinus')+bt('\\\\tan\\\\left(#?\\\\right)','tg','Tangens')+bt('\\\\cot\\\\left(#?\\\\right)','ctg','Kotangens')+bt('\\\\log_{#?}\\\\left(#?\\\\right)','log','Logarifm')+bt('\\\\ln\\\\left(#?\\\\right)','ln','Natural logarifm')+'</div>'+
       '<math-field id="open-mf" class="open-mf" virtual-keyboard-mode="off" style="display:block;width:100%;box-sizing:border-box;font-size:22px;padding:8px 12px;border-radius:12px;border:1.5px solid #cbd5e1;background:#fff;color:#0f172a;min-height:52px"></math-field>'+
     '</div>'+
     '<button type="button" class="btn bg bsm" id="open-fx-btn" style="margin-top:8px" onclick="openFxToggle()">'+(isL?'&#9000; Oddiy yozuv':'&#8721; Formula kiritish')+'</button></div>';
@@ -6425,6 +6470,47 @@ function refreshTopicList(){
   topics.sort();
   box.innerHTML=topics.map(function(t){return '<option value="'+t.replace(/"/g,'&quot;')+'">';}).join('');
 }
+// ── KO'P FORMULA QOLIPLARI: ichma-ich, katakli (bo'sh joylarga yoziladi) ──
+var TPL={
+  '∫':{t:'\\int\\placeholder{}\\,dx',h:'Integral (aniqmas)'},
+  '∫ₐᵇ':{t:'\\int_{\\placeholder{}}^{\\placeholder{}}\\placeholder{}\\,dx',h:'Aniq integral: pastki va yuqori chegara'},
+  '∑':{t:'\\sum_{\\placeholder{}}^{\\placeholder{}}\\placeholder{}',h:'Yig\'indi (dan ... gacha)'},
+  '∏':{t:'\\prod_{\\placeholder{}}^{\\placeholder{}}\\placeholder{}',h:'Ko\'paytma (dan ... gacha)'},
+  'lim':{t:'\\lim_{\\placeholder{}\\to\\placeholder{}}\\placeholder{}',h:'Limit'},
+  'log':{t:'\\log_{\\placeholder{}}\\left(\\placeholder{}\\right)',h:'Logarifm (asosi bilan)'},
+  'ln':{t:'\\ln\\left(\\placeholder{}\\right)',h:'Natural logarifm'},
+  'sin':{t:'\\sin\\left(\\placeholder{}\\right)',h:'Sinus'},
+  'cos':{t:'\\cos\\left(\\placeholder{}\\right)',h:'Kosinus'},
+  'tg':{t:'\\tan\\left(\\placeholder{}\\right)',h:'Tangens'},
+  'ctg':{t:'\\cot\\left(\\placeholder{}\\right)',h:'Kotangens'},
+  '|x|':{t:'\\left|\\placeholder{}\\right|',h:'Modul'},
+  '( )':{t:'\\left(\\placeholder{}\\right)',h:'Katta qavs (formulaga moslashadi)'},
+  'xₙ':{t:'\\placeholder{}_{\\placeholder{}}',h:'Pastki indeks'},
+  '1½':{t:'\\placeholder{}\\frac{\\placeholder{}}{\\placeholder{}}',h:'Aralash son'},
+  'vec':{t:'\\vec{\\placeholder{}}',h:'Vektor'},
+  'sistema':{t:'\\begin{cases}\\placeholder{}\\\\\\placeholder{}\\end{cases}',h:'Tenglamalar sistemasi'}
+};
+function insTpl(key){
+  var T=(TPL[key]||{}).t; if(!T) return;
+  var af=document.activeElement;
+  if(af && af.tagName==='MATH-FIELD' && editorContains(af)){
+    try{ af.executeCommand(['insert',T]); return; }catch(e){}
+  }
+  insLatexTemplate(T);
+}
+// Matematikada oddiy yozilgan x, 2x+3=7, 5-3 ... ni avtomatik formulaga o'tkazadi (saqlashda)
+var _MA_OPD="(?:\\d+(?:[.,]\\d+)?[A-Za-z](?![A-Za-z0-9'’ʻʼ])|\\d+(?:[.,]\\d+)?|[A-Za-z](?![A-Za-z0-9'’ʻʼ])|\\([^()\\n]{1,40}\\))";
+var _MA_RUN=new RegExp("(^|[^A-Za-z0-9'’ʻʼ\\u0400-\\u04FF.,])("+_MA_OPD+"(?:\\s*[-+*/=<>×·−]\\s*"+_MA_OPD+")+)","g");
+var _MA_ONE=new RegExp("(^|[^A-Za-z0-9'’ʻʼ\\u0400-\\u04FF])([A-Za-z])(?![A-Za-z0-9'’ʻʼ\\u0400-\\u04FF])","g");
+function _maTex(r){ return r.replace(/\*/g,'\\cdot ').replace(/×/g,'\\times ').replace(/·/g,'\\cdot ').replace(/−/g,'-').replace(/</g,'\\lt ').replace(/>/g,'\\gt '); }
+function _mathAutoSeg(t){
+  t=t.replace(_MA_RUN,function(m,pre,run){ return pre+'$'+_maTex(run)+'$'; });
+  return t.split(/(\$[^$]*\$)/).map(function(seg,i){ return i%2?seg:seg.replace(_MA_ONE,function(m,pre,ch){ return pre+'$'+ch+'$'; }); }).join('');
+}
+function mathAutoText(s){
+  s=String(s==null?'':s); if(!s) return s;
+  return s.split(/(\$[^$]*\$)/).map(function(seg,i){ return i%2?seg:_mathAutoSeg(seg); }).join('');
+}
 function refreshSyms(){
   var subj=document.getElementById('aq-subj').value||'math';
   var syms=SYMBOLS_BY_SUBJECT[subj]||SYMBOLS_BY_SUBJECT.other;
@@ -6438,6 +6524,7 @@ function refreshSyms(){
     '∜':['insRootQuick(\'4\')','4-daraja ildiz'],
     '(':['insWrapAny()','Belgilangan qismni qavsga oladi']
   };
+  Object.keys(TPL).forEach(function(k){ special[k]=['insTpl(\''+k+'\')',TPL[k].h]; });
   document.getElementById('aq-syms').innerHTML=syms.map(function(s){
     // MUHIM TUZATISH: onmousedown="event.preventDefault()" - aks holda
     if(special[s])return '<button class="symb" onmousedown="event.preventDefault()" onclick="'+special[s][0]+'" title="'+special[s][1]+'">'+s+'</button>';
@@ -6478,6 +6565,8 @@ function saveQ(){
   var qt=document.getElementById('aq-qtype').value;
   if(qt==='fill') text=aqFillText();
   if(!topic){alert("Mavzu kiriting!");return;}if(!text){alert(qt==='fill'?"Gapni yozing!":"Savol matnini kiriting!");return;}
+  var _auto=(subj==='math'&&(qt==='choice'||qt==='open'));
+  if(_auto) text=mathAutoText(text);
   if(qt!=='choice'){ var data=aqParseXtra(qt,text); if(!data) return;
     var db0=getDB();db0.userQs=db0.userQs||[];
     var old=_aqEditId?db0.userQs.find(function(x){return x.id===_aqEditId&&x.teacherId===ME.id;}):null;
@@ -6486,7 +6575,7 @@ function saveQ(){
     if(old) db0.userQs[db0.userQs.indexOf(old)]=nq; else db0.userQs.push(nq);
     if(!old&&(qcount||_curQFolder)){db0.topicsMeta=db0.topicsMeta||[];var f0=false;db0.topicsMeta.forEach(function(m){if(m.topic===topic&&m.teacherId===ME.id){if(qcount)m.questionsToAsk=qcount;if(_curQFolder)m.folder=_curQFolder;f0=true;}});if(!f0)db0.topicsMeta.push({topic:topic,questionsToAsk:qcount||1,teacherId:ME.id,subject:subj,folder:_curQFolder||undefined});}
     saveDB(db0);closeAQ();renderQT(); if(old&&typeof renderTopicDetail==='function'&&_curTopicDetail) renderTopicDetail(_curTopicDetail); return; }
-  var opts=aqOpts.filter(function(o){return o.trim();});if(opts.length<2){alert("Kamida 2 ta variant!");return;}if(!aqCorr.length){alert("To'g'ri javobni belgilang!");return;}
+  var opts=aqOpts.filter(function(o){return o.trim();});if(_auto) opts=opts.map(function(o){ return isImgVal(o)?o:mathAutoText(o); });if(opts.length<2){alert("Kamida 2 ta variant!");return;}if(!aqCorr.length){alert("To'g'ri javobni belgilang!");return;}
   var q={id:Date.now(),subject:subj,topic:topic,text:text,options:opts,correct:aqCorr.filter(function(c){return c<opts.length;}),isMulti:aqIsM,teacherId:ME.id,lvl:parseInt((document.getElementById('aq-lvl')||{}).value,10)||2};
   if(_aqImgData) q.img=_aqImgData;
   var db=getDB();db.userQs=db.userQs||[];db.userQs.push(q);
