@@ -100,7 +100,7 @@ textarea:focus{border-color:var(--pri);box-shadow:0 0 0 3px rgba(37,49,109,.12)}
 .fx{display:flex;gap:8px;align-items:center}.fxw{flex-wrap:wrap}
 .between{justify-content:space-between}.center{justify-content:center}
 h1{font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:700;letter-spacing:-.3px}h2{font-family:'Space Grotesk',sans-serif;font-size:19px;font-weight:600;letter-spacing:-.2px}h3{font-size:15px;font-weight:700}
-.ch{display:flex;align-items:center;justify-content:space-between;margin-bottom:13px;padding-bottom:11px;border-bottom:1px solid var(--bdr)}
+.ch{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-bottom:13px;padding-bottom:11px;border-bottom:1px solid var(--bdr)}
 .bdg{display:inline-block;padding:3px 10px;border-radius:99px;font-size:12px;font-weight:700;font-family:'JetBrains Mono',monospace}
 .bbl{background:#dbeafe;color:#1d4ed8}.bgr{background:#dcfce7;color:#15803d}
 .brd{background:#fee2e2;color:#b91c1c}.byl{background:#fef3c7;color:#92400e}
@@ -821,7 +821,7 @@ html[data-px=night] #tab-rg.on{background:#7a4fd6!important;color:#fff!important
         <div class="ch">
           <button class="btn bs bsm" onclick="backToTopics()">← Orqaga</button>
           <h2 id="q-detail-title" style="margin:0"></h2>
-          <div style="display:flex;gap:8px;align-items:center">
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
             <button class="btn bsm" style="background:#e8f4fd;color:#1565c0;font-size:13px" onclick="aiCheckTopic(_curTopicDetail)">🤖 Mavzuni tekshirish</button>
             <button class="btn bpu bsm" onclick="startBattle(_curTopicDetail)">&#x1F3AE; Sinf jangi</button>
             <label style="font-size:13px;font-weight:500" title="Faqat shu mavzu uchun, umumiy standartni ustidan bosib qoyadi">⏱ Timer (shu mavzu uchun):</label>
@@ -1351,7 +1351,7 @@ var INIT_META = [{"topic": "Guruhlash qonuni", "questionsToAsk": 20}, {"topic": 
 
 var SK = 'edutest_v3';
 // APP_VER sw.js dagi CACHE bilan bir xil bo'lishi SHART (sw versiyasini oshirganda buni ham oshiring)
-var APP_VER = 'bilimtest-v122';
+var APP_VER = 'bilimtest-v123';
 (function(){
   try{
     if('serviceWorker' in navigator && navigator.serviceWorker.controller) return; // SW bor - o'zining yangilanish banneri ishlaydi
@@ -9343,7 +9343,7 @@ async function startBattle(topic){
     var ins=await _sb.from('battle_sessions').insert({pin:pin,teacher_id:ME.id,topic:topic,status:'lobby'}).select().single();
     if(ins.error){alert('Sessiya yaratishda xato: '+ins.error.message);return;}
     BT.session=ins.data; BT.pin=pin; BT.role='teacher';
-    BT.qs=shuf(qs).slice(0,Math.min(10,qs.length));
+    BT.qs=pickBalanced(qs,Math.min(10,qs.length));
     openBattleModal();
     renderBattleLobby();
     subscribeBattle();
@@ -9595,12 +9595,28 @@ function renderDuelModePick(){
     '<div class="rcard" onclick="DL.mode=\'online\';startDuel()"><div class="ic">&#x1F310;</div><h3>Online</h3><p class="ts tm">Real raqib bilan</p></div>'+
     '</div>';
 }
+// ── DUEL: savol darajasi. Duel darajasi (easy/normal/hard) mos darajadagi savollarni oldinga qo'yadi; ball daraja bo'yicha ──
+function duelPick(topic,level,n){
+  var all=getQsByTopic(topic).filter(function(q){return qType(q)==='choice';});
+  if(!all.some(function(q){return q.lvl>=1&&q.lvl<=3;})) return shuf(all).slice(0,n);
+  var want={easy:1,normal:2,hard:3}[level]||2;
+  var near=want===1?[2,3]:want===3?[2,1]:[1,3];
+  var g={1:[],2:[],3:[]}; shuf(all).forEach(function(q){ g[qLvl(q)].push(q); });
+  var out=g[want].slice(0,n);
+  if(want===2){ // o'rtacha duel: o'rta + oson va qiyindan teng aralash
+    var a=g[1].slice(),b=g[3].slice(); while(out.length<n&&(a.length||b.length)){ if(a.length&&out.length<n) out.push(a.shift()); if(b.length&&out.length<n) out.push(b.shift()); }
+  } else near.forEach(function(l){ out=out.concat(g[l].slice(0,Math.max(0,n-out.length))); });
+  return shuf(out).slice(0,n);
+}
+function duelScore(){
+  var t=0; (DL.answers||[]).forEach(function(ok,i){ if(ok) t+=qPts((DL.questions||[])[i]); }); return t;
+}
 function startDuel(){
   if(DL.mode==='bot') startBotDuel();
   else startOnlineDuel();
 }
 function startBotDuel(){
-  var qs=shuf(getQsByTopic(DL.topic).filter(function(q){return qType(q)==='choice';})).slice(0,10);
+  var qs=duelPick(DL.topic,DL.level,10);
   if(qs.length<3){ alert('Bu mavzuda yetarli savol yoq!'); closeDuelModal(); return; }
   DL.questions=qs; DL.idx=0; DL.answers=[]; DL.botScore=0; DL.botDone=false; DL.myDone=false; DL.startTs=Date.now();
   ME.duelRating=ME.duelRating||1000;
@@ -9616,7 +9632,7 @@ function simulateBotProgress(){
     var delay=(2+Math.random()*(secPerQ*0.7))*1000;
     setTimeout(function(){
       if(DL.myDone) return;
-      if(Math.random()<acc) DL.botScore++;
+      if(Math.random()<acc) DL.botScore+=qPts(DL.questions[qi]);
       qi++;
       updateDuelBotProgress(qi);
       nextBotQ();
@@ -9638,6 +9654,7 @@ function renderDuelRace(){
     (DL.mode==='bot'?'<span class="ts tm" id="duel-bot-progress">Bot: 0/'+DL.questions.length+'</span>':'<span class="ts tm" id="duel-opp-progress">Raqib: 0/'+DL.questions.length+'</span>')+
     '</div>'+
     '<div class="tmr" id="duel-timer" style="margin-bottom:10px">'+secPerQ+'</div>'+
+    '<div style="margin-bottom:8px">'+lvlBadge(qLvl(q))+'</div>'+
     '<div style="font-weight:700;margin-bottom:12px;line-height:1.6">'+q.text+'</div>'+
     (q.image||q.img?'<img src="'+imgSrcVal(q.image||q.img)+'" style="max-width:100%;max-height:130px;border-radius:6px;margin-bottom:10px">':'')+
     q.options.map(function(o,i){return '<div class="opt" onclick="answerDuel('+i+')"><span>'+String.fromCharCode(65+i)+'. '+o+'</span></div>';}).join('');
@@ -9665,7 +9682,7 @@ function answerDuel(optIdx){
 }
 function finishMyDuelSide(){
   DL.myDone=true;
-  var myScore=DL.answers.filter(Boolean).length;
+  var myScore=duelScore();
   if(DL.mode==='bot'){
     checkDuelFinish();
     return;
@@ -9681,7 +9698,7 @@ function finishBotDuelWithRating(myScore){
 }
 function checkDuelFinish(){
   if(!DL.myDone) return;
-  var myScore=DL.answers.filter(Boolean).length;
+  var myScore=duelScore();
   if(DL.mode==='bot' && !DL.botDone){
     document.getElementById('duel-modal-body').innerHTML='<div style="text-align:center;padding:20px 0"><div style="font-size:32px">&#x23F3;</div><p class="ts tm mt8">Siz tugatdingiz! Bot hali ishlamoqda...</p></div>';
     var chk=setInterval(function(){
@@ -9708,8 +9725,8 @@ function showDuelResult(myScore, oppScore, oppName, ratingDelta){
     '<div style="font-size:40px;margin-bottom:10px">'+(draw?'&#x1F91D;':won?'&#x1F3C6;':'&#x1F614;')+'</div>'+
     '<h2 style="margin-bottom:14px">'+title+'</h2>'+
     '<div class="g2" style="max-width:280px;margin:0 auto 14px">'+
-    '<div class="sc"><div class="sn">'+myScore+'</div><div class="sl">Siz</div></div>'+
-    '<div class="sc"><div class="sn">'+oppScore+'</div><div class="sl">'+oppName+'</div></div>'+
+    '<div class="sc"><div class="sn">'+myScore+'</div><div class="sl">Siz (ball)</div></div>'+
+    '<div class="sc"><div class="sn">'+oppScore+'</div><div class="sl">'+oppName+' (ball)</div></div>'+
     '</div>'+
     ratingHtml+
     '<button class="btn bg" onclick="closeDuelModal()">Yopish</button>'+
@@ -9720,7 +9737,7 @@ async function startOnlineDuel(){
   var existing=await _sb.from('duel_queue').select('*').eq('subject',DL.subject).eq('topic',DL.topic).eq('level',DL.level).eq('status','waiting').neq('student_login',ME.login).order('created_at').limit(1);
   if(existing.data && existing.data.length){
     var opp=existing.data[0];
-    var qs=shuf(getQsByTopic(DL.topic).filter(function(q){return qType(q)==='choice';})).slice(0,10);
+    var qs=duelPick(DL.topic,DL.level,10);
     if(qs.length<3){ alert('Bu mavzuda yetarli savol yoq!'); closeDuelModal(); return; }
     // har ikkala tomonning duel BOSHLANISHIDAGI reytingini
     var _duelDb=getDB();
