@@ -1351,7 +1351,7 @@ var INIT_META = [{"topic": "Guruhlash qonuni", "questionsToAsk": 20}, {"topic": 
 
 var SK = 'edutest_v3';
 // APP_VER sw.js dagi CACHE bilan bir xil bo'lishi SHART (sw versiyasini oshirganda buni ham oshiring)
-var APP_VER = 'bilimtest-v124';
+var APP_VER = 'bilimtest-v125';
 (function(){
   try{
     if('serviceWorker' in navigator && navigator.serviceWorker.controller) return; // SW bor - o'zining yangilanish banneri ishlaydi
@@ -3492,6 +3492,7 @@ function resLvlBreak(r){
   return '<div class="lvbr">'+[1,2,3].filter(function(l){return a[l].n;}).map(function(l){ var x=a[l];
     return '<div>'+lvlBadge(l)+'<span><b>'+x.ok+'/'+x.n+'</b> to\'g\'ri &middot; <b>'+_fmtPts(x.p)+'/'+x.m+'</b> ball</span></div>'; }).join('')+'</div>';
 }
+function explHtml(d){ return (d&&d.expl)?'<div style="margin-top:8px;padding:8px 10px;border-radius:8px;background:rgba(99,102,241,.14);font-size:13px;line-height:1.6"><b>Yechim:</b> '+_qEsc(d.expl)+'</div>':''; }
 function lvChip(d){ return (d&&d.lvl)?'<div style="margin-bottom:7px">'+lvlBadge(d.lvl)+' <b style="font-size:12px">'+_fmtPts(d.pts)+' / '+(d.max||LVL_PTS[d.lvl])+' ball</b></div>':''; }
 function cycleQLvl(qi){
   var q=window._detailQs&&window._detailQs[qi]; if(!q) return;
@@ -5828,8 +5829,8 @@ async function doSubmitTest(){
   var correct=0,pts=0,maxPts=0,details=S.test.map(function(q,i){var ans=S.answers[i]||[];
     var T=QTYPES[qType(q)], lv=qLvl(q), mp=LVL_PTS[lv]; maxPts+=mp;
     if(T){var sc=Math.round(T.grade(q,ans)*100)/100; correct+=sc; pts+=sc*mp;
-      return {type:qType(q),text:q.text,data:q.data,userAns:ans,score:sc,ok:sc>=1,img:q.img||q.image||'',options:[],correct:[],lvl:lv,pts:Math.round(sc*mp*100)/100,max:mp};}
-    var right=q.shuffledCorrect,ok=right.length>0&&right.every(function(r){return ans.indexOf(r)>=0;})&&ans.every(function(a){return right.indexOf(a)>=0;})&&ans.length>0;if(ok){correct++;pts+=mp;}return{text:q.text,options:q.options,userAns:ans,correct:right,ok:ok,img:q.img||q.image||'',lvl:lv,pts:ok?mp:0,max:mp};});
+      return {type:qType(q),text:q.text,data:q.data,userAns:ans,score:sc,ok:sc>=1,img:q.img||q.image||'',options:[],correct:[],lvl:lv,pts:Math.round(sc*mp*100)/100,max:mp,expl:q.expl||''};}
+    var right=q.shuffledCorrect,ok=right.length>0&&right.every(function(r){return ans.indexOf(r)>=0;})&&ans.every(function(a){return right.indexOf(a)>=0;})&&ans.length>0;if(ok){correct++;pts+=mp;}return{text:q.text,options:q.options,userAns:ans,correct:right,ok:ok,img:q.img||q.image||'',lvl:lv,pts:ok?mp:0,max:mp,expl:q.expl||''};});
   correct=Math.round(correct*10)/10; // qisman ball (masalan 7.5) bo'lishi mumkin
   pts=Math.round(pts*100)/100;
   var pct=maxPts?Math.round(pts/maxPts*100):0;   // foiz ball bo'yicha: qiyin savol ko'proq hisoblanadi
@@ -5939,8 +5940,8 @@ function fireConfetti(count){
 function toggleDetail(){
   showDet=!showDet;var el=document.getElementById('r-det');el.style.display=showDet?'block':'none';
   if(showDet&&S.lastRes){document.getElementById('r-det-body').innerHTML=S.lastRes.details.map(function(d,i){
-    if(QTYPES[d.type]) return '<div style="padding:12px;border-radius:9px;background:'+_dBg(d)+';border:1px solid '+_dBd(d)+';margin-bottom:9px">'+_dTag(d)+'<div style="font-weight:700;margin-bottom:7px">'+(i+1)+'. '+(d.type==='fill'?'':_qEsc(d.text))+(d.score<1&&d.score>0?' <span class="ts tm">('+Math.round(d.score*100)+'%)</span>':'')+'</div>'+qDetailHtml(d)+'</div>';
-    return '<div style="padding:12px;border-radius:9px;background:'+_dBg(d)+';border:1px solid '+_dBd(d)+';margin-bottom:9px">'+_dTag(d)+'<div style="font-weight:700;margin-bottom:7px">'+(i+1)+'. '+d.text+'</div>'+((d.img||d.image)?'<img src="'+imgSrcVal(d.img||d.image)+'" style="max-width:100%;max-height:320px;border-radius:6px;margin-bottom:8px;display:block;background:#fff;padding:4px">':'')+d.options.map(function(opt,oi){var isR=d.correct.indexOf(oi)>=0,isU=d.userAns.indexOf(oi)>=0,bg=isR?'#dcfce7':(isU&&!isR)?'#fee2e2':'transparent',ic=isR?'✅':(isU&&!isR)?'❌':'⬜';var isImg=isImgVal(opt);var optContent=isImg?'<img src="'+imgSrcVal(opt)+'" style="max-height:80px;border-radius:4px;vertical-align:middle;margin-left:4px">':opt;return '<div style="padding:6px 8px;border-radius:6px;font-size:13px;background:'+bg+';margin-bottom:4px">'+ic+' '+String.fromCharCode(65+oi)+'. '+optContent+(isR?'<span style="color:#16a34a;font-size:11px;font-weight:700;margin-left:6px">(To\'g\'ri)</span>':'')+'</div>';}).join('')+'</div>';}).join('');renderMathIn(document.getElementById('r-det-body'));}
+    if(QTYPES[d.type]) return '<div style="padding:12px;border-radius:9px;background:'+_dBg(d)+';border:1px solid '+_dBd(d)+';margin-bottom:9px">'+_dTag(d)+'<div style="font-weight:700;margin-bottom:7px">'+(i+1)+'. '+(d.type==='fill'?'':_qEsc(d.text))+(d.score<1&&d.score>0?' <span class="ts tm">('+Math.round(d.score*100)+'%)</span>':'')+'</div>'+qDetailHtml(d)+explHtml(d)+'</div>';
+    return '<div style="padding:12px;border-radius:9px;background:'+_dBg(d)+';border:1px solid '+_dBd(d)+';margin-bottom:9px">'+_dTag(d)+'<div style="font-weight:700;margin-bottom:7px">'+(i+1)+'. '+d.text+'</div>'+((d.img||d.image)?'<img src="'+imgSrcVal(d.img||d.image)+'" style="max-width:100%;max-height:320px;border-radius:6px;margin-bottom:8px;display:block;background:#fff;padding:4px">':'')+d.options.map(function(opt,oi){var isR=d.correct.indexOf(oi)>=0,isU=d.userAns.indexOf(oi)>=0,bg=isR?'#dcfce7':(isU&&!isR)?'#fee2e2':'transparent',ic=isR?'✅':(isU&&!isR)?'❌':'⬜';var isImg=isImgVal(opt);var optContent=isImg?'<img src="'+imgSrcVal(opt)+'" style="max-height:80px;border-radius:4px;vertical-align:middle;margin-left:4px">':opt;return '<div style="padding:6px 8px;border-radius:6px;font-size:13px;background:'+bg+';margin-bottom:4px">'+ic+' '+String.fromCharCode(65+oi)+'. '+optContent+(isR?'<span style="color:#16a34a;font-size:11px;font-weight:700;margin-left:6px">(To\'g\'ri)</span>':'')+'</div>';}).join('')+explHtml(d)+'</div>';}).join('');renderMathIn(document.getElementById('r-det-body'));}
 }
 
 var _curQFolder=null;
@@ -6880,7 +6881,7 @@ function showResultDetail(id){
   body.innerHTML='<div style="margin-bottom:10px"><strong>'+_cEsc(r.student)+'</strong> - '+(r.cls||'')+' &middot; <span class="ts tm">'+r.topic+' &middot; '+resFrac(r)+' ('+r.pct+'%) &middot; '+r.date+'</span></div>'+
     (r.exits?'<div class="alt aw" style="margin-bottom:10px">&#x26A0;&#xFE0F; Test davomida ilovadan '+r.exits+' marta chiqib ketgan (jami '+(r.awaySec||0)+' soniya).</div>':'')+
     r.details.map(function(d,i){
-      if(QTYPES[d.type]) return '<div style="padding:12px;border-radius:9px;background:'+_dBg(d)+';border:1px solid '+_dBd(d)+';margin-bottom:9px">'+_dTag(d)+'<div style="font-weight:700;margin-bottom:7px">'+(i+1)+'. '+(d.type==='fill'?'':_qEsc(d.text))+(d.score<1&&d.score>0?' <span class="ts tm">('+Math.round(d.score*100)+'%)</span>':'')+'</div>'+qDetailHtml(d)+'</div>';
+      if(QTYPES[d.type]) return '<div style="padding:12px;border-radius:9px;background:'+_dBg(d)+';border:1px solid '+_dBd(d)+';margin-bottom:9px">'+_dTag(d)+'<div style="font-weight:700;margin-bottom:7px">'+(i+1)+'. '+(d.type==='fill'?'':_qEsc(d.text))+(d.score<1&&d.score>0?' <span class="ts tm">('+Math.round(d.score*100)+'%)</span>':'')+'</div>'+qDetailHtml(d)+explHtml(d)+'</div>';
       var imgSrc=d.img||d.image||'';
       return '<div style="padding:12px;border-radius:9px;background:'+_dBg(d)+';border:1px solid '+_dBd(d)+';margin-bottom:9px">'+_dTag(d)+
         '<div style="font-weight:700;margin-bottom:7px">'+(i+1)+'. '+d.text+'</div>'+
@@ -6892,7 +6893,7 @@ function showResultDetail(id){
           var isImg=isImgVal(opt);
           var optContent=isImg?'<img src="'+imgSrcVal(opt)+'" style="max-height:80px;border-radius:4px;vertical-align:middle;margin-left:4px">':opt;
           return '<div style="padding:6px 8px;border-radius:6px;font-size:13px;background:'+bg+';margin-bottom:4px">'+ic+' '+String.fromCharCode(65+oi)+'. '+optContent+(isR?'<span style="color:#16a34a;font-size:11px;font-weight:700;margin-left:6px">(To\'g\'ri)</span>':'')+'</div>';
-        }).join('')+
+        }).join('')+explHtml(d)+
       '</div>';
     }).join('');
   document.getElementById('rd-modal').style.display='flex';
