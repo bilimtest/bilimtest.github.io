@@ -18,7 +18,7 @@
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
@@ -1102,6 +1102,19 @@ html[data-px=night] #tab-rg.on{background:#7a4fd6!important;color:#fff!important
       <div id="admin-pending-teachers"></div>
     </div>
     <div class="card">
+      <h3 style="margin-bottom:8px">&#x1F3EB; Maktab sinflari</h3>
+      <p style="font-size:13px;color:var(--mut);margin-bottom:10px">Maktab nomini va uning sinflarini kiriting (masalan: 5A, 5B, 6A). Shu maktab ustozlari va o'quvchilari faqat shu sinflardan tanlaydi. Sinflarni qo'lda yozish yoki Word / Excel / CSV / TXT fayldan yuklash mumkin.</p>
+      <div class="fg"><label>Maktab nomi (ustoz ro'yxatdan o'tganda yozgani bilan bir xil)</label><input type="text" id="sc-name" list="sc-names" placeholder="Masalan: 12-maktab"><datalist id="sc-names"></datalist></div>
+      <div class="fg"><label>Sinflar (vergul yoki yangi qator bilan)</label><textarea id="sc-text" rows="3" placeholder="5A, 5B, 6A, 6B"></textarea></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <button type="button" class="btn bpu bsm" onclick="scAdd()">+ Qo'shish</button>
+        <button type="button" class="btn bo bsm" onclick="document.getElementById('sc-file').click()">&#x1F4C1; Fayldan yuklash</button>
+        <input type="file" id="sc-file" accept=".xlsx,.xls,.csv,.txt,.docx" style="display:none" onchange="scFile(this)">
+      </div>
+      <div id="sc-msg" class="mt8"></div>
+      <div id="sc-list" style="margin-top:12px"></div>
+    </div>
+    <div class="card">
       <h3 style="margin-bottom:8px">&#x1F3C5; Milliy sertifikat bazasi</h3>
       <p style="font-size:13px;color:var(--mut);margin-bottom:10px">Biologiya, tarix, geografiya, ona tili va adabiyot bo'yicha bazadagi savollar. Bu yerda ularni tahrirlash va o'chirish mumkin. Fanda 45 ta savol bo'lgach, o'quvchilarga ochiladi.</p>
       <div id="admin-ms-bank"></div>
@@ -1351,7 +1364,7 @@ var INIT_META = [{"topic": "Guruhlash qonuni", "questionsToAsk": 20}, {"topic": 
 
 var SK = 'edutest_v3';
 // APP_VER sw.js dagi CACHE bilan bir xil bo'lishi SHART (sw versiyasini oshirganda buni ham oshiring)
-var APP_VER = 'bilimtest-v125';
+var APP_VER = 'bilimtest-v127';
 (function(){
   try{
     if('serviceWorker' in navigator && navigator.serviceWorker.controller) return; // SW bor - o'zining yangilanish banneri ishlaydi
@@ -2885,7 +2898,7 @@ function myClassList(){
 }
 // O'quvchi ro'yxatdan o'tishda
 function schoolClassList(maktab){
-  var ns=normSchool(maktab), out=[];
+  var ns=normSchool(maktab), out=schoolClassesFor(maktab);
   if(ns) (getDB().users||[]).forEach(function(u){ if(u.role==='teacher'&&normSchool(u.maktab)===ns) userClassList(u).forEach(function(c){ if(out.indexOf(c)<0) out.push(c); }); });
   if(!ns){   // o'quvchi maktab kiritmaydi: hamma ustozlarning sinflari + standart sinflar
     (getDB().users||[]).forEach(function(u){ if(u.role==='teacher') userClassList(u).forEach(function(c){ if(out.indexOf(c)<0) out.push(c); }); });
@@ -6181,7 +6194,7 @@ function renderTopicDetail(t){
       var isImg=isImgVal(o);
       var isPending=typeof o==='string'&&o.indexOf('__IMG_PENDING__')>=0;
       if(isPending) return String.fromCharCode(65+oi)+'.⚠️[rasm yuklanmadi]';
-      return String.fromCharCode(65+oi)+(isImg?'.[rasm]':'. '+o.substring(0,30));
+      return String.fromCharCode(65+oi)+(isImg?'.[rasm]':'. '+mathPreview(o,30));
     }).join('<br>');
     var correctOpts=(q.correct||[]).map(function(ci){return String.fromCharCode(65+ci);}).join(',');
     if(QTYPES[qType(q)]){
@@ -6191,7 +6204,7 @@ function renderTopicDetail(t){
     }
     return '<tr>'+
       '<td>'+(qi+1)+'</td>'+
-      '<td style="max-width:200px;font-size:13px">'+(q.image?'🖼 ':'')+(q.text||'').substring(0,60)+'...</td>'+
+      '<td style="max-width:200px;font-size:13px">'+(q.image?'🖼 ':'')+mathPreview(q.text||'',60)+'</td>'+
       '<td><span style="cursor:pointer" onclick="cycleQLvl('+qi+')" title="Bosib darajani o\'zgartiring">'+lvlBadge(qLvl(q),q.lvlAI)+'</span></td>'+
       '<td style="font-size:12px;color:var(--color-text-secondary)">'+opts+'</td>'+
       '<td>'+((q.correct||[]).length||q.type==='open'?'<span class="bdg" style="background:#e8f5e9;color:#2e7d32">'+correctOpts+'</span>':'<span class="bdg" style="background:#fee2e2;color:#b91c1c" title="Javob belgilanmagan — tahrirlab belgilang">Javob yo\'q</span>')+
@@ -6245,7 +6258,8 @@ function editQ(qid,topic){
   document.getElementById('eq-modal').style.display='flex';
   document.getElementById('eq-qid').value=qid;
   document.getElementById('eq-topic').value=topic;
-  document.getElementById('eq-text').value=q.text||'';
+  mathEditSetValue(document.getElementById('eq-text'), q.text||'');
+  try{ refreshSyms('eq-syms', q.subject||'math'); }catch(e){}
   var _elb=document.getElementById('eq-lvl-box'); if(_elb) _elb.innerHTML=lvlPicker('eq-lvl',q.lvl||2);
   // Savol rasmi (q.img yoki q.image)
   var eqImgDiv=document.getElementById('eq-q-img');
@@ -6268,20 +6282,21 @@ function editQ(qid,topic){
     return '<div style="margin-bottom:10px;border:1px solid var(--color-border);border-radius:8px;padding:8px">'+
       '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">'+
         '<span style="font-weight:600;min-width:20px">'+String.fromCharCode(65+i)+'.</span>'+
-        '<input type="text" value="'+(isImg?'':o.replace(/"/g,'&quot;'))+'" id="eq-opt-'+i+'" placeholder="'+(isImg?'Matn kiriting (rasm o\'rnini bosadi)':'Javob matni')+'" style="flex:1;padding:6px 8px;border-radius:6px;border:1px solid var(--color-border);font-size:13px">'+
+        '<div class="mathedit optedit" id="eq-opt-'+i+'" contenteditable="true" data-placeholder="'+(isImg?'Matn kiriting (rasm o\'rnini bosadi)':'Javob matni')+'" style="flex:1"></div>'+
         '<label style="display:flex;align-items:center;gap:4px;font-size:12px;white-space:nowrap">'+
           '<input type="checkbox" id="eq-cor-'+i+'"'+(isCorrect?' checked':'')+'>✓</label>'+
       '</div>'+
       imgPart+
     '</div>';
   }).join('');
+  opts.forEach(function(o,i){ var el=document.getElementById('eq-opt-'+i); if(el&&!isImgVal(o)) mathEditSetValue(el,o); });
 }
 
 function saveEditQ(){
   var _qv=document.getElementById('eq-qid').value; // ID matn bo'lishi mumkin (import): parseInt buzardi
   var qid=/^\d+$/.test(_qv)?parseInt(_qv,10):_qv;
   var topic=document.getElementById('eq-topic').value;
-  var newText=document.getElementById('eq-text').value.trim();
+  var newText=mathEditGetLatexString(document.getElementById('eq-text')).trim();
   var db=getDB();
   var uq=db.userQs.find(function(x){return x.id===qid && x.topic===topic && x.teacherId===ME.id;});
   if(!uq) uq=db.userQs.find(function(x){return x.id===qid;}); // zaxira: eski malumotlar uchun
@@ -6291,10 +6306,11 @@ function saveEditQ(){
   var newCorr=[];
   (uq.options||[]).forEach(function(o,i){
     var inp=document.getElementById('eq-opt-'+i);
-    if(inp&&inp.value.trim())uq.options[i]=inp.value.trim(); // matn kiritilsa - rasm o'rnini bosadi
+    var _ov=inp?(inp.tagName==='DIV'?mathEditGetLatexString(inp):inp.value).trim():''; if(_ov)uq.options[i]=_ov; // matn kiritilsa - rasm o'rnini bosadi
     var cor=document.getElementById('eq-cor-'+i);
     if(cor&&cor.checked)newCorr.push(i);
   });
+  if(uq.subject==='math'){ uq.text=mathAutoText(uq.text); (uq.options||[]).forEach(function(o,i){ if(typeof o==='string'&&!isImgVal(o)) uq.options[i]=mathAutoText(o); }); }
   if(newCorr.length)uq.correct=newCorr;
   if(newCorr.length){ delete uq.aiAnswer; delete uq.noAnswer; delete uq.aiWarn; }
   var _elv=document.getElementById('eq-lvl'); if(_elv){ var _nl=parseInt(_elv.value,10); if(_nl>=1&&_nl<=3){ if(_nl!==qLvl(uq)) delete uq.lvlAI; uq.lvl=_nl; } }
@@ -6512,8 +6528,26 @@ function mathAutoText(s){
   s=String(s==null?'':s); if(!s) return s;
   return s.split(/(\$[^$]*\$)/).map(function(seg,i){ return i%2?seg:_mathAutoSeg(seg); }).join('');
 }
-function refreshSyms(){
-  var subj=document.getElementById('aq-subj').value||'math';
+// Matn ichidagi $...$ formulalarni chizilgan (KaTeX) holda qisqa ko'rsatadi (jadval/ro'yxatlar uchun); max — oddiy belgilar soni
+function mathPreview(text,max){
+  text=String(text==null?'':text).replace(/\s*\n\s*/g,' '); max=max||60;
+  var parts=text.split(/(\$[^$]*\$)/), out='', used=0, cut=false;
+  for(var i=0;i<parts.length&&!cut;i++){
+    var q=parts[i]; if(!q) continue;
+    if(i%2===1){
+      var tex=q.slice(1,-1); used+=Math.min(6,tex.length);
+      try{ out+=(typeof katex!=='undefined')?katex.renderToString(tex,{throwOnError:false}):_qEsc(tex); }catch(e){ out+=_qEsc(tex); }
+    } else {
+      var room=max-used;
+      if(q.length>room){ out+=_qEsc(q.slice(0,Math.max(0,room))); cut=true; } else { out+=_qEsc(q); }
+      used+=Math.min(q.length,Math.max(room,0));
+    }
+    if(used>=max && i<parts.length-1) cut=true;
+  }
+  return out+(cut?'&hellip;':'');
+}
+function refreshSyms(tid,sj){
+  var subj=sj||document.getElementById('aq-subj').value||'math';
   var syms=SYMBOLS_BY_SUBJECT[subj]||SYMBOLS_BY_SUBJECT.other;
   var mh=document.getElementById('aq-math-hint'); if(mh) mh.style.display=syms.indexOf('a/b')>=0?'':'none';
   var special={
@@ -6526,7 +6560,7 @@ function refreshSyms(){
     '(':['insWrapAny()','Belgilangan qismni qavsga oladi']
   };
   Object.keys(TPL).forEach(function(k){ special[k]=['insTpl(\''+k+'\')',TPL[k].h]; });
-  document.getElementById('aq-syms').innerHTML=syms.map(function(s){
+  document.getElementById(tid||'aq-syms').innerHTML=syms.map(function(s){
     // MUHIM TUZATISH: onmousedown="event.preventDefault()" - aks holda
     if(special[s])return '<button class="symb" onmousedown="event.preventDefault()" onclick="'+special[s][0]+'" title="'+special[s][1]+'">'+s+'</button>';
     return '<button class="symb" onmousedown="event.preventDefault()" onclick="insSym(\''+s+'\')">'+s+'</button>';
@@ -6901,13 +6935,14 @@ function showResultDetail(id){
 function closeRD(){document.getElementById('rd-modal').style.display='none';}
 
 function loadClasses(){
+  var _ab=document.querySelector('button[onclick="addCls()"]'); if(_ab) _ab.style.display=(ME&&ME.role==='teacher')?'none':'';
   var res=myVisibleResults(),cls=myVisibleClassNames();
   document.getElementById('cls-grid').innerHTML=cls.map(function(c){
     var cr=res.filter(function(r){return(r.cls===c||r.class===c)&&r.mode==='exam';});
     var avg=cr.length?Math.round(cr.reduce(function(a,r){return a+r.pct;},0)/cr.length):0;
     var sts=[];cr.forEach(function(r){if(sts.indexOf(r.student)<0)sts.push(r.student);});
     var col=avg>=70?'var(--ok)':avg>=50?'var(--warn)':'var(--err)';
-    return '<div class="sc" style="text-align:left;cursor:pointer" onclick="showProg(\''+encodeURIComponent(c)+'\')"><div class="fx between" style="margin-bottom:7px"><strong style="font-size:17px">'+c+'</strong><button class="btn bd bsm" onclick="event.stopPropagation();delCls(\''+encodeURIComponent(c)+'\')">Del</button></div><div class="ts tm">O\'quvchilar: <strong>'+sts.length+'</strong></div><div class="ts tm">Imtihonlar: <strong>'+cr.length+'</strong></div><div class="ts tm">O\'rtacha: <strong style="color:'+col+'">'+avg+'%</strong></div><div class="pb" style="margin-top:6px"><div class="pf" style="width:'+avg+'%;background:'+col+'"></div></div></div>';
+    return '<div class="sc" style="text-align:left;cursor:pointer" onclick="showProg(\''+encodeURIComponent(c)+'\')"><div class="fx between" style="margin-bottom:7px"><strong style="font-size:17px">'+c+'</strong>'+((ME&&ME.role==='teacher')?'':'<button class="btn bd bsm" onclick="event.stopPropagation();delCls(\''+encodeURIComponent(c)+'\')">Del</button>')+'</div><div class="ts tm">O\'quvchilar: <strong>'+sts.length+'</strong></div><div class="ts tm">Imtihonlar: <strong>'+cr.length+'</strong></div><div class="ts tm">O\'rtacha: <strong style="color:'+col+'">'+avg+'%</strong></div><div class="pb" style="margin-top:6px"><div class="pf" style="width:'+avg+'%;background:'+col+'"></div></div></div>';
   }).join('')||'<p class="ts tm">Sinflar yo\'q</p>';
 }
 function showProg(enc){
@@ -6927,6 +6962,7 @@ function showProg(enc){
   document.getElementById('prog-panel').scrollIntoView({behavior:'smooth'});
 }
 function addCls(){
+  if(ME&&ME.role==='teacher'){ alert("Yangi sinfni maktab administratori qo'shadi"); return; }
   var c=prompt("Yangi sinf nomi (bir nechta bo'lsa vergul bilan):"); if(!c||!c.trim()) return;
   var sb;
   if(ME&&ME.role==='teacher'){
@@ -6940,6 +6976,7 @@ function addCls(){
   addMyClassesFrom('_tmp_cls', sb); tmp.remove(); loadClasses(); try{ renderMyClassesBySubj(); }catch(e){}
 }
 function delCls(enc){
+  if(ME&&ME.role==='teacher'){ alert("Sinfni faqat administrator o'chira oladi"); return; }
   var c=decodeURIComponent(enc); if(!confirm(c+" sinfini ro'yxatingizdan o'chirasizmi? (O'quvchilar va natijalar o'chmaydi)")) return;
   _removeClassEverywhere(c);
   loadClasses(); try{ renderMyClassesBySubj(); }catch(e){}
@@ -7039,6 +7076,7 @@ function renderAdminErrors(){
 }
 function initAdminSettings(){
   var db=getDB();
+  try{ renderSchoolClasses(); }catch(e){}
   renderPendingTeachers();
   renderAdminAllUsers();
   loadStorageStats();
@@ -7458,8 +7496,102 @@ function initSettings(){
   }
 }
 
+// ── Admin: maktab sinflari (qo'lda yoki fayldan) ──
+function _scNorm(t){ var m=/^(\d{1,2})\s*[-–.]?\s*([A-Za-zА-Яа-яЁё])$/.exec(String(t).trim()); return m?(m[1]+m[2].toUpperCase()):null; }
+function _scExtract(text){
+  var out=[], re=/(^|[^0-9A-Za-zА-Яа-я])(\d{1,2})\s*[-–.]?\s*([A-Za-zА-Яа-я])(?![A-Za-zА-Яа-я])/g, m, t=String(text||'');
+  while((m=re.exec(t))){ var c=m[2]+m[3].toUpperCase(); if(parseInt(m[2],10)>=1&&parseInt(m[2],10)<=12&&out.indexOf(c)<0) out.push(c); re.lastIndex=m.index+m[0].length-1; }
+  return out;
+}
+function _scParseTyped(text){
+  var out=[]; String(text||'').split(/[,;\n\t]+/).forEach(function(x){ x=x.trim(); if(!x) return; var c=_scNorm(x)||x.slice(0,30); if(out.indexOf(c)<0) out.push(c); });
+  return out;
+}
+function _scReadZipEntry(buf,name){
+  var u=new Uint8Array(buf), dv=new DataView(buf), i=u.length-22;
+  while(i>=0&&dv.getUint32(i,true)!==0x06054b50) i--;
+  if(i<0) throw new Error('zip emas');
+  var n=dv.getUint16(i+10,true), off=dv.getUint32(i+16,true);
+  for(var k=0;k<n;k++){
+    if(dv.getUint32(off,true)!==0x02014b50) break;
+    var meth=dv.getUint16(off+10,true), csz=dv.getUint32(off+20,true), nl=dv.getUint16(off+28,true), el=dv.getUint16(off+30,true), cl=dv.getUint16(off+32,true), lo=dv.getUint32(off+42,true);
+    var nm=new TextDecoder().decode(u.subarray(off+46,off+46+nl));
+    if(nm===name){
+      var lnl=dv.getUint16(lo+26,true), lel=dv.getUint16(lo+28,true), ds=lo+30+lnl+lel, data=u.subarray(ds,ds+csz);
+      return meth===0?data:pako.inflateRaw(data);
+    }
+    off+=46+nl+el+cl;
+  }
+  throw new Error(name+' topilmadi');
+}
+function _scDocxText(buf){
+  var xml=new TextDecoder('utf-8').decode(_scReadZipEntry(buf,'word/document.xml'));
+  return xml.replace(/<\/w:p>/g,'\n').replace(/<w:tab\/>|<\/w:tc>/g,' ').replace(/<[^>]+>/g,'').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&apos;/g,"'");
+}
+function _scSave(name,list){
+  var db=getDB(); db.schoolClasses=db.schoolClasses||{}; var k=normSchool(name);
+  var e=db.schoolClasses[k]||{name:name.trim(),classes:[]}, add=0;
+  list.forEach(function(c){ if(e.classes.indexOf(c)<0){ e.classes.push(c); add++; } });
+  e.name=name.trim(); _clsSort(e.classes); db.schoolClasses[k]=e;
+  list.forEach(function(c){ db.classes=db.classes||[]; if(db.classes.indexOf(c)<0) db.classes.push(c); });
+  _clsSort(db.classes||[]);
+  saveDB(db); return add;
+}
+function scAdd(){
+  var name=(document.getElementById('sc-name').value||'').trim(), ta=document.getElementById('sc-text'), msg=document.getElementById('sc-msg');
+  if(!name){ msg.innerHTML='<div class="alt aw">Maktab nomini yozing</div>'; return; }
+  var list=_scParseTyped(ta.value);
+  if(!list.length){ msg.innerHTML='<div class="alt aw">Sinflarni yozing (masalan: 5A, 5B)</div>'; return; }
+  var n=_scSave(name,list); ta.value='';
+  msg.innerHTML='<div class="alt as">'+_cEsc(name)+': '+n+' ta yangi sinf qo\'shildi</div>'; renderSchoolClasses();
+}
+function scFile(inp){
+  var f=inp.files&&inp.files[0], msg=document.getElementById('sc-msg'); if(!f) return;
+  var name=(document.getElementById('sc-name').value||'').trim();
+  if(!name){ msg.innerHTML='<div class="alt aw">Avval maktab nomini yozing, keyin faylni tanlang</div>'; inp.value=''; return; }
+  var ext=(f.name.split('.').pop()||'').toLowerCase(), r=new FileReader();
+  function done(text){
+    var list=_scExtract(text);
+    if(!list.length){ msg.innerHTML='<div class="alt aw">Faylda sinf topilmadi (5A, 6B kabi yozilgan bo\'lishi kerak)</div>'; return; }
+    var n=_scSave(name,list);
+    msg.innerHTML='<div class="alt as">'+_cEsc(f.name)+': '+list.length+' ta sinf topildi ('+n+' tasi yangi): '+_cEsc(list.join(', '))+'</div>'; renderSchoolClasses();
+  }
+  r.onerror=function(){ msg.innerHTML='<div class="alt aw">Faylni o\'qib bo\'lmadi</div>'; };
+  try{
+    if(ext==='txt'||ext==='csv'){ r.onload=function(){ done(String(r.result)); }; r.readAsText(f); }
+    else if(ext==='docx'){ r.onload=function(){ try{ done(_scDocxText(r.result)); }catch(e){ msg.innerHTML='<div class="alt aw">Word faylini o\'qib bo\'lmadi: '+_cEsc(e.message)+'</div>'; } }; r.readAsArrayBuffer(f); }
+    else { r.onload=function(){ try{ var wb=XLSX.read(r.result,{type:'array'}), t=''; wb.SheetNames.forEach(function(sn){ t+=XLSX.utils.sheet_to_csv(wb.Sheets[sn])+'\n'; }); done(t); }catch(e){ msg.innerHTML='<div class="alt aw">Excel faylini o\'qib bo\'lmadi: '+_cEsc(e.message)+'</div>'; } }; r.readAsArrayBuffer(f); }
+  }catch(e){ msg.innerHTML='<div class="alt aw">Xato: '+_cEsc(e.message)+'</div>'; }
+  inp.value='';
+}
+function scDel(kenc,cenc){
+  var k=decodeURIComponent(kenc), c=cenc?decodeURIComponent(cenc):null, db=getDB(), e=(db.schoolClasses||{})[k]; if(!e) return;
+  if(c===null){ if(!confirm(e.name+" maktabining sinflar ro'yxatini o'chirasizmi?")) return; delete db.schoolClasses[k]; }
+  else e.classes=e.classes.filter(function(x){ return x!==c; });
+  saveDB(db); renderSchoolClasses();
+}
+function renderSchoolClasses(){
+  var box=document.getElementById('sc-list'); if(!box) return;
+  var sc=getDB().schoolClasses||{}, keys=Object.keys(sc);
+  var dl=document.getElementById('sc-names');
+  if(dl){ var names=[]; (getDB().users||[]).forEach(function(u){ if(u.maktab&&names.indexOf(u.maktab)<0) names.push(u.maktab); }); dl.innerHTML=names.map(function(n){ return '<option value="'+_cEsc(n)+'">'; }).join(''); }
+  box.innerHTML=keys.length?keys.map(function(k){
+    var e=sc[k];
+    return '<div style="border:1px solid var(--bdr);border-radius:10px;padding:10px;margin-bottom:8px"><div class="fx between" style="margin-bottom:6px"><strong>'+_cEsc(e.name||k)+'</strong><button type="button" class="btn bd bsm" onclick="scDel(\''+encodeURIComponent(k)+'\')">Maktabni o\'chirish</button></div>'+
+      '<div style="display:flex;flex-wrap:wrap;gap:6px">'+e.classes.map(function(c){ return '<span style="display:inline-flex;align-items:center;gap:4px;padding:5px 10px;border-radius:9px;border:1.5px solid var(--bdr);font-weight:700;font-size:13px">'+_cEsc(c)+'<button type="button" title="Olib tashlash" onclick="scDel(\''+encodeURIComponent(k)+'\',\''+encodeURIComponent(c)+'\')" style="border:none;background:none;cursor:pointer;color:var(--err);padding:0 0 0 4px">&#x2715;</button></span>'; }).join('')+'</div></div>';
+  }).join(''):'<p class="ts tm">Hali maktab sinflari kiritilmagan. Kiritilmasa ustozlar umumiy ro\'yxatdan tanlaydi.</p>';
+}
 // 2026-10-18: sinflar ESKI usulda — ustoz mavjud sinflardan o'zinikini BELGILAYDI (bosib yoqadi/o'chiradi)
+// Admin kiritgan maktab sinflari: db.schoolClasses[normSchool(maktab)] = {name, classes:[]}
+function schoolClassesFor(maktab){
+  var e=(getDB().schoolClasses||{})[normSchool(maktab)];
+  return (e&&Array.isArray(e.classes))?e.classes.slice():[];
+}
 function allClassOptions(){
+  if(ME&&ME.role==='teacher'){
+    var sc=schoolClassesFor(ME.maktab);
+    if(sc.length){ var own=userClassList(ME); own.forEach(function(c){ if(sc.indexOf(c)<0) sc.push(c); }); return _clsSort(sc); }
+  }
   var db=getDB(), out=(db.classes||[]).slice();
   (db.users||[]).forEach(function(u){ if(u.role==='teacher') userClassList(u).forEach(function(c){ if(out.indexOf(c)<0) out.push(c); }); });
   if(!out.length) out=STD_CLASSES.slice();
@@ -7469,6 +7601,8 @@ function renderMyClassesBySubj(){
   var box=document.getElementById('settings-tcls-list'); if(!box||!ME) return;
   var m=subjClassMap(ME), subs=myTeacherSubjects(), opts=allClassOptions();
   Object.keys(m).forEach(function(k){ if(subs.indexOf(k)<0) subs.push(k); }); if(!subs.length) subs=[ME.subject||''];
+  var canEdit=(ME.role==='admin');
+  if(!canEdit){ subs=[ME.subject||subs[0]||'']; }
   box.style.display='block'; box.style.maxHeight='none'; box.style.overflow='visible';
   box.innerHTML=subs.map(function(sb,i){
     var list=m[sb]||[];
@@ -7476,14 +7610,14 @@ function renderMyClassesBySubj(){
       var on=list.indexOf(c)>=0;
       return '<span class="cls-chip'+(on?' on':'')+'" style="display:inline-flex;align-items:stretch;border-radius:9px;font-size:13px;font-weight:700;overflow:hidden;border:2px solid '+(on?'var(--pri)':'var(--bdr)')+';background:'+(on?'var(--pri)':'transparent')+';color:'+(on?'#fff':'inherit')+'">'+
         '<button type="button" onclick="toggleClsSubj(\''+encodeURIComponent(sb)+'\',\''+encodeURIComponent(c)+'\')" style="border:none;background:none;color:inherit;font:inherit;padding:7px 8px 7px 12px;cursor:pointer">'+(on?'&#10003; ':'')+_cEsc(c)+'</button>'+
-        '<button type="button" title="Sinfni butunlay o\'chirish" onclick="delCls(\''+encodeURIComponent(c)+'\')" style="border:none;background:rgba(0,0,0,.14);color:inherit;padding:0 8px;cursor:pointer;line-height:1">&#x2715;</button></span>';
+        (canEdit?'<button type="button" title="Sinfni butunlay o\'chirish" onclick="delCls(\''+encodeURIComponent(c)+'\')" style="border:none;background:rgba(0,0,0,.14);color:inherit;padding:0 8px;cursor:pointer;line-height:1">&#x2715;</button>':'')+'</span>';
     }).join('');
     return (subs.length>1||sb?'<div style="font-weight:700;margin:6px 0 8px">'+subjEmoji(sb)+' '+_cEsc(subjName(sb)||'Fan')+' <span class="ts tm" style="font-weight:400">— '+list.length+' ta sinf belgilangan</span></div>':'')+
-      '<div class="ts tm" style="margin-bottom:6px">O\'zingiz dars beradigan sinflarni bosib belgilang (&#10003;). &#x2715; — sinfni butunlay o\'chiradi.</div>'+
+      '<div class="ts tm" style="margin-bottom:6px">O\'zingiz dars beradigan sinflarni bosib belgilang (&#10003;).'+(canEdit?' &#x2715; — sinfni butunlay o\'chiradi.':' Kerakli sinf ro\'yxatda yo\'q bo\'lsa — maktab administratoriga ayting.')+'</div>'+
       '<div style="display:flex;flex-wrap:wrap;gap:6px">'+chips+'</div>'+
       (list.length?'':'<div class="ts" style="color:var(--err);margin-top:6px">Sinf belgilanmagan — bu fan testlarini hech kim ko\'rmaydi.</div>')+
-      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><input type="text" id="cls-add-'+i+'" placeholder="Ro\'yxatda yo\'q yangi sinf: 7A yoki Fizika to\'garagi" style="flex:1;min-width:150px" onkeydown="if(event.key===\'Enter\'){event.preventDefault();addClsSubj(\''+encodeURIComponent(sb)+'\','+i+');}">'+
-      '<button type="button" class="btn bpu bsm" onclick="addClsSubj(\''+encodeURIComponent(sb)+'\','+i+')">+ Yangi sinf</button></div>';
+      (canEdit?'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><input type="text" id="cls-add-'+i+'" placeholder="Ro\'yxatda yo\'q yangi sinf: 7A yoki Fizika to\'garagi" style="flex:1;min-width:150px" onkeydown="if(event.key===\'Enter\'){event.preventDefault();addClsSubj(\''+encodeURIComponent(sb)+'\','+i+');}">'+
+      '<button type="button" class="btn bpu bsm" onclick="addClsSubj(\''+encodeURIComponent(sb)+'\','+i+')">+ Yangi sinf</button></div>':'');
   }).join('<hr style="border:none;border-top:1px solid var(--bdr);margin:14px 0">');
   var sv=document.querySelector('button[onclick="saveMyClasses()"]'); if(sv) sv.style.display='none';
 }
@@ -7745,12 +7879,66 @@ function clearStudents(){
   alert("Sizga tegishli o'quvchilar tozalandi!");
 }
 
+// ── EXCEL: natijalar (rangli). Varaq 1 — umumiy, varaq 2 — savollar bo'yicha batafsil ──
+function _xlTxt(v){
+  var t=String(v==null?'':v);
+  t=t.replace(/\$([^$]+)\$/g,function(m,tex){ var q=tex; try{ q=_oaLatexToPlain(tex); }catch(e){}
+    return q.replace(/\(\(([^()]*)\)\/\(([^()]*)\)\)/g,'$1/$2').replace(/\s+/g,' ').trim(); });
+  return t.replace(/<br\s*\/?>/gi,' ').replace(/<[^>]+>/g,'').replace(/&nbsp;/g,' ').replace(/\s+/g,' ').trim();
+}
+var _XL={ ok:{fill:{patternType:'solid',fgColor:{rgb:'C6EFCE'}},font:{color:{rgb:'006100'},bold:true}},
+  bad:{fill:{patternType:'solid',fgColor:{rgb:'FFC7CE'}},font:{color:{rgb:'9C0006'},bold:true}},
+  none:{fill:{patternType:'solid',fgColor:{rgb:'E5E7EB'}},font:{color:{rgb:'4B5563'}}},
+  part:{fill:{patternType:'solid',fgColor:{rgb:'FFEB9C'}},font:{color:{rgb:'7F6000'},bold:true}},
+  head:{fill:{patternType:'solid',fgColor:{rgb:'1F2A6B'}},font:{color:{rgb:'FFFFFF'},bold:true}},
+  l1:{fill:{patternType:'solid',fgColor:{rgb:'C6EFCE'}},font:{color:{rgb:'006100'}}},
+  l2:{fill:{patternType:'solid',fgColor:{rgb:'FFEB9C'}},font:{color:{rgb:'7F6000'}}},
+  l3:{fill:{patternType:'solid',fgColor:{rgb:'FFC7CE'}},font:{color:{rgb:'9C0006'}}} };
+function _xc(v,st){ var c={v:(v==null?'':v),t:(typeof v==='number')?'n':'s'}; c.s=Object.assign({alignment:{vertical:'top',wrapText:true}},st||{}); return c; }
+function _xlAns(d,which){
+  if(!d.type||d.type==='choice'){
+    var idx=which==='user'?(d.userAns||[]):(d.correct||[]), opts=d.options||[];
+    return idx.map(function(i){ var o=opts[i]; return String.fromCharCode(65+i)+') '+(isImgVal(o)?'[rasm]':_xlTxt(o)); }).join('; ');
+  }
+  if(d.type==='open') return which==='user'?_xlTxt((d.userAns||[])[0]):((d.data&&d.data.answers)||[]).map(_xlTxt).join(' / ');
+  return which==='user'?((d.userAns&&d.userAns.length)?'(javob berilgan)':''):'';
+}
+function buildResultsWorkbook(res){
+  var wb=XLSX.utils.book_new();
+  var H1=["O'quvchi","Sinf","Mavzu","To'g'ri","Jami","Ball","Foiz","Tur","Sana","Vaqt"];
+  var A=[H1.map(function(h){return _xc(h,_XL.head);})];
+  res.forEach(function(r){
+    var st=r.pct>=70?_XL.ok:r.pct>=50?_XL.part:_XL.bad;
+    A.push([_xc(r.student),_xc(r.cls||r.class||''),_xc(r.topic),_xc(r.correct),_xc(r.total),_xc(r.maxPts?(_fmtPts(r.pts)+' / '+r.maxPts):'—'),_xc(r.pct+'%',st),_xc(r.mode==='exam'?'Imtihon':'Sinov'),_xc(r.date||''),_xc(r.time||'')]);
+  });
+  var ws1=XLSX.utils.aoa_to_sheet(A); ws1['!cols']=[{wch:22},{wch:8},{wch:24},{wch:8},{wch:6},{wch:12},{wch:8},{wch:10},{wch:12},{wch:10}];
+  XLSX.utils.book_append_sheet(wb,ws1,'Natijalar');
+  var H2=["O'quvchi","Sinf","Mavzu","№","Savol","O'quvchi javobi","To'g'ri javob","Natija","Daraja","Savol bali","Olingan ball","O'quvchining umumiy bali"];
+  var B=[H2.map(function(h){return _xc(h,_XL.head);})];
+  res.forEach(function(r){
+    if(!r.details||!r.details.length) return;
+    var total=r.maxPts?(_fmtPts(r.pts)+' / '+r.maxPts+' ball ('+r.pct+'%)'):(r.correct+' / '+r.total+' ('+r.pct+'%)');
+    r.details.forEach(function(d,i){
+      var unm=_dUnm(d), part=!unm&&!d.ok&&d.score>0&&d.score<1;
+      var st=unm?_XL.none:d.ok?_XL.ok:part?_XL.part:_XL.bad;
+      var res_=unm?'Belgilanmagan':d.ok?"To'g'ri":part?('Qisman ('+Math.round(d.score*100)+'%)'):"Noto'g'ri";
+      var lv=(d.lvl>=1&&d.lvl<=3)?d.lvl:0;
+      B.push([_xc(r.student),_xc(r.cls||r.class||''),_xc(r.topic),_xc(i+1),_xc(_xlTxt(d.text||(d.type==='fill'?'(bo\'sh joyni to\'ldirish)':''))),
+        _xc(_xlAns(d,'user'),st),_xc(_xlAns(d,'right'),(d.type&&d.type!=='choice'&&d.type!=='open')?null:_XL.ok),_xc(res_,st),
+        _xc(lv?(LVL_NAME[lv]+' · '+LVL_PTS[lv]+' ball'):'—',lv?_XL['l'+lv]:null),_xc(lv?(d.max||LVL_PTS[lv]):'—'),_xc(lv?(d.pts!=null?d.pts:(d.ok?(d.max||LVL_PTS[lv]):0)):'—',st),
+        _xc(total,{font:{bold:true}})]);
+    });
+    B.push([_xc('')]);
+  });
+  var ws2=XLSX.utils.aoa_to_sheet(B);
+  ws2['!cols']=[{wch:20},{wch:7},{wch:20},{wch:5},{wch:46},{wch:22},{wch:22},{wch:14},{wch:14},{wch:10},{wch:12},{wch:24}];
+  ws2['!autofilter']={ref:'A1:L'+Math.max(2,B.length)};
+  XLSX.utils.book_append_sheet(wb,ws2,'Batafsil');
+  return wb;
+}
 function exportAll(){
   var res=myVisibleResults();if(!res.length){alert("Natijalar yo'q!");return;}
-  var wb=XLSX.utils.book_new(),data=[["O'quvchi","Sinf","Mavzu","To'g'ri","Jami","Ball","Tur","Sana","Vaqt"]];
-  res.forEach(function(r){data.push([r.student,r.cls||r.class,r.topic,r.correct,r.total,r.pct+'%',r.mode==='exam'?'Imtihon':'Sinov',r.date,r.time||'']);});
-  var ws=XLSX.utils.aoa_to_sheet(data);ws['!cols']=[{wch:22},{wch:8},{wch:22},{wch:8},{wch:6},{wch:8},{wch:10},{wch:12},{wch:10}];
-  XLSX.utils.book_append_sheet(wb,ws,'Natijalar');XLSX.writeFile(wb,'natijalar.xlsx');
+  XLSX.writeFile(buildResultsWorkbook(res),'natijalar.xlsx');
 }
 function exportByClass(){
   var res=myVisibleResults().filter(function(r){return r.mode==='exam';}),wb=XLSX.utils.book_new(),hasD=false;
@@ -9258,7 +9446,7 @@ function aiCheckTopic(topic, force) {
       var bg = r.skipped ? '#f8fafc' : (r.ok ? '#f0fdf4' : '#fff7ed');
       var bd = r.skipped ? '#cbd5e1' : (r.ok ? '#86efac' : '#fdba74');
       out += '<div style="padding:8px 10px;border-radius:8px;background:' + bg + ';border:1px solid ' + bd + ';margin-bottom:6px;cursor:pointer" onclick="toggleAiDetail(' + i + ')">';
-      out += '<b>' + (i+1) + '.</b> ' + _aiEsc((r.q.text || '(formula)').substring(0, 50)) + '  -  <span style="font-size:13px">' + _aiEsc(r.result) + '</span>';
+      out += '<b>' + (i+1) + '.</b> ' + mathPreview(r.q.text || '(formula)', 50) + '  -  <span style="font-size:13px">' + _aiEsc(r.result) + '</span>';
       out += '<span style="float:right;font-size:11px;color:#888">tafsilot &#9660;</span>';
       out += '<div id="ai-detail-' + i + '" style="display:none;margin-top:10px;padding-top:10px;border-top:1px dashed ' + bd + '">';
       if (r.q.image) out += '<div style="margin-bottom:8px"><img src="' + r.q.image + '" style="max-width:100%;max-height:160px;border-radius:6px"></div>';
@@ -9287,6 +9475,7 @@ function aiCheckTopic(topic, force) {
       '<button class="btn bsm" style="background:#e8f4fd;color:#1565c0" onclick="aiCheckTopic(\'' + tEsc + '\', true)">&#x1F504; Qayta tekshirish</button></div>';
     if (_aiRun && _aiRun.topic === topic) _aiRun.done = true;
     body.innerHTML = out;
+    try{ renderMathIn(body); }catch(e){}
     if (_aiRun && _aiRun.topic === topic) _aiRun = null;
   }
 
@@ -10397,14 +10586,15 @@ history.pushState(null, '', location.href);
   </div>
 
   <div class="mbg" id="eq-modal" style="display:none">
-    <div class="modal" style="max-width:500px;width:95%">
+    <div class="modal" style="max-width:640px;width:95%">
       <div class="mh"><h3>Savolni tahrirlash</h3><button class="xb" onclick="closeEditQ()">&#x2715;</button></div>
       <input type="hidden" id="eq-qid">
       <input type="hidden" id="eq-topic">
       <div class="fg" style="margin-bottom:12px">
         <label style="font-weight:500;margin-bottom:4px;display:block">Savol</label>
         <div id="eq-q-img"></div>
-        <textarea id="eq-text" rows="3" style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--color-border);resize:vertical;font-size:14px"></textarea>
+        <div id="eq-text" class="mathedit" contenteditable="true" data-placeholder="Savolni yozing..." style="min-height:64px"></div>
+        <div class="sarea" id="eq-syms" style="margin-top:6px"></div>
       </div>
       <div class="fg" style="margin-bottom:12px">
         <label style="font-weight:500;margin-bottom:6px;display:block">Qiyinlik darajasi</label>
