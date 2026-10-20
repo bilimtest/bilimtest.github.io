@@ -1364,7 +1364,7 @@ var INIT_META = [{"topic": "Guruhlash qonuni", "questionsToAsk": 20}, {"topic": 
 
 var SK = 'edutest_v3';
 // APP_VER sw.js dagi CACHE bilan bir xil bo'lishi SHART (sw versiyasini oshirganda buni ham oshiring)
-var APP_VER = 'bilimtest-v130';
+var APP_VER = 'bilimtest-v131';
 (function(){
   try{
     if('serviceWorker' in navigator && navigator.serviceWorker.controller) return; // SW bor - o'zining yangilanish banneri ishlaydi
@@ -3168,8 +3168,11 @@ async function doLogin(){
     return;
   }
   if(srv) _authToken=srv.token; // token bilan to'liq (rolga mos) baza keladi
-  // Har doim serverdan eng so'nggi ma'lumotni yuklaymiz
-  try{ await syncFromCloud(); }catch(e){}
+  // Qurilmada shu foydalanuvchining nusxasi bor bo'lsa — panel darhol ochiladi, yangi baza fonda yuklanadi;
+  // birinchi marta kirishda esa serverdan yuklanishini kutamiz
+  var _db0=getDB(), _hadLocal=!!srv&&(_db0.users||[]).some(function(x){return x.login===u&&x.role===authRole;})&&(_db0.userQs||[]).length>0;
+  if(_hadLocal){ try{ syncFromCloud().then(function(){ try{ renderNotifBell(); }catch(e){} }); }catch(e){} }
+  else { try{ await syncFromCloud(); }catch(e){} }
   var db=getDB(),found=null;
   db.users.forEach(function(x){if(x.login===u&&x.role===authRole&&(srv?true:x.pass===p))found=x;});
   if(!found){
