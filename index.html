@@ -1364,7 +1364,7 @@ var INIT_META = [{"topic": "Guruhlash qonuni", "questionsToAsk": 20}, {"topic": 
 
 var SK = 'edutest_v3';
 // APP_VER sw.js dagi CACHE bilan bir xil bo'lishi SHART (sw versiyasini oshirganda buni ham oshiring)
-var APP_VER = 'bilimtest-v127';
+var APP_VER = 'bilimtest-v128';
 (function(){
   try{
     if('serviceWorker' in navigator && navigator.serviceWorker.controller) return; // SW bor - o'zining yangilanish banneri ishlaydi
@@ -2466,7 +2466,7 @@ function makeChip(latex){
 function mathEditSetValue(el, text){
   if(!el) return;
   el.innerHTML='';
-  text=text||'';
+  text=(text||'').replace(/<br\s*\/?>/gi,'\n');
   var re=/\$([^$]+)\$/g, lastIdx=0, m;
   while((m=re.exec(text))){
     if(m.index>lastIdx) el.appendChild(document.createTextNode(text.slice(lastIdx,m.index)));
@@ -3413,6 +3413,11 @@ function setStudentSubject(s){
 }
 function filterBySubj(s){ setStudentSubject(s); }
 
+// Imtihon har o'quvchiga bitta mavzudan faqat BIR marta
+function examTaken(t){
+  if(!ME||ME.role!=='student') return false;
+  return (getDBro().results||[]).some(function(r){ return r.mode==='exam'&&r.topic===t&&r.student===ME.name&&(r.cls===ME.cls||r.class===ME.cls); });
+}
 function selectTopicByName(t,el){
   selTopic=t;
   try{ preloadTopicImages(getQsByTopic(t)); }catch(e){}
@@ -3434,6 +3439,7 @@ function selectTopicByName(t,el){
     var tq=(db.userQs||[]).find(function(q){return q.topic===t;});
     var owner=tq&&tq.teacherId?(db.users||[]).find(function(u){return u.id===tq.teacherId;}):null;
     var examOff=owner&&owner.examEnabled===false;
+    var examDone=!examOff&&examTaken(t);
     var descEl=document.getElementById('exam-mode-desc');
     if(examOff){
       examCard.style.opacity='0.5';
@@ -3441,6 +3447,12 @@ function selectTopicByName(t,el){
       examCard.style.cursor='not-allowed';
       examCard.onclick=function(){};
       if(descEl)descEl.innerHTML='Imtihon rejimi o\'chiq';
+    } else if(examDone){
+      examCard.style.opacity='0.5';
+      examCard.style.filter='grayscale(1)';
+      examCard.style.cursor='not-allowed';
+      examCard.onclick=function(){ alert("Siz bu mavzudan imtihonni allaqachon topshirgansiz. Imtihon faqat bir marta topshiriladi."); };
+      if(descEl)descEl.innerHTML='Allaqachon topshirilgan (faqat 1 marta)';
     } else {
       examCard.style.opacity='';
       examCard.style.filter='';
@@ -3505,7 +3517,8 @@ function resLvlBreak(r){
   return '<div class="lvbr">'+[1,2,3].filter(function(l){return a[l].n;}).map(function(l){ var x=a[l];
     return '<div>'+lvlBadge(l)+'<span><b>'+x.ok+'/'+x.n+'</b> to\'g\'ri &middot; <b>'+_fmtPts(x.p)+'/'+x.m+'</b> ball</span></div>'; }).join('')+'</div>';
 }
-function explHtml(d){ return (d&&d.expl)?'<div style="margin-top:8px;padding:8px 10px;border-radius:8px;background:rgba(99,102,241,.14);font-size:13px;line-height:1.6"><b>Yechim:</b> '+_qEsc(d.expl)+'</div>':''; }
+// Yechim (izoh) o'quvchiga ko'rsatilmaydi — faqat ustoz va admin ko'radi
+function explHtml(d){ if(ME&&ME.role==='student') return ''; return (d&&d.expl)?'<div style="margin-top:8px;padding:8px 10px;border-radius:8px;background:rgba(99,102,241,.14);font-size:13px;line-height:1.6"><b>Yechim:</b> '+_qEsc(d.expl)+'</div>':''; }
 function lvChip(d){ return (d&&d.lvl)?'<div style="margin-bottom:7px">'+lvlBadge(d.lvl)+' <b style="font-size:12px">'+_fmtPts(d.pts)+' / '+(d.max||LVL_PTS[d.lvl])+' ball</b></div>':''; }
 function cycleQLvl(qi){
   var q=window._detailQs&&window._detailQs[qi]; if(!q) return;
@@ -3548,7 +3561,7 @@ function saveTimerMinutes(val){
 }
 // SAVOL TURLARI TIZIMI
 function qType(q){ return (q&&q.type)||'choice'; }
-function _qEsc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+function _qEsc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}).replace(/&lt;br\s*\/?&gt;/gi,'<br>'); }
 function _qNorm(s){ return String(s||'').toLowerCase().replace(/[’`ʻʼ‘]/g,"'").replace(/\s+/g,' ').trim(); }
 var BLANK_RE=/_{3,}/g;
 // YOZMA JAVOB TEKSHIRUVI (2026-10-16): katta/kichik harf, kirill/lotin, apostrof turlari, raqam so'z bilan (o'zbekcha/inglizcha),
@@ -5249,6 +5262,7 @@ function renderMsResult(r){
 function startTest(mode){
   if(!selTopic){alert("Mavzu tanlang!");return;}
   var _rv=_reviewQs&&_reviewQs.name===selTopic;
+  if(mode==='exam'&&!_rv&&examTaken(selTopic)){ alert("Siz bu mavzudan imtihonni allaqachon topshirgansiz. Imtihon faqat bir marta topshiriladi."); return; }
   var rawQs=_rv?_reviewQs.qs:getQsByTopic(selTopic);
   if(!rawQs.length){alert("Bu mavzuda savollar yo'q!");return;}
   var meta=getTopicMeta(selTopic);
@@ -6530,7 +6544,7 @@ function mathAutoText(s){
 }
 // Matn ichidagi $...$ formulalarni chizilgan (KaTeX) holda qisqa ko'rsatadi (jadval/ro'yxatlar uchun); max — oddiy belgilar soni
 function mathPreview(text,max){
-  text=String(text==null?'':text).replace(/\s*\n\s*/g,' '); max=max||60;
+  text=String(text==null?'':text).replace(/<br\s*\/?>/gi,' ').replace(/\s*\n\s*/g,' '); max=max||60;
   var parts=text.split(/(\$[^$]*\$)/), out='', used=0, cut=false;
   for(var i=0;i<parts.length&&!cut;i++){
     var q=parts[i]; if(!q) continue;
