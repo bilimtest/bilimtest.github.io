@@ -1389,7 +1389,7 @@ var INIT_META = [{"topic": "Guruhlash qonuni", "questionsToAsk": 20}, {"topic": 
 
 var SK = 'edutest_v3';
 // APP_VER sw.js dagi CACHE bilan bir xil bo'lishi SHART (sw versiyasini oshirganda buni ham oshiring)
-var APP_VER = 'bilimtest-v148';
+var APP_VER = 'bilimtest-v149';
 (function(){
   try{
     if('serviceWorker' in navigator && navigator.serviceWorker.controller) return; // SW bor - o'zining yangilanish banneri ishlaydi
@@ -3359,8 +3359,7 @@ function renderStaffList(){
   if(own) html+='<div class="stf-row"><button class="sg-card" onclick="enterStaff(\''+_cEsc(ME.id)+'\')"><span style="font-size:30px">&#x1F468;&#x200D;&#x1F3EB;</span><b>'+_cEsc(ME.name)+'</b><span class="ts tm">asosiy hisob</span></button></div>';
   list.forEach(function(u){
     var n=(db.userQs||[]).filter(function(q){return q.teacherId===u.id;}).length;
-    html+='<div class="stf-row" style="margin-top:8px"><button class="sg-card" onclick="enterStaff(\''+_cEsc(u.id)+'\')"><span style="font-size:30px">&#x1F468;&#x200D;&#x1F3EB;</span><b>'+_cEsc(u.name)+'</b><span class="ts tm">'+_cEsc(subjName(u.subject)||'')+' &#183; '+n+' ta savol</span></button>'+
-      '<button class="stf-del" title="O\'chirish" onclick="delStaff(\''+_cEsc(u.id)+'\')">&#x2715;</button></div>';
+    html+='<div class="stf-row" style="margin-top:8px"><button class="sg-card" onclick="enterStaff(\''+_cEsc(u.id)+'\')"><span style="font-size:30px">&#x1F468;&#x200D;&#x1F3EB;</span><b>'+_cEsc(u.name)+'</b><span class="ts tm">'+_cEsc(subjName(u.subject)||'')+' &#183; '+n+' ta savol</span></button></div>';
   });
   if(!html) html='<div class="alt ai">Hali ustoz qo\'shilmagan. Pastdan har bir ustozning ism-familiyasi va fanini kiriting.</div>';
   host.innerHTML=html;
@@ -3379,15 +3378,6 @@ function addStaff(){
   saveDB(db);
   document.getElementById('staff-name').value=''; msg.innerHTML='<div class="alt as mt8">&#x2705; Qo\'shildi. Ustoz nomini bosib uning bo\'limiga kiring va "Sozlamalar"da sinflarini belgilang.</div>';
   renderStaffList();
-}
-function delStaff(id){
-  var db=getDB(), u=(db.users||[]).filter(function(x){return x.id===id;})[0]; if(!u) return;
-  var n=(db.userQs||[]).filter(function(q){return q.teacherId===id;}).length;
-  if(!confirm(u.name+' ustozini o\'chirasizmi?'+(n?'\nUning '+n+' ta savoli ham o\'chadi.':''))) return;
-  db.users=db.users.filter(function(x){return x.id!==id;});
-  db.userQs=(db.userQs||[]).filter(function(q){return q.teacherId!==id;});
-  db.topicsMeta=(db.topicsMeta||[]).filter(function(m){return m.teacherId!==id;});
-  saveDB(db); renderStaffList();
 }
 var SHEETS_CODE=['function doPost(e){',
  ' var d=JSON.parse(e.postData.contents), ss=SpreadsheetApp.getActiveSpreadsheet();',
