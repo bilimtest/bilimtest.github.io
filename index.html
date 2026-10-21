@@ -1392,7 +1392,7 @@ var INIT_META = [{"topic": "Guruhlash qonuni", "questionsToAsk": 20}, {"topic": 
 
 var SK = 'edutest_v3';
 // APP_VER sw.js dagi CACHE bilan bir xil bo'lishi SHART (sw versiyasini oshirganda buni ham oshiring)
-var APP_VER = 'bilimtest-v136';
+var APP_VER = 'bilimtest-v137';
 (function(){
   try{
     if('serviceWorker' in navigator && navigator.serviceWorker.controller) return; // SW bor - o'zining yangilanish banneri ishlaydi
@@ -10776,7 +10776,9 @@ function savePreLogin(){
     var v={pg:pg.id, role:(typeof authRole!=='undefined')?authRole:null, tab:null, f:{}};
     var fr=document.getElementById('form-rg'); if(fr) v.tab=fr.style.display==='block'?'rg':'li';
     if(pg.id==='pg-auth') [].forEach.call(pg.querySelectorAll('input,select,textarea'),function(x){
-      if(!x.id||x.type==='password'||x.type==='file') return; v.f[x.id]=(x.type==='checkbox'||x.type==='radio')?(x.checked?1:0):x.value; });
+      if(!x.id||(x.type==='password'&&x.id!=='rg-p')||x.type==='file') return; v.f[x.id]=(x.type==='checkbox'||x.type==='radio')?(x.checked?1:0):x.value; });
+    if(pg.id==='pg-auth'&&typeof _rgV!=='undefined'&&(_rgV.ptok||_rgV.etok)) v.rg={ptok:_rgV.ptok,phone:_rgV.phone,tg:_rgV.tg,etok:_rgV.etok,email:_rgV.email,at:Date.now()};
+    var _er=document.getElementById('rg-ecode-row'); if(_er) v.ecode=_er.style.display;
     sessionStorage.setItem('et_pre',JSON.stringify(v));
   }catch(e){}
 }
@@ -10790,6 +10792,13 @@ function restorePreLogin(){
     goAuth(v.role); if(v.tab&&typeof showAuthTab==='function') showAuthTab(v.tab);
     Object.keys(v.f||{}).forEach(function(id){ var x=document.getElementById(id); if(!x) return;
       if(x.type==='checkbox'||x.type==='radio') x.checked=!!v.f[id]; else { x.value=v.f[id]; try{ x.dispatchEvent(new Event('change')); }catch(e){} } });
+    // tasdiqlangan telefon/email (token 30 daqiqa amal qiladi) va kod kiritish qatori ham qaytadi
+    if(v.rg&&Date.now()-v.rg.at<25*60*1000&&typeof _rgV!=='undefined'){
+      _rgV.ptok=v.rg.ptok||''; _rgV.phone=v.rg.phone||''; _rgV.tg=v.rg.tg||''; _rgV.etok=v.rg.etok||''; _rgV.email=v.rg.email||'';
+      if(_rgV.ptok){ _rgSt('rg-phone-st','&#x2705; Telefon tasdiqlandi. Shu Telegram orqali parolni tiklash ham mumkin bo\'ladi.',true); var _pb=document.getElementById('rg-phone-btn'); if(_pb) _pb.innerHTML='&#x1F504; Boshqa raqam'; }
+      if(_rgV.etok) _rgSt('rg-email-st','&#x2705; Email tasdiqlandi.',true);
+    }
+    if(v.ecode==='flex'&&!(typeof _rgV!=='undefined'&&_rgV.etok)){ var _re=document.getElementById('rg-ecode-row'); if(_re) _re.style.display='flex'; }
   }catch(e){ console.warn('restorePreLogin',e); }
   if(!ME&&!(function(){ try{ return sessionStorage.getItem('et_sess'); }catch(e){ return null; } })()) _endRestore();
 }
