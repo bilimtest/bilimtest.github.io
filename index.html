@@ -1392,7 +1392,7 @@ var INIT_META = [{"topic": "Guruhlash qonuni", "questionsToAsk": 20}, {"topic": 
 
 var SK = 'edutest_v3';
 // APP_VER sw.js dagi CACHE bilan bir xil bo'lishi SHART (sw versiyasini oshirganda buni ham oshiring)
-var APP_VER = 'bilimtest-v135';
+var APP_VER = 'bilimtest-v136';
 (function(){
   try{
     if('serviceWorker' in navigator && navigator.serviceWorker.controller) return; // SW bor - o'zining yangilanish banneri ishlaydi
@@ -9201,6 +9201,31 @@ function importExeAsync(file){
 
 // WORD/PDF/TXT IMPORT (AI asosida) — PARALLEL
 // Import natijasi: javob qayerdan olingani (fayldan / AI / yo'q)
+// ── Importda faylning nomi/sarlavhasidan sinf (va til) aniqlanadi → mavzuga avtomatik belgilanadi ──
+function _clsGrade(c){ var m=/^\s*(\d{1,2})/.exec(String(c)); return m?parseInt(m[1],10):null; }
+function _clsLetter(c){ var m=/^\s*\d{1,2}\s*[-–]?\s*([A-Za-zА-Яа-я])(?![A-Za-zА-Яа-я])/.exec(String(c)); return m?m[1].toUpperCase():null; }
+function matchImportClasses(grades,lang,subject){
+  var opts=_clsSort(userClassList(ME).slice()), out=[];
+  (grades||[]).forEach(function(g){
+    var c=opts.filter(function(x){ if(_clsGrade(x)!==g.g) return false; return !g.l||_clsLetter(x)===String(g.l).toUpperCase(); });
+    if(c.length>1){   // sinf nomida til ko'rsatilgan bo'lsa ("Rus tili", "O'zbek tili") faylning tiliga qarab saralanadi
+      var rus=c.filter(function(x){ return /rus|рус/i.test(x); }), uz=c.filter(function(x){ return /o.?zbek|uzb|\buz\b/i.test(x); });
+      if(lang==='rus'&&rus.length) c=rus; else if(lang!=='rus'&&uz.length) c=uz;
+    }
+    c.forEach(function(x){ if(out.indexOf(x)<0) out.push(x); });
+  });
+  return out;
+}
+function applyImportGrades(topic,d){
+  var gr=(d&&d.grades)||[]; if(!gr.length||!ME||ME.role==='student') return '';
+  var label=gr.map(function(g){ return g.g+(g.l?'-'+g.l:'')+'-sinf'; }).join(', ');
+  var m=matchImportClasses(gr,d.lang,ME.subject);
+  if(!m.length) return '<br><span class="ts">Fayldan <b>'+_cEsc(label)+'</b> aniqlandi, lekin sinflaringiz orasida mos sinf yo\'q — mavzuda sinflarni o\'zingiz belgilang.</span>';
+  try{
+    var r=_topicMeta(topic,true); if(!(r.m.classes&&r.m.classes.length)){ r.m.classes=_clsSort(m.slice()); saveDB(r.db); }
+  }catch(e){ return ''; }
+  return '<br><span class="ts">Fayldan <b>'+_cEsc(label)+'</b> aniqlandi &rarr; mavzu <b>'+_cEsc(m.join(', '))+'</b> sinf'+(m.length>1?'lariga':'iga')+' ko\'rinadi (mavzuni ochib o\'zgartirish mumkin).</span>';
+}
 function _docImportSummary(name, d, qs){
   var _esc=function(t){ return String(t||'').replace(/<[^>]+>/g,' ').replace(/[<>&"]/g,'').slice(0,45); };
   var out='&#x2705; "'+_esc(name)+'" — '+qs.length+' ta savol';
@@ -9275,7 +9300,7 @@ async function importDocumentFiles(files, suggestedFolder, unsupportedNote){
         var pMsg={set innerHTML(html){status[i]=html.replace(/<[^>]+>/g,'');renderStatus();}};
         await saveImportedQs({qs:qs, topic:res.data.topic, questionsToAsk:res.data.questionsToAsk}, pMsg);
         okTotal++;
-        status[i]=_docImportSummary(files[i].name, res.data, qs);
+        status[i]=_docImportSummary(files[i].name, res.data, qs)+(window._impTarget?'':applyImportGrades(res.data.topic,res.data));
       } else {
         errTotal++;
         failedNames.push(res.filename+' ('+res.error+')');
