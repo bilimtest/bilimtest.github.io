@@ -582,7 +582,7 @@ html[data-px=night] #tab-rg.on{background:#7a4fd6!important;color:#fff!important
       <div><h2 id="tp-gr"></h2><p class="ts tm" id="tp-sub"></p></div>
       <div style="display:flex;gap:8px">
         <button class="btn bs bsm" onclick="showPg('pg-profile');renderMyClassCard()">&#x1F464; Mening profilim</button>
-        <button class="btn bg bsm" onclick="logout()">Chiqish</button>
+        <button class="btn bg bsm" onclick="safeLogout()">Chiqish</button>
       </div>
     </div>
   </div>
@@ -1389,7 +1389,7 @@ var INIT_META = [{"topic": "Guruhlash qonuni", "questionsToAsk": 20}, {"topic": 
 
 var SK = 'edutest_v3';
 // APP_VER sw.js dagi CACHE bilan bir xil bo'lishi SHART (sw versiyasini oshirganda buni ham oshiring)
-var APP_VER = 'bilimtest-v149';
+var APP_VER = 'bilimtest-v150';
 (function(){
   try{
     if('serviceWorker' in navigator && navigator.serviceWorker.controller) return; // SW bor - o'zining yangilanish banneri ishlaydi
@@ -3477,8 +3477,26 @@ function afterLogin(){
   else{resetTheme();selTopic=null;_curFolder=null;_curSubjFilter=null;_curTeacherFilter=null;showPg('pg-topic');renderTopics();if(_curSubjFilter)applySubjectTheme(_curSubjFilter);loadMyHist();var bjb=document.getElementById('battle-join-box');if(bjb)bjb.style.display='block';}
 }
 var _logoutWarned = false;
+function _stAtMain(){
+  var pg=document.querySelector('.pg.on');
+  if(!pg||pg.id!=='pg-topic') return false;
+  var openMod=[].some.call(document.querySelectorAll('.mbg'),function(m){ return getComputedStyle(m).display!=='none'; });   // ochiq oyna bo'lsa ichkarida hisoblanadi
+  if(openMod) return false;
+  if(_curStSection()!=='st-test') return false;
+  return !_curFolder&&!selTopic;
+}
+function _stGoMain(){
+  try{ document.querySelectorAll('.mbg').forEach(function(m){ m.style.display='none'; }); }catch(e){}
+  selTopic=null; _curFolder=null;
+  var v=document.getElementById('r-det'); if(v) v.style.display='none';
+  showPg('pg-topic');
+  try{ openStSection('st-test'); }catch(e){}
+  try{ renderTopics(); }catch(e){}
+  window.scrollTo(0,0);
+}
 function safeLogout(){
   if(ME&&ME.role==='teacher'&&ME.parentId&&!S.mode){ showStaffPicker(); return; }   // profildan chiqish = ustozlar menyusiga qaytish
+  if(ME&&ME.role==='student'&&!S.mode&&!_stAtMain()){ _stGoMain(); return; }   // o'quvchi ichkarida: "Chiqish" asosiy menyuga qaytaradi, menyuda bosilsa chiqadi
   if(S.mode){
     var body=document.getElementById('logout-warn-body');
     body.innerHTML='<div style="font-size:32px;margin-bottom:10px">⚠️</div><h3 style="margin-bottom:10px">Diqqat! Test hali tugamagan</h3>'+
