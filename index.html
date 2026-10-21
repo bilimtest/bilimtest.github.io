@@ -1389,7 +1389,7 @@ var INIT_META = [{"topic": "Guruhlash qonuni", "questionsToAsk": 20}, {"topic": 
 
 var SK = 'edutest_v3';
 // APP_VER sw.js dagi CACHE bilan bir xil bo'lishi SHART (sw versiyasini oshirganda buni ham oshiring)
-var APP_VER = 'bilimtest-v146';
+var APP_VER = 'bilimtest-v147';
 (function(){
   try{
     if('serviceWorker' in navigator && navigator.serviceWorker.controller) return; // SW bor - o'zining yangilanish banneri ishlaydi
@@ -3002,7 +3002,17 @@ function getMyQsByTopic(t){ return getMyQs().filter(function(q){return q.topic==
 function getTopicMeta(topic) {
   var db=getDBro();
   var all=(db.topicsMeta||[]).concat(INIT_META);
+  var pid=_metaPrefTeacher();
+  if(pid){for(var j=0;j<all.length;j++){if(all[j].topic===topic&&all[j].teacherId===pid)return all[j];}}
   for(var i=0;i<all.length;i++){if(all[i].topic===topic)return all[i];}
+  return null;
+}
+function _metaPrefTeacher(){
+  try{
+    if(typeof ME==='undefined'||!ME)return null;
+    if(ME.role==='teacher')return ME.id;
+    if(ME.role==='student'&&typeof _curTeacherFilter!=='undefined'&&_curTeacherFilter&&_curTeacherFilter!=='__sys')return _curTeacherFilter;
+  }catch(e){}
   return null;
 }
 // Timer
@@ -3517,7 +3527,8 @@ function renderTopics(){
   var qsCountByTopic={};
   allQs.forEach(function(q){ if(q.topic) qsCountByTopic[q.topic]=(qsCountByTopic[q.topic]||0)+1; });
   var metaByTopic={};
-  (db.topicsMeta||[]).concat(INIT_META).forEach(function(m){ if(m.topic && !metaByTopic[m.topic]) metaByTopic[m.topic]=m; });
+  var _pidM=_metaPrefTeacher();
+  (db.topicsMeta||[]).concat(INIT_META).forEach(function(m){ if(m.topic && (!metaByTopic[m.topic]||(_pidM&&m.teacherId===_pidM))) metaByTopic[m.topic]=m; });
 
   var grid=document.getElementById('topic-grid');
 
