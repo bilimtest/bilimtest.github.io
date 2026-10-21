@@ -946,10 +946,7 @@ html[data-px=night] #tab-rg.on{background:#7a4fd6!important;color:#fff!important
   <div class="tc" id="tc-i">
     <div class="card">
       <h2 style="margin-bottom:6px">Test import</h2>
-      <p class="ts tm" style="margin-bottom:11px">Savolingizni import qiling — AI avtomatik o'qib beradi</p>
-      <div class="fg" style="margin-bottom:12px"><label>Qaysi mavzuga qo'shilsin?</label>
-        <select id="imp-target" onchange="window._impTarget=this.value" style="width:100%"><option value="">Yangi mavzu (fayl nomi bilan)</option></select>
-        <div class="ts tm" style="margin-top:4px">Mavjud mavzuni tanlasangiz, fayldagi savollar o'sha mavzuga <b>qo'shiladi</b> (masalan 2-variant) — eskilari o'zgarmaydi va almashtirilmaydi.</div></div>
+      <p class="ts tm" style="margin-bottom:11px">Faylni (yoki zipni) tashlang — har fayl <b>alohida mavzu</b> bo'lib saqlanadi, sinfi fayl nomi/sarlavhasidan aniqlanib avtomatik belgilanadi.</p>
       <div class="darea" id="drop-area" onclick="document.getElementById('exe-inp').click()">
         <div style="font-size:36px">📂</div>
         <div style="font-weight:700;margin-top:6px">Bosing yoki faylni shu yerga tashlang</div>
@@ -1392,7 +1389,7 @@ var INIT_META = [{"topic": "Guruhlash qonuni", "questionsToAsk": 20}, {"topic": 
 
 var SK = 'edutest_v3';
 // APP_VER sw.js dagi CACHE bilan bir xil bo'lishi SHART (sw versiyasini oshirganda buni ham oshiring)
-var APP_VER = 'bilimtest-v139';
+var APP_VER = 'bilimtest-v140';
 (function(){
   try{
     if('serviceWorker' in navigator && navigator.serviceWorker.controller) return; // SW bor - o'zining yangilanish banneri ishlaydi
@@ -9197,7 +9194,15 @@ async function importMultipleFiles(files,suggestedFolder){
   }
   var unsupportedNote=unsupported.length?(' ('+unsupported.length+' ta qollab-quvvatlanmaydigan fayl otkazib yuborildi)'):'';
 
-  // TUZATISH : avval faqat BITTA fayl tashlanganda fan (subject)
+  // Ustoz: papka/fan oynasisiz — har fayl o'z mavzusi (fan = ustozning o'z fani), sinf fayldan aniqlanadi
+  if(ME&&ME.role==='teacher'&&!suggestedFolder){
+    window._fpOverrideSubject=null; _pendingImportSubject=null; _fpBatch=null; _pendingImportFolder=null;
+    if(imgFiles.length) importImageFiles(imgFiles, '', unsupportedNote);
+    if(docFiles.length) importDocumentFiles(docFiles, '', unsupportedNote);
+    if(exeFiles.length){ warmUpImportServers(); distributedExeImport(exeFiles, '', document.getElementById('imp-msg')); }
+    return;
+  }
+  // Admin: avvalgidek papka/fan oynasi
   var totalCount=exeFiles.length+docFiles.length+imgFiles.length;
   if(totalCount===1 && !suggestedFolder){
     askFolderThenImport((docFiles[0]||imgFiles[0]||exeFiles[0]));
@@ -9319,12 +9324,6 @@ function sendDocumentToServer(file){
 async function importDocumentFiles(files, suggestedFolder, unsupportedNote){
   var msg=document.getElementById('imp-msg');
   var folderName=suggestedFolder;
-  if(!folderName && files.length>1 && !window._impTarget){
-    var defaultName=files[0].name.replace(/\.(docx?|pdf|txt|xlsx|xlsm|xls|csv|rtf|odt|ods|pptx?|odp)$/i,'').replace(/[\s_-]*\d+$/,'')||'Kitob 1';
-    folderName=prompt('Bu '+files.length+' ta faylni bitta "kitob" nomiga birlashtiramiz.\nKitob nomini tasdiqlang yoki ozgartiring:', defaultName);
-    if(folderName===null)return;
-    folderName=folderName.trim()||'Kitob';
-  }
   if(folderName) _pendingImportFolder=folderName;
   await acquireImportWakeLock();
   warmUpImportServers(); // barcha 6 serverni oldindan uyg'otamiz - 1 fayl bo'lsa ham tez javob kelsin
@@ -9400,12 +9399,6 @@ function sendImageToServer(file){
 async function importImageFiles(files, suggestedFolder, unsupportedNote){
   var msg=document.getElementById('imp-msg');
   var folderName=suggestedFolder;
-  if(!folderName && files.length>1 && !window._impTarget){
-    var defaultName='Rasmlardan test';
-    folderName=prompt('Bu '+files.length+' ta rasmni bitta "kitob" nomiga birlashtiramiz.\nKitob nomini tasdiqlang yoki ozgartiring:', defaultName);
-    if(folderName===null)return;
-    folderName=folderName.trim()||'Kitob';
-  }
   if(folderName) _pendingImportFolder=folderName;
   await acquireImportWakeLock();
   warmUpImportServers();
