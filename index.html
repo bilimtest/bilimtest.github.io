@@ -1389,7 +1389,7 @@ var INIT_META = [{"topic": "Guruhlash qonuni", "questionsToAsk": 20}, {"topic": 
 
 var SK = 'edutest_v3';
 // APP_VER sw.js dagi CACHE bilan bir xil bo'lishi SHART (sw versiyasini oshirganda buni ham oshiring)
-var APP_VER = 'bilimtest-v144';
+var APP_VER = 'bilimtest-v145';
 (function(){
   try{
     if('serviceWorker' in navigator && navigator.serviceWorker.controller) return; // SW bor - o'zining yangilanish banneri ishlaydi
@@ -7638,6 +7638,14 @@ function adminEditUser(uid){
   if(!u)return;
   var newName=prompt('Ism:',u.name);
   if(newName===null)return;
+  if(u.profile||u.parentId){
+    u.name=newName.trim()||u.name;
+    saveDB(db);
+    renderAdminAllUsers();
+    renderAdminOverview();
+    alert('Saqlandi!');
+    return;
+  }
   var newLogin=prompt('Login:',u.login);
   if(newLogin===null)return;
   newLogin=newLogin.trim();
