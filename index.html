@@ -955,7 +955,7 @@ html[data-px=night] #tab-rg.on{background:#7a4fd6!important;color:#fff!important
         <div style="font-weight:700;margin-top:6px">Bosing yoki faylni shu yerga tashlang</div>
         <div class="ts tm">.exe, Word, Excel, PowerPoint, CSV, PDF, TXT, rasm</div>
       </div>
-      <input type="file" id="exe-inp" accept=".exe,.docx,.doc,.xlsx,.xls,.pptx,.ppt,.csv,.pdf,.txt,.rtf,.odt,.ods,.odp,.jpg,.jpeg,.png" multiple style="display:none">
+      <input type="file" id="exe-inp" accept=".zip,.exe,.docx,.doc,.xlsx,.xls,.pptx,.ppt,.csv,.pdf,.txt,.rtf,.odt,.ods,.odp,.jpg,.jpeg,.png" multiple style="display:none">
       <div id="imp-msg" style="margin-top:10px"></div>
     </div>
     <div class="card" style="border:2px solid var(--purd)">
@@ -1392,7 +1392,7 @@ var INIT_META = [{"topic": "Guruhlash qonuni", "questionsToAsk": 20}, {"topic": 
 
 var SK = 'edutest_v3';
 // APP_VER sw.js dagi CACHE bilan bir xil bo'lishi SHART (sw versiyasini oshirganda buni ham oshiring)
-var APP_VER = 'bilimtest-v138';
+var APP_VER = 'bilimtest-v139';
 (function(){
   try{
     if('serviceWorker' in navigator && navigator.serviceWorker.controller) return; // SW bor - o'zining yangilanish banneri ishlaydi
@@ -9130,7 +9130,55 @@ function importBgWarningHtml(){
   return '<div class="alt aw" style="margin-bottom:8px">&#x26A0;&#xFE0F; Import davomida ekranni ochirmang va boshqa ilovaga otmang - ayniqsa Xiaomi/MIUI qurilmalarda (masalan Redmi) fon rejimi importni "muzlatib" qoyib, xato bilan toxtatishi mumkin. Katta fayllar (kop rasm/formula) bir necha daqiqa davom etishi mumkin.</div>';
 }
 
-function importMultipleFiles(files,suggestedFolder){
+// ── ZIP: ichidagi fayllarni ochib, har birini alohida import qiladi ──
+function _zipNameDecode(u8){
+  try{ return new TextDecoder('utf-8',{fatal:true}).decode(u8); }catch(e){}
+  try{ return new TextDecoder('windows-1251').decode(u8); }catch(e){ return String.fromCharCode.apply(null,u8); }
+}
+function _zipList(buf){
+  var u=new Uint8Array(buf), dv=new DataView(buf), i=u.length-22;
+  while(i>=0&&dv.getUint32(i,true)!==0x06054b50) i--;
+  if(i<0) throw new Error('zip emas');
+  var n=dv.getUint16(i+10,true), off=dv.getUint32(i+16,true), out=[];
+  for(var k=0;k<n;k++){
+    if(dv.getUint32(off,true)!==0x02014b50) break;
+    var flag=dv.getUint16(off+8,true), meth=dv.getUint16(off+10,true), csz=dv.getUint32(off+20,true), usz=dv.getUint32(off+24,true);
+    var nl=dv.getUint16(off+28,true), el=dv.getUint16(off+30,true), cl=dv.getUint16(off+32,true), lo=dv.getUint32(off+42,true);
+    out.push({name:_zipNameDecode(u.subarray(off+46,off+46+nl)), flag:flag, meth:meth, csz:csz, usz:usz, lo:lo});
+    off+=46+nl+el+cl;
+  }
+  return out;
+}
+function _zipData(buf,e){
+  var u=new Uint8Array(buf), dv=new DataView(buf), lnl=dv.getUint16(e.lo+26,true), lel=dv.getUint16(e.lo+28,true), ds=e.lo+30+lnl+lel, data=u.subarray(ds,ds+e.csz);
+  return e.meth===0?data:pako.inflateRaw(data);
+}
+function _zipWanted(name){ return isExeFile(name)||isDocFile(name)||isImageFile(name); }
+async function expandZipFiles(files){
+  var out=[], info=[];
+  for(var fi=0;fi<files.length;fi++){
+    var f=files[fi];
+    if(!/\.zip$/i.test(f.name)){ out.push(f); continue; }
+    try{
+      var buf=await f.arrayBuffer(), list=_zipList(buf), got=0, skip=0;
+      for(var ei=0;ei<list.length&&got<150;ei++){
+        var e=list[ei], base=e.name.split('/').pop();
+        if(!base||/\/$/.test(e.name)||/^__MACOSX\//.test(e.name)||base.charAt(0)==='.'||base.charAt(0)==='~'){ continue; }
+        if(!_zipWanted(base)){ skip++; continue; }
+        if((e.flag&1)||e.usz>40*1024*1024){ skip++; continue; }
+        try{ var bytes=_zipData(buf,e); out.push(new File([bytes],base,{type:''})); got++; }catch(er){ skip++; }
+      }
+      info.push('"'+f.name+'" ichidan '+got+' ta fayl ochildi'+(skip?' ('+skip+' ta mos kelmaydigan o\'tkazib yuborildi)':''));
+    }catch(er){ info.push('"'+f.name+'" zip faylini ochib bo\'lmadi'); }
+  }
+  return {files:out, info:info};
+}
+async function importMultipleFiles(files,suggestedFolder){
+  if(files.some(function(f){ return /\.zip$/i.test(f.name); })){
+    var _mz=document.getElementById('imp-msg'); if(_mz) _mz.innerHTML='<div class="alt ai">&#x23F3; Zip fayl ochilmoqda...</div>';
+    var _ex=await expandZipFiles(files); files=_ex.files;
+    if(_mz&&_ex.info.length) _mz.innerHTML='<div class="alt ai">'+_ex.info.map(_cEsc).join('<br>')+'</div>';
+  }
   // Papka tasodifan tanlangan bolsa (0 baytli yozuvlar) - otkazib yuboramiz
   var valid=files.filter(function(f){return f.size>0;});
   var skipped=files.length-valid.length;
@@ -9144,7 +9192,7 @@ function importMultipleFiles(files,suggestedFolder){
   var imgFiles=valid.filter(function(f){return isImageFile(f.name);});
   var unsupported=valid.filter(function(f){return !isExeFile(f.name)&&!isDocFile(f.name)&&!isImageFile(f.name);});
   if(!exeFiles.length && !docFiles.length && !imgFiles.length){
-    msg.innerHTML='<div class="alt ar">&#x274C; Qollab-quvvatlanmaydigan fayl turi. Faqat .exe, Word (.docx, .doc), Excel (.xlsx, .xls), PowerPoint (.pptx, .ppt), .csv, .pdf, .txt, .rtf, .odt, .jpg, .png fayllar qabul qilinadi.</div>';
+    msg.innerHTML='<div class="alt ar">&#x274C; Qollab-quvvatlanmaydigan fayl turi. Faqat .zip, .exe, Word (.docx, .doc), Excel (.xlsx, .xls), PowerPoint (.pptx, .ppt), .csv, .pdf, .txt, .rtf, .odt, .jpg, .png fayllar qabul qilinadi.</div>';
     return;
   }
   var unsupportedNote=unsupported.length?(' ('+unsupported.length+' ta qollab-quvvatlanmaydigan fayl otkazib yuborildi)'):'';
