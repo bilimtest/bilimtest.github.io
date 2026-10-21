@@ -1389,7 +1389,7 @@ var INIT_META = [{"topic": "Guruhlash qonuni", "questionsToAsk": 20}, {"topic": 
 
 var SK = 'edutest_v3';
 // APP_VER sw.js dagi CACHE bilan bir xil bo'lishi SHART (sw versiyasini oshirganda buni ham oshiring)
-var APP_VER = 'bilimtest-v143';
+var APP_VER = 'bilimtest-v144';
 (function(){
   try{
     if('serviceWorker' in navigator && navigator.serviceWorker.controller) return; // SW bor - o'zining yangilanish banneri ishlaydi
@@ -3638,7 +3638,7 @@ function filterBySubj(s){ setStudentSubject(s); }
 // Imtihon har o'quvchiga bitta mavzudan faqat BIR marta
 function examTaken(t){
   if(!ME||ME.role!=='student') return false;
-  return (getDBro().results||[]).some(function(r){ return r.mode==='exam'&&r.topic===t&&r.student===ME.name&&(_isMyCls(r.cls)||_isMyCls(r.class)); });
+  return (getDBro().results||[]).some(function(r){ return r.mode==='exam'&&r.topic===t&&(r.sid?r.sid===ME.id:(r.student===ME.name&&(_isMyCls(r.cls)||_isMyCls(r.class)))); });
 }
 function selectTopicByName(t,el){
   selTopic=t;
@@ -3673,7 +3673,7 @@ function selectTopicByName(t,el){
       examCard.style.opacity='0.5';
       examCard.style.filter='grayscale(1)';
       examCard.style.cursor='not-allowed';
-      examCard.onclick=function(){ alert("Siz bu mavzudan imtihonni allaqachon topshirgansiz. Imtihon faqat bir marta topshiriladi."); };
+      examCard.onclick=function(){ alert("Siz bu mavzudan imtihonni allaqachon topshirgansiz. Imtihon faqat bir marta topshiriladi (keyingi o'quv yilida yoki sinfingiz o'zgarsa ham)."); };
       if(descEl)descEl.innerHTML='Allaqachon topshirilgan (faqat 1 marta)';
     } else {
       examCard.style.opacity='';
@@ -5484,7 +5484,7 @@ function renderMsResult(r){
 function startTest(mode){
   if(!selTopic){alert("Mavzu tanlang!");return;}
   var _rv=_reviewQs&&_reviewQs.name===selTopic;
-  if(mode==='exam'&&!_rv&&examTaken(selTopic)){ alert("Siz bu mavzudan imtihonni allaqachon topshirgansiz. Imtihon faqat bir marta topshiriladi."); return; }
+  if(mode==='exam'&&!_rv&&examTaken(selTopic)){ alert("Siz bu mavzudan imtihonni allaqachon topshirgansiz. Imtihon faqat bir marta topshiriladi (keyingi o'quv yilida yoki sinfingiz o'zgarsa ham)."); return; }
   var rawQs=_rv?_reviewQs.qs:getQsByTopic(selTopic);
   if(!rawQs.length){alert("Bu mavzuda savollar yo'q!");return;}
   var meta=getTopicMeta(selTopic);
@@ -6083,7 +6083,7 @@ async function doSubmitTest(){
   correct=Math.round(correct*10)/10; // qisman ball (masalan 7.5) bo'lishi mumkin
   pts=Math.round(pts*100)/100;
   var pct=maxPts?Math.round(pts/maxPts*100):0;   // foiz ball bo'yicha: qiyin savol ko'proq hisoblanadi
-  var res={id:'res'+Date.now()+'_'+Math.random().toString(36).slice(2,8),student:ME.name,cls:ME.cls,topic:selTopic,mode:S.mode,correct:correct,total:S.test.length,pts:pts,maxPts:maxPts,pct:pct,date:new Date().toLocaleDateString('uz-UZ'),time:new Date().toLocaleTimeString('uz-UZ'),details:details};
+  var res={id:'res'+Date.now()+'_'+Math.random().toString(36).slice(2,8),student:ME.name,sid:ME.id,cls:ME.cls,topic:selTopic,mode:S.mode,correct:correct,total:S.test.length,pts:pts,maxPts:maxPts,pct:pct,date:new Date().toLocaleDateString('uz-UZ'),time:new Date().toLocaleTimeString('uz-UZ'),details:details};
   if(S.exits){ res.exits=S.exits; res.awaySec=S.awaySec||0; }
   S.lastRes=res;
   var isExam=(S.mode==='exam');
