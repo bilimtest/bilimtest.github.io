@@ -838,6 +838,7 @@ html[data-px=night] #tab-rg.on{background:#7a4fd6!important;color:#fff!important
             </select>
           </div>
         </div>
+        <div id="topic-cls-box" style="margin-top:10px"></div>
         <div style="overflow-x:auto;margin-top:10px">
           <div id="q-lvl-sum" class="ts" style="margin-bottom:8px"></div>
           <table><thead><tr><th>#</th><th>Savol</th><th>Daraja</th><th>Javoblar</th><th>To'g'ri</th><th></th></tr></thead>
@@ -1364,7 +1365,7 @@ var INIT_META = [{"topic": "Guruhlash qonuni", "questionsToAsk": 20}, {"topic": 
 
 var SK = 'edutest_v3';
 // APP_VER sw.js dagi CACHE bilan bir xil bo'lishi SHART (sw versiyasini oshirganda buni ham oshiring)
-var APP_VER = 'bilimtest-v131';
+var APP_VER = 'bilimtest-v132';
 (function(){
   try{
     if('serviceWorker' in navigator && navigator.serviceWorker.controller) return; // SW bor - o'zining yangilanish banneri ishlaydi
@@ -2813,7 +2814,9 @@ function getAllQs() {
     var reqT=teacherMap[c.fromId];
     if(reqT) acceptedByOwner[c.toId].push(reqT);
   });
+  var _tmc={}; (db.topicsMeta||[]).forEach(function(m){ if(m&&m.topic&&Array.isArray(m.classes)&&m.classes.length) _tmc[(m.teacherId||'')+'|'+m.topic]=m.classes; });
   return all.filter(function(q){
+    var _cl=_tmc[(q.teacherId||'')+'|'+q.topic]; if(_cl && _cl.indexOf(ME.cls)<0) return false; // mavzu faqat tanlangan sinflarga
     if(!q.teacherId) return true; // tizim/eski savollar - hammaga ochiq
     var t=teacherMap[q.teacherId];
     if(!t) return true; // ustoz topilmadi (ochirilgan hisob) - eski malumot sifatida korsatamiz
@@ -6222,8 +6225,36 @@ function saveTopicTimerMins(val){
   renderQT();
 }
 
+// ── Mavzu qaysi sinflarga ko'rinadi (topicsMeta.classes; bo'sh = ustozning hamma sinflari) ──
+function _topicMeta(topic,create){
+  var db=getDB(); db.topicsMeta=db.topicsMeta||[]; var m=null;
+  db.topicsMeta.forEach(function(x){ if(x.topic===topic&&(!x.teacherId||x.teacherId===ME.id)) m=x; });
+  if(!m&&create){ var qs=getMyQsByTopic(topic); m={topic:topic,teacherId:ME.id,subject:(qs[0]&&qs[0].subject)||ME.subject||''}; db.topicsMeta.push(m); }
+  return {db:db,m:m};
+}
+function renderTopicClsBox(t){
+  var box=document.getElementById('topic-cls-box'); if(!box||!ME||ME.role==='student') return;
+  var qs=getMyQsByTopic(t), subj=(qs[0]&&qs[0].subject)||ME.subject||'';
+  var opts=_clsSort((ME.role==='admin'?allClassOptions():tClasses(ME,subj)).slice());
+  var tm=_topicMeta(t,false).m, cur=(tm&&Array.isArray(tm.classes))?tm.classes:[];
+  function chip(label,on,fn){ return '<button type="button" onclick="'+fn+'" style="padding:6px 12px;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;border:2px solid '+(on?'var(--pri)':'var(--bdr)')+';background:'+(on?'var(--pri)':'transparent')+';color:'+(on?'#fff':'inherit')+'">'+(on?'&#10003; ':'')+_cEsc(label)+'</button>'; }
+  box.innerHTML='<div class="ts" style="font-weight:700;margin-bottom:6px">Shu mavzu qaysi sinflarga ko\'rinadi?</div>'+
+    '<div style="display:flex;flex-wrap:wrap;gap:6px">'+chip('Hamma sinflarga',!cur.length,'setTopicClsAll()')+
+    opts.map(function(c){ return chip(c,cur.indexOf(c)>=0,"toggleTopicCls('"+encodeURIComponent(c)+"')"); }).join('')+'</div>'+
+    '<div class="ts tm" style="margin-top:6px">'+(cur.length?('Faqat '+_cEsc(cur.join(', '))+' sinf o\'quvchilariga ko\'rinadi.'):'Hech biri tanlanmasa — sizning hamma sinflaringizga ko\'rinadi.')+'</div>';
+}
+function toggleTopicCls(enc){
+  var c=decodeURIComponent(enc), r=_topicMeta(_curTopicDetail,true), m=r.m;
+  var cur=Array.isArray(m.classes)?m.classes.slice():[], i=cur.indexOf(c);
+  if(i>=0) cur.splice(i,1); else cur.push(c);
+  m.classes=_clsSort(cur); saveDB(r.db); renderTopicClsBox(_curTopicDetail); try{ renderQT(); }catch(e){}
+}
+function setTopicClsAll(){
+  var r=_topicMeta(_curTopicDetail,true); r.m.classes=[]; saveDB(r.db); renderTopicClsBox(_curTopicDetail); try{ renderQT(); }catch(e){}
+}
 function renderTopicDetail(t){
   var qs=getMyQsByTopic(t);
+  try{ renderTopicClsBox(t); }catch(e){}
   var tbody=document.getElementById('q-detail-tbody');
   if(!tbody)return;
   // Store for index access
