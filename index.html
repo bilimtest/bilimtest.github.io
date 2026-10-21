@@ -581,7 +581,7 @@ html[data-px=night] #tab-rg.on{background:#7a4fd6!important;color:#fff!important
     <div class="ch">
       <div><h2 id="tp-gr"></h2><p class="ts tm" id="tp-sub"></p></div>
       <div style="display:flex;gap:8px">
-        <button class="btn bs bsm" onclick="showPg('pg-profile')">&#x1F464; Mening profilim</button>
+        <button class="btn bs bsm" onclick="showPg('pg-profile');renderMyClassCard()">&#x1F464; Mening profilim</button>
         <button class="btn bg bsm" onclick="logout()">Chiqish</button>
       </div>
     </div>
@@ -713,6 +713,13 @@ html[data-px=night] #tab-rg.on{background:#7a4fd6!important;color:#fff!important
       <button class="btn bg bsm" onclick="showPg('pg-topic')">&#8592; Orqaga</button>
       <h2 style="margin:0">&#x1F464; Mening profilim</h2>
     </div>
+  </div>
+  <div class="card" id="st-cls-card">
+    <h3 style="margin-bottom:8px">&#x1F3EB; Sinfim</h3>
+    <p style="font-size:13px;color:var(--mut);margin-bottom:10px">Har o'quv yilida sinfingiz o'zgaradi. Yangi sinfingizni tanlasangiz, shu sinfning testlari va ustozlari ko'rinadi. Eski natijalaringiz saqlanib qoladi.</p>
+    <div class="fg"><select id="st-cls-sel"></select></div>
+    <button class="btn bpu bsm" onclick="saveMyClass()">Saqlash</button>
+    <div id="st-cls-msg"></div>
   </div>
   <div class="card">
     <h3 style="margin-bottom:8px">&#x1F510; Mening hisobim</h3>
@@ -1382,7 +1389,7 @@ var INIT_META = [{"topic": "Guruhlash qonuni", "questionsToAsk": 20}, {"topic": 
 
 var SK = 'edutest_v3';
 // APP_VER sw.js dagi CACHE bilan bir xil bo'lishi SHART (sw versiyasini oshirganda buni ham oshiring)
-var APP_VER = 'bilimtest-v142';
+var APP_VER = 'bilimtest-v143';
 (function(){
   try{
     if('serviceWorker' in navigator && navigator.serviceWorker.controller) return; // SW bor - o'zining yangilanish banneri ishlaydi
@@ -3374,8 +3381,51 @@ function saveSheetsUrl(){
   ME.sheetsUrl=v||undefined; saveDB(db);
   m.innerHTML='<div class="alt as mt8">&#x2705; Saqlandi. Bundan keyingi har yangi natija Sheets\'ga yoziladi.</div>';
 }
+// ── O'quvchi sinfi har yili o'zgaradi ──
+function _acYear(d){ d=d||new Date(); return d.getMonth()>=8?d.getFullYear():d.getFullYear()-1; }   // o'quv yili 1-sentyabrdan
+function _clsYearOf(u){
+  if(u&&u.clsYear) return u.clsYear;
+  var m=/^u(\d{12,13})/.exec(String((u&&u.id)||'')); return m?_acYear(new Date(parseInt(m[1],10))):_acYear();   // sinf yozilgan (ro'yxatdan o'tgan) o'quv yili
+}
+function _myClassOptions(){ var l=schoolClassList((ME&&ME.maktab)||'').slice(); if(ME&&ME.cls&&l.indexOf(ME.cls)<0) l.unshift(ME.cls); return l; }
+function renderMyClassCard(){
+  var sel=document.getElementById('st-cls-sel'); if(!sel||!ME||ME.role!=='student') return;
+  sel.innerHTML=_myClassOptions().map(function(c){ return '<option'+(c===ME.cls?' selected':'')+'>'+_cEsc(c)+'</option>'; }).join('');
+  var m=document.getElementById('st-cls-msg'); if(m) m.innerHTML='';
+}
+function setMyClass(nc){
+  if(!ME||ME.role!=='student'||!nc) return;
+  var old=ME.cls, db=getDB(), yr=_acYear();
+  db.users.forEach(function(u){ if(u.id===ME.id){ u.prevCls=(u.prevCls||[]).filter(function(c){return c!==old&&c!==nc;}); if(old&&old!==nc) u.prevCls.push(old); u.cls=nc; u.clsYear=yr; } });
+  ME.prevCls=(ME.prevCls||[]).filter(function(c){return c!==old&&c!==nc;}); if(old&&old!==nc) ME.prevCls.push(old);
+  ME.cls=nc; ME.clsYear=yr; saveDB(db);
+  _curTeacherFilter=null; try{ sessionStorage.removeItem(_tchKey()); }catch(e){}
+  try{ document.getElementById('nav-user').textContent=ME.name+' - '+ME.cls; }catch(e){}
+  try{ renderTopics(); }catch(e){}
+}
+function saveMyClass(){
+  var v=(document.getElementById('st-cls-sel')||{}).value; if(!v) return;
+  setMyClass(v); var m=document.getElementById('st-cls-msg'); if(m) m.innerHTML='<div class="alt as mt8">&#x2705; Sinfingiz yangilandi: <b>'+_cEsc(v)+'</b>.</div>';
+}
+function _maybeAskClassYear(){
+  if(!ME||ME.role!=='student'||_clsYearOf(ME)>=_acYear()) return;
+  try{ if(sessionStorage.getItem('cls_skip_'+ME.id)) return; }catch(e){}
+  var el=document.getElementById('cls-year-modal');
+  if(!el){ el=document.createElement('div'); el.id='cls-year-modal'; el.className='mbg'; el.style.zIndex='450'; document.body.appendChild(el); }
+  var yr=_acYear();
+  el.innerHTML='<div class="modal" style="max-width:420px;text-align:center"><div style="font-size:34px">&#x1F393;</div><h3 style="margin:6px 0">Yangi o\'quv yili ('+yr+'/'+(yr+1)+')</h3>'+
+    '<p class="ts tm" style="margin:0 0 10px">Hozir sinfingiz: <b>'+_cEsc(ME.cls||'—')+'</b>. Yangi o\'quv yilida sinfingiz o\'zgardimi? Sinfingizni tanlang:</p>'+
+    '<div class="fg"><select id="cls-year-sel">'+_myClassOptions().map(function(c){ return '<option'+(c===ME.cls?' selected':'')+'>'+_cEsc(c)+'</option>'; }).join('')+'</select></div>'+
+    '<button class="btn bpu" style="width:100%" onclick="_clsYearSave()">Saqlash</button>'+
+    '<button class="btn bg bsm" style="margin-top:8px" onclick="_clsYearLater()">Keyinroq</button></div>';
+  el.style.display='flex';
+}
+function _clsYearSave(){ var v=(document.getElementById('cls-year-sel')||{}).value; if(v) setMyClass(v); var el=document.getElementById('cls-year-modal'); if(el) el.style.display='none'; }
+function _clsYearLater(){ try{ sessionStorage.setItem('cls_skip_'+ME.id,'1'); }catch(e){} var el=document.getElementById('cls-year-modal'); if(el) el.style.display='none'; }
+function _isMyCls(c){ return !!ME&&(c===ME.cls||(ME.prevCls||[]).indexOf(c)>=0); }
 function goMyPanel(){ if(typeof ME!=='undefined'&&ME){ window._keepSubj=true; afterLogin(); } else showPg('pg-home'); }
 function afterLogin(){
+  setTimeout(function(){ try{ _maybeAskClassYear(); }catch(e){} },1400);
   if(ME&&ME.role==='student'&&!window._keepSubj){ try{ sessionStorage.removeItem('bt_subj_'+ME.id); sessionStorage.removeItem('bt_tch_'+ME.id); }catch(e){} }
   document.documentElement.classList.toggle('is-profile',!!(ME&&ME.parentId));
   window._keepSubj=false;
@@ -3588,7 +3638,7 @@ function filterBySubj(s){ setStudentSubject(s); }
 // Imtihon har o'quvchiga bitta mavzudan faqat BIR marta
 function examTaken(t){
   if(!ME||ME.role!=='student') return false;
-  return (getDBro().results||[]).some(function(r){ return r.mode==='exam'&&r.topic===t&&r.student===ME.name&&(r.cls===ME.cls||r.class===ME.cls); });
+  return (getDBro().results||[]).some(function(r){ return r.mode==='exam'&&r.topic===t&&r.student===ME.name&&(_isMyCls(r.cls)||_isMyCls(r.class)); });
 }
 function selectTopicByName(t,el){
   selTopic=t;
@@ -3636,7 +3686,7 @@ function selectTopicByName(t,el){
   setTimeout(function(){mc.scrollIntoView({behavior:'smooth',block:'center'});},100);
 }
 function loadMyHist(){
-  var db=getDBro(),myR=db.results.filter(function(r){return r.student===ME.name&&r.cls===ME.cls&&r.mode==='exam';});
+  var db=getDBro(),myR=db.results.filter(function(r){return r.student===ME.name&&_isMyCls(r.cls)&&r.mode==='exam';});
   var card=document.getElementById('my-hist');
   card.style.display='block';
   if(!myR.length){
