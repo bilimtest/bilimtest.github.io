@@ -1392,7 +1392,7 @@ var INIT_META = [{"topic": "Guruhlash qonuni", "questionsToAsk": 20}, {"topic": 
 
 var SK = 'edutest_v3';
 // APP_VER sw.js dagi CACHE bilan bir xil bo'lishi SHART (sw versiyasini oshirganda buni ham oshiring)
-var APP_VER = 'bilimtest-v137';
+var APP_VER = 'bilimtest-v138';
 (function(){
   try{
     if('serviceWorker' in navigator && navigator.serviceWorker.controller) return; // SW bor - o'zining yangilanish banneri ishlaydi
@@ -3246,16 +3246,17 @@ async function doRegister(){
   if(!pass){showErr("Parol kiriting!");return;}
   if(authRole==='teacher'&&!maktab){showErr("Maktab nomini kiriting!");return;}
   if(authRole==='student'&&!cls){showErr("Sinf tanlang!");return;}
-  if(!email){showErr("Email kiriting! Parolni unutsangiz, tiklash kodi shu emailga yuboriladi.");return;}
-  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){showErr("Email noto'g'ri formatda!");return;}
-  if(!_rgV.ptok){showErr("Telefon raqamni Telegram orqali tasdiqlang (\"Telegram orqali tasdiqlash\" tugmasi).");return;}
-  if(!_rgV.etok||_rgV.email!==email.toLowerCase()){showErr("Emailni tasdiqlang: \"Kod yuborish\" ni bosing va kelgan kodni kiriting.");return;}
+  var _phTyped=(document.getElementById('rg-phone').value||'').trim();
+  if(authRole==='teacher'&&!email){showErr("Email kiriting! Parolni unutsangiz va admin xabarlari shu emailga yuboriladi.");return;}
+  if(email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){showErr("Email noto'g'ri formatda!");return;}
+  if(_phTyped&&!_rgV.ptok){showErr("Telefon raqam kiritilgan — uni Telegram orqali tasdiqlang (\"Telegram orqali tasdiqlash\" tugmasi) yoki raqamni o'chirib qo'ying (telefon ixtiyoriy).");return;}
+  if(email&&(!_rgV.etok||_rgV.email!==email.toLowerCase())){showErr("Emailni tasdiqlang: \"Kod yuborish\" ni bosing va kelgan kodni kiriting (yoki emailni o'chirib qo'ying — o'quvchiga ixtiyoriy).");return;}
   var db=getDB();
   var dup=db.users.filter(function(x){return x.login===user;});
   if(dup.length){showErr("Bu login band! Boshqa login tanlang.");return;}
   // MUHIM: endi maxfiy kod tizimi YOQ - uning ornini admin tasdigi
   var nu={id:'u'+Date.now(),role:authRole,name:name,login:user,pass:pass,cls:cls,subject:subj,school:authRole==='teacher',email:email,teachClasses:tclasses,myClasses:tclasses,viloyat:vil,tuman:tum,maktab:maktab,plan:'free',approved:(authRole!=='teacher'),usage:{month:curMonthKey(),images:0,pages:0,questions:0}};
-  nu.phone=_rgV.phone; nu.tgId=_rgV.tg; nu.email=_rgV.email;
+  nu.phone=_rgV.ptok?_rgV.phone:''; nu.tgId=_rgV.ptok?_rgV.tg:''; nu.email=_rgV.etok?_rgV.email:'';
   // ro'yxatdan o'tish SERVERDA (baza endi kirmaganlarga parollarsiz
   var reg=null;
   document.getElementById('auth-err').innerHTML='<div class="alt ai">&#x23F3; Saqlanmoqda...</div>';
