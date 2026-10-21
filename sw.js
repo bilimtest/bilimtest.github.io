@@ -1,4 +1,4 @@
-const CACHE = 'bilimtest-v132';
+﻿const CACHE = 'bilimtest-v134';
 const IMG_CACHE = 'bilimtest-img-v1';
 const FILES = ['./', './index.html'];
 
@@ -91,7 +91,7 @@ self.addEventListener('fetch', function(e) {
   if (isImageRequest(url)) {
     e.respondWith(
       caches.open(IMG_CACHE).then(function(cache) {
-        // 2026-10-08: rasm nomlari noyob va o'zgarmaydi — keshda bo'lsa qayta yuklanmaydi
+        // 2026-10-08: rasm nomlari noyob va o'zgarmaydi вЂ” keshda bo'lsa qayta yuklanmaydi
         return cache.match(e.request).then(function(cached) {
           if (cached) return cached;
           return fetch(e.request).then(function(res) {
@@ -123,7 +123,7 @@ self.addEventListener('fetch', function(e) {
 
 self.addEventListener('message', function(e) {
   var data = e.data || {};
-  // 2026-10-08: navbat — bir vaqtda 6 tadan; prio=true bo'lsa (test boshlandi) navbat boshiga, test tartibida
+  // 2026-10-08: navbat вЂ” bir vaqtda 6 tadan; prio=true bo'lsa (test boshlandi) navbat boshiga, test tartibida
   if (data.type === 'CACHE_IMAGES' && Array.isArray(data.urls)) {
     var urls = data.urls.filter(function(u){ return typeof u === 'string' && u; });
     if (data.prio) _imgQ = urls.concat(_imgQ.filter(function(u){ return urls.indexOf(u) < 0; }));

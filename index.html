@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="uz">
 <head>
 <meta charset="UTF-8">
@@ -173,6 +173,9 @@ tr:last-child td{border-bottom:none}tr:hover td{background:#f8fafc}
 .ms-bar{flex:1;height:10px;border-radius:6px;background:#eef2f7;overflow:hidden}.ms-bar>div{height:100%;border-radius:6px}
 .ms-p{flex:0 0 40px;text-align:right;font-weight:800;font-size:13px}
 #pg-topic.no-subj .tabs,#pg-topic.no-subj .tc.on,#pg-topic.no-subj #st-hub{display:none}
+html.is-profile #acct-card,html.is-profile #tc-s .ct-box{display:none}
+.stf-row{display:flex;align-items:center;gap:8px}.stf-row .sg-card{flex:1}
+.stf-del{border:0;background:transparent;color:#e11d48;font-size:20px;cursor:pointer;padding:6px}
 .sg-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
 .sg-card{display:flex;flex-direction:column;align-items:center;gap:6px;padding:20px 8px;border:2px solid var(--bdr);border-radius:14px;background:#fff;cursor:pointer;font:inherit;font-size:16px;color:var(--txt)}
 .sg-card:hover{border-color:var(--pri);background:#eef1ff}
@@ -474,6 +477,7 @@ html[data-px=night] #tab-rg.on{background:#7a4fd6!important;color:#fff!important
       <div id="notif-dropdown" style="display:none;position:absolute;top:calc(100% + 8px);right:0;width:320px;max-width:88vw;max-height:420px;overflow-y:auto;background:#fff;color:var(--txt);border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,.25);z-index:500;padding:8px"></div>
     </div>
     <button class="btn bsm" id="btn-install" style="display:none;background:#fff;color:#6C3EF4;font-weight:700;margin-right:4px" onclick="installApp()">&#x2B07; O'rnatish</button>
+    <button class="btn bsm" id="btn-staff" style="display:none;background:rgba(255,255,255,.14);color:#fff" onclick="showStaffPicker()">&#x1F465; Ustozlar</button>
     <button class="btn bwh bsm" id="btn-out" style="display:none" onclick="safeLogout()">Chiqish</button>
   </div>
 </nav>
@@ -790,6 +794,29 @@ html[data-px=night] #tab-rg.on{background:#7a4fd6!important;color:#fff!important
 </div>
 
 <!-- TEACHER PANEL -->
+<div class="pg" id="pg-staff">
+  <div class="card">
+    <h2 style="margin:0 0 4px">Ustozni tanlang</h2>
+    <p class="ts tm" style="margin:0 0 14px">Ustoz ismini bosing &#8212; shu ustozning alohida bo'limi ochiladi (testlari, sinflari, natijalari).</p>
+    <div id="staff-list"></div>
+  </div>
+  <div class="card">
+    <h3 style="margin:0 0 8px">&#x2795; Yangi ustoz qo'shish</h3>
+    <div class="fg"><label>Ism va familiya</label><input type="text" id="staff-name" placeholder="Masalan: Karimov Anvar" onkeydown="if(event.key==='Enter'){event.preventDefault();addStaff();}"></div>
+    <div class="fg"><label>Fan</label><select id="staff-subj"></select></div>
+    <button class="btn bpu bsm" onclick="addStaff()">Qo'shish</button>
+    <div id="staff-msg"></div>
+  </div>
+  <div class="card" id="sheets-card">
+    <h3 style="margin:0 0 8px">&#x1F4CA; Google Sheets'ga natijalar</h3>
+    <p class="ts tm" style="margin:0 0 10px">Har o'quvchi jadvalda bitta qator, har mavzu natijasi uning yoniga ustun bo'lib yoziladi. Sozlash: 1) Google Sheets'da yangi jadval oching; 2) Kengaytmalar &#8594; Apps Script; 3) pastdagi kodni joylang; 4) Deploy &#8594; New deployment &#8594; Web app (Execute as: Me, Access: Anyone); 5) chiqqan havolani shu yerga qo'ying.</p>
+    <textarea id="sheets-code" readonly rows="6" style="width:100%;font-family:monospace;font-size:11px" onclick="this.select()"></textarea>
+    <button class="btn bs bsm mt8" onclick="copySheetsCode()">Kodni nusxalash</button>
+    <div class="fg mt8"><label>Web app havolasi (https://script.google.com/macros/s/...)</label><input type="text" id="sheets-url" placeholder="https://script.google.com/macros/s/.../exec"></div>
+    <button class="btn bpu bsm" onclick="saveSheetsUrl()">Saqlash</button>
+    <div id="sheets-msg"></div>
+  </div>
+</div>
 <div class="pg" id="pg-teacher">
   <div class="tabs">
     <button class="tab on" onclick="switchTab('tc-q',this)">&#x1F4DD; Savollar</button>
@@ -980,7 +1007,7 @@ html[data-px=night] #tab-rg.on{background:#7a4fd6!important;color:#fff!important
       <button class="btn bpu bsm mt8" onclick="saveMyClasses()">Saqlash</button>
       <div id="tcls-msg"></div>
     </div>
-    <div class="card">
+    <div class="card" id="acct-card">
       <h3 style="margin-bottom:8px">&#x1F510; Mening hisobim</h3>
       <p style="font-size:13px;color:var(--mut);margin-bottom:10px">Login yoki parolingizni bu yerdan o'zgartirishingiz mumkin.</p>
       <div class="fg"><label>Joriy parol</label><div style="position:relative"><input type="password" id="pw-old" autocomplete="new-password" data-lpignore="true" data-1p-ignore placeholder="Joriy parol" style="padding-right:38px" readonly onfocus="this.removeAttribute('readonly')"><span onclick="togglePw('pw-old',this)" style="position:absolute;right:11px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:16px">&#x1F441;</span></div></div>
@@ -1365,7 +1392,7 @@ var INIT_META = [{"topic": "Guruhlash qonuni", "questionsToAsk": 20}, {"topic": 
 
 var SK = 'edutest_v3';
 // APP_VER sw.js dagi CACHE bilan bir xil bo'lishi SHART (sw versiyasini oshirganda buni ham oshiring)
-var APP_VER = 'bilimtest-v132';
+var APP_VER = 'bilimtest-v134';
 (function(){
   try{
     if('serviceWorker' in navigator && navigator.serviceWorker.controller) return; // SW bor - o'zining yangilanish banneri ishlaydi
@@ -2816,6 +2843,7 @@ function getAllQs() {
   });
   var _tmc={}; (db.topicsMeta||[]).forEach(function(m){ if(m&&m.topic&&Array.isArray(m.classes)&&m.classes.length) _tmc[(m.teacherId||'')+'|'+m.topic]=m.classes; });
   return all.filter(function(q){
+    if(_curTeacherFilter && (q.teacherId||'__sys')!==_curTeacherFilter) return false; // o'quvchi tanlagan ustoz
     var _cl=_tmc[(q.teacherId||'')+'|'+q.topic]; if(_cl && _cl.indexOf(ME.cls)<0) return false; // mavzu faqat tanlangan sinflarga
     if(!q.teacherId) return true; // tizim/eski savollar - hammaga ochiq
     var t=teacherMap[q.teacherId];
@@ -2923,6 +2951,7 @@ function myClassList(){
 }
 // O'quvchi ro'yxatdan o'tishda
 function schoolClassList(maktab){
+  var _ac=_adminClasses(maktab); if(_ac.length) return _clsSort(_ac);   // admin kiritgan bo'lsa faqat shular
   var ns=normSchool(maktab), out=schoolClassesFor(maktab);
   if(ns) (getDB().users||[]).forEach(function(u){ if(u.role==='teacher'&&normSchool(u.maktab)===ns) userClassList(u).forEach(function(c){ if(out.indexOf(c)<0) out.push(c); }); });
   if(!ns){   // o'quvchi maktab kiritmaydi: hamma ustozlarning sinflari + standart sinflar
@@ -3265,9 +3294,89 @@ async function doRegister(){
   ME=nu;afterLogin();
 }
 // 2026-10-12: natija sahifasidagi "Bosh sahifa" — hisobdan chiqarmaydi, o'z paneliga qaytaradi
+
+// ── Umumiy hisob (maktab/markaz): ichida ustoz profillari (faqat ism-familiya) ──
+function _ownerOf(u){ if(!u) return null; if(!u.parentId) return u; return (getDB().users||[]).filter(function(x){return x.id===u.parentId;})[0]||u; }
+function staffProfiles(owner){ return (getDB().users||[]).filter(function(x){ return x.parentId===owner.id && x.role==='teacher'; }); }
+function _needStaffPick(){ return !!ME&&ME.role==='teacher'&&!ME.parentId&&!window._staffChosen&&staffProfiles(ME).length>0; }
+function showStaffPicker(){
+  if(!ME||ME.role!=='teacher') return;
+  if(ME.parentId){ ME=_ownerOf(ME); }
+  window._staffChosen=false;
+  try{ var _sd={id:ME.id, t:_authToken||null, exp:Date.now()+7*24*60*60*1000}; sessionStorage.setItem('et_sess',JSON.stringify(_sd)); localStorage.setItem('et_sess_persist',JSON.stringify(_sd)); }catch(e){}
+  document.documentElement.classList.remove('is-profile');
+  var sel=document.getElementById('staff-subj'); if(sel&&!sel.options.length) sel.innerHTML='<option value="">Fanni tanlang</option>'+SUBJECTS.map(function(x){return '<option value="'+_cEsc(x.v)+'">'+_cEsc(x.n)+'</option>';}).join('');
+  var us=document.getElementById('sheets-url'); if(us) us.value=ME.sheetsUrl||'';
+  var sc=document.getElementById('sheets-code'); if(sc&&!sc.value) sc.value=SHEETS_CODE;
+  document.getElementById('nav-user').textContent=ME.name+' (Ustozlar)';
+  resetTheme(); renderStaffList(); showPg('pg-staff');
+}
+function renderStaffList(){
+  var host=document.getElementById('staff-list'); if(!host) return;
+  var list=staffProfiles(ME), db=getDBro();
+  var own=(db.userQs||[]).some(function(q){return q.teacherId===ME.id;});
+  var html='';
+  if(own) html+='<div class="stf-row"><button class="sg-card" onclick="enterStaff(\''+_cEsc(ME.id)+'\')"><span style="font-size:30px">&#x1F468;&#x200D;&#x1F3EB;</span><b>'+_cEsc(ME.name)+'</b><span class="ts tm">asosiy hisob</span></button></div>';
+  list.forEach(function(u){
+    var n=(db.userQs||[]).filter(function(q){return q.teacherId===u.id;}).length;
+    html+='<div class="stf-row" style="margin-top:8px"><button class="sg-card" onclick="enterStaff(\''+_cEsc(u.id)+'\')"><span style="font-size:30px">&#x1F468;&#x200D;&#x1F3EB;</span><b>'+_cEsc(u.name)+'</b><span class="ts tm">'+_cEsc(subjName(u.subject)||'')+' &#183; '+n+' ta savol</span></button>'+
+      '<button class="stf-del" title="O\'chirish" onclick="delStaff(\''+_cEsc(u.id)+'\')">&#x2715;</button></div>';
+  });
+  if(!html) html='<div class="alt ai">Hali ustoz qo\'shilmagan. Pastdan ustoz ism-familiyasini kiriting.</div>';
+  host.innerHTML=html;
+}
+function enterStaff(id){
+  var u=(getDB().users||[]).filter(function(x){return x.id===id;})[0]; if(!u) return;
+  ME=u; window._staffChosen=true; window._keepSubj=true; afterLogin();
+}
+function addStaff(){
+  var nm=(document.getElementById('staff-name').value||'').replace(/[<>]/g,'').trim(), sb=document.getElementById('staff-subj').value, msg=document.getElementById('staff-msg');
+  if(nm.length<3){ msg.innerHTML='<div class="alt ad mt8">Ism va familiyani kiriting.</div>'; return; }
+  if(!sb){ msg.innerHTML='<div class="alt ad mt8">Fanni tanlang.</div>'; return; }
+  var db=getDB();
+  if((db.users||[]).some(function(x){return x.parentId===ME.id&&x.name.toLowerCase()===nm.toLowerCase();})){ msg.innerHTML='<div class="alt ad mt8">Bu ustoz allaqachon bor.</div>'; return; }
+  db.users.push({id:'p'+Date.now()+Math.random().toString(36).slice(2,6),role:'teacher',name:nm,subject:sb,parentId:ME.id,profile:true,approved:true,maktab:ME.maktab||'',plan:'free',teachClasses:[],myClasses:[]});
+  saveDB(db);
+  document.getElementById('staff-name').value=''; msg.innerHTML='<div class="alt as mt8">&#x2705; Qo\'shildi. Ustoz nomini bosib uning bo\'limiga kiring va "Sozlamalar"da sinflarini belgilang.</div>';
+  renderStaffList();
+}
+function delStaff(id){
+  var db=getDB(), u=(db.users||[]).filter(function(x){return x.id===id;})[0]; if(!u) return;
+  var n=(db.userQs||[]).filter(function(q){return q.teacherId===id;}).length;
+  if(!confirm(u.name+' ustozini o\'chirasizmi?'+(n?'\nUning '+n+' ta savoli ham o\'chadi.':''))) return;
+  db.users=db.users.filter(function(x){return x.id!==id;});
+  db.userQs=(db.userQs||[]).filter(function(q){return q.teacherId!==id;});
+  db.topicsMeta=(db.topicsMeta||[]).filter(function(m){return m.teacherId!==id;});
+  saveDB(db); renderStaffList();
+}
+var SHEETS_CODE=['function doPost(e){',
+ ' var d=JSON.parse(e.postData.contents), ss=SpreadsheetApp.getActiveSpreadsheet();',
+ ' var sh=ss.getSheetByName("Natijalar")||ss.insertSheet("Natijalar");',
+ ' var lock=LockService.getScriptLock(); lock.waitLock(30000);',
+ ' if(sh.getLastRow()===0) sh.appendRow(["Ism familiya","Sinf"]);',
+ ' d.rows.forEach(function(r){',
+ '  var lc=Math.max(sh.getLastColumn(),2), head=sh.getRange(1,1,1,lc).getValues()[0], c=head.indexOf(r.col)+1;',
+ '  if(!c){ c=lc+1; sh.getRange(1,c).setValue(r.col); }',
+ '  var lr=sh.getLastRow(), row=0;',
+ '  if(lr>1){ var v=sh.getRange(2,1,lr-1,2).getValues(); for(var i=0;i<v.length;i++){ if(v[i][0]===r.student && v[i][1]===r.cls){ row=i+2; break; } } }',
+ '  if(!row){ row=lr+1; sh.getRange(row,1,1,2).setValues([[r.student,r.cls]]); }',
+ '  sh.getRange(row,c).setValue(r.value);',
+ ' });',
+ ' lock.releaseLock();',
+ ' return ContentService.createTextOutput("ok");',
+ '}'].join(String.fromCharCode(10));
+function copySheetsCode(){ var t=document.getElementById('sheets-code'); t.select(); try{ document.execCommand('copy'); }catch(e){} var m=document.getElementById('sheets-msg'); if(m) m.innerHTML='<div class="alt as mt8">Nusxalandi.</div>'; }
+function saveSheetsUrl(){
+  var v=(document.getElementById('sheets-url').value||'').trim(), m=document.getElementById('sheets-msg');
+  if(v&&v.indexOf('https://script.google.com/macros/s/')!==0){ m.innerHTML='<div class="alt ad mt8">Havola https://script.google.com/macros/s/ bilan boshlanishi kerak.</div>'; return; }
+  var db=getDB(); db.users.forEach(function(u){ if(u.id===ME.id){ if(v) u.sheetsUrl=v; else delete u.sheetsUrl; } });
+  ME.sheetsUrl=v||undefined; saveDB(db);
+  m.innerHTML='<div class="alt as mt8">&#x2705; Saqlandi. Bundan keyingi har yangi natija Sheets\'ga yoziladi.</div>';
+}
 function goMyPanel(){ if(typeof ME!=='undefined'&&ME){ window._keepSubj=true; afterLogin(); } else showPg('pg-home'); }
 function afterLogin(){
-  if(ME&&ME.role==='student'&&!window._keepSubj){ try{ sessionStorage.removeItem('bt_subj_'+ME.id); }catch(e){} }
+  if(ME&&ME.role==='student'&&!window._keepSubj){ try{ sessionStorage.removeItem('bt_subj_'+ME.id); sessionStorage.removeItem('bt_tch_'+ME.id); }catch(e){} }
+  document.documentElement.classList.toggle('is-profile',!!(ME&&ME.parentId));
   window._keepSubj=false;
   setTimeout(function(){ try{ maybeStartTour(); }catch(e){} },0);
   setTimeout(function(){ try{ syncTimerUI(); }catch(e){} },0); // taymer belgisi har kirishda bazadan
@@ -3286,11 +3395,13 @@ function afterLogin(){
   }
   document.getElementById('nav-user').textContent=ME.name+(ME.cls?' - '+ME.cls:'')+(ME.role==='teacher'?' (Ustoz)':ME.role==='admin'?' (Admin)':'');
   document.getElementById('btn-out').style.display='inline-flex';
+  var _bst=document.getElementById('btn-staff'); if(_bst) _bst.style.display=(ME.role==='teacher')?'inline-flex':'none';
   document.getElementById('auth-err').innerHTML='';
   renderNotifBell();
   if(ME.role==='admin'){resetTheme();showPg('pg-admin');initAdmin();}
+  else if(ME.role==='teacher'&&_needStaffPick()){showStaffPicker();}
   else if(ME.role==='teacher'){applySubjectTheme(ME.subject);showPg('pg-teacher');renderQT();updateEngEntry();try{updateTeacherCardsTab();}catch(e){}}
-  else{resetTheme();selTopic=null;_curFolder=null;_curSubjFilter=null;showPg('pg-topic');renderTopics();if(_curSubjFilter)applySubjectTheme(_curSubjFilter);loadMyHist();var bjb=document.getElementById('battle-join-box');if(bjb)bjb.style.display='block';}
+  else{resetTheme();selTopic=null;_curFolder=null;_curSubjFilter=null;_curTeacherFilter=null;showPg('pg-topic');renderTopics();if(_curSubjFilter)applySubjectTheme(_curSubjFilter);loadMyHist();var bjb=document.getElementById('battle-join-box');if(bjb)bjb.style.display='block';}
 }
 var _logoutWarned = false;
 function safeLogout(){
@@ -3312,7 +3423,7 @@ function confirmLogoutWarn(){
   // TUZATISH : avval shu yerda 300ms dan keyin majburiy logout()
   submitTest(true);
 }
-function logout(){var _lr=ME&&ME.role;try{ if(ME) sessionStorage.removeItem(_subjKey()); }catch(e){} _curSubjFilter=null;ME=null;_authToken=null;document.documentElement.classList.remove('et-auth');try{sessionStorage.removeItem('et_sess');localStorage.removeItem('et_sess_persist');}catch(e){}if(S.iv)clearInterval(S.iv);_backWarned=false;
+function logout(){var _lr=ME&&ME.role;try{ if(ME){ sessionStorage.removeItem(_subjKey()); sessionStorage.removeItem(_tchKey()); } }catch(e){} _curSubjFilter=null;_curTeacherFilter=null;window._staffChosen=false;document.documentElement.classList.remove('is-profile');var _bs0=document.getElementById('btn-staff'); if(_bs0) _bs0.style.display='none';ME=null;_authToken=null;document.documentElement.classList.remove('et-auth');try{sessionStorage.removeItem('et_sess');localStorage.removeItem('et_sess_persist');}catch(e){}if(S.iv)clearInterval(S.iv);_backWarned=false;
   // To'liq ekrandan chiqish - faqat haqiqatan fullscreen bolsa
   if(document.fullscreenElement||document.webkitFullscreenElement){
     if(document.exitFullscreen)document.exitFullscreen().catch(function(){});
@@ -3341,6 +3452,7 @@ function renderTopics(){
     grid.innerHTML='<div class="alt ai">Hozircha sinfingizga ustoz biriktirilmagan. Ustozingiz ro\'yxatdan o\'tib, savol qo\'shganda shu yerda chiqadi.</div>';
     return;
   }
+  if(document.getElementById('pg-topic').classList.contains('no-subj')) return; // ustoz tanlanmagan
   var topics=getTopics().filter(function(t){
     return allQs.some(function(q){return q.topic===t&&q.subject===_curSubjFilter;});
   });
@@ -3405,32 +3517,62 @@ function myStudentSubjects(){
   return SUBJECTS.map(function(s){return s.v;}).filter(function(v){return set[v];});
 }
 function _subjKey(){ return 'bt_subj_'+(ME&&ME.id); }
+var _curTeacherFilter=null;
+function _tchKey(){ return 'bt_tch_'+(ME&&ME.id); }
+function myStudentTeachers(){
+  if(!_curSubjFilter) return [];
+  var keep=_curTeacherFilter; _curTeacherFilter=null; var all; try{ all=getAllQs(); }finally{ _curTeacherFilter=keep; }
+  var db=getDBro(), map={}, order=[];
+  all.forEach(function(q){
+    if(q.subject!==_curSubjFilter) return;
+    var id=q.teacherId||'__sys'; if(!map[id]){ map[id]={id:id,topics:{},name:''}; order.push(id); }
+    if(q.topic) map[id].topics[q.topic]=1;
+  });
+  var users={}; (db.users||[]).forEach(function(u){ users[u.id]=u; });
+  var out=order.map(function(id){ var m=map[id]; m.name=id==='__sys'?'Umumiy testlar':((users[id]&&users[id].name)||'Ustoz'); m.n=Object.keys(m.topics).length; return m; });
+  out.sort(function(a,b){ return a.name.localeCompare(b.name,'uz'); });
+  return out;
+}
+function setStudentTeacher(id){
+  _curTeacherFilter=id||null; _curFolder=null;
+  try{ if(id) sessionStorage.setItem(_tchKey(),id); else sessionStorage.removeItem(_tchKey()); }catch(e){}
+  if(id){ setTimeout(function(){ try{ maybeStartTour(); }catch(e){} },0); }
+  renderTopics();
+}
 function initStudentSubject(){
   var list=myStudentSubjects(), saved=null;
   try{ saved=sessionStorage.getItem(_subjKey()); }catch(e){}   // faqat shu seans: qayta kirganda fan yana so'raladi
   if(_curSubjFilter&&list.indexOf(_curSubjFilter)<0) _curSubjFilter=null;
   if(!_curSubjFilter&&saved&&list.indexOf(saved)>=0) _curSubjFilter=saved;
+  if(_curSubjFilter&&!_curTeacherFilter){ var _st=null; try{ _st=sessionStorage.getItem(_tchKey()); }catch(e){} if(_st&&myStudentTeachers().some(function(t){return t.id===_st;})) _curTeacherFilter=_st; }
   renderSubjGate(list);
 }
 function renderSubjGate(list){
   list=list||myStudentSubjects();
   var pg=document.getElementById('pg-topic'), gate=document.getElementById('subj-gate'), bar=document.getElementById('subj-bar');
   var needSubj=_sectionNeedsSubj(), need=!_curSubjFilter&&list.length>=1;   // fan hamma bo'limdan oldin so'raladi
-  pg.classList.toggle('no-subj',need);
-  gate.style.display=need?'':'none';
-  var tps=document.getElementById('tp-sub'); if(tps) tps.textContent=need?'Avval fanni tanlang':'Qaysi mavzuni ishlaysiz?';
+  var tl=_curSubjFilter?myStudentTeachers():[], needT=!!_curSubjFilter&&!_curTeacherFilter&&tl.length>=1;   // keyin ustoz
+  pg.classList.toggle('no-subj',need||needT);
+  gate.style.display=(need||needT)?'':'none';
+  var tps=document.getElementById('tp-sub'); if(tps) tps.textContent=need?'Avval fanni tanlang':needT?'Endi ustozni tanlang':'Qaysi mavzuni ishlaysiz?';
+  if(needT){
+    gate.innerHTML='<div class="card"><h2 style="margin:0 0 4px">Qaysi ustozdan o\'qiysiz?</h2><p class="ts tm" style="margin:0 0 14px">Ustozingizni tanlang &#8212; faqat shu ustozning testlari chiqadi.</p>'+
+      '<div class="sg-grid">'+tl.map(function(t){return '<button class="sg-card" onclick="setStudentTeacher(\''+_cEsc(t.id)+'\')"><span style="font-size:34px">&#x1F468;&#x200D;&#x1F3EB;</span><b>'+_qEsc(t.name)+'</b><span class="ts tm">'+t.n+' ta mavzu</span></button>';}).join('')+'</div></div>';
+  }
   if(need){
     gate.innerHTML='<div class="card"><h2 style="margin:0 0 4px">Qaysi fanni o\'qiymiz?</h2><p class="ts tm" style="margin:0 0 14px">Fanni tanlang — testlar, kartochkalar va o\'yinlar shu fan bo\'yicha chiqadi.</p>'+
       '<div class="sg-grid">'+list.map(function(s){return '<button class="sg-card" onclick="setStudentSubject(\''+s+'\')"><span style="font-size:34px">'+subjEmoji(s)+'</span><b>'+_qEsc(subjName(s))+'</b></button>';}).join('')+'</div></div>';
   }
   bar.style.display=(_curSubjFilter&&!need&&needSubj)?'':'none';
-  if(_curSubjFilter) bar.innerHTML='<span class="sg-cur">'+subjEmoji(_curSubjFilter)+' '+_qEsc(subjName(_curSubjFilter))+'</span>'+
-    '<button class="btn bg bsm" onclick="setStudentSubject(null)">&#x1F504; Fanni almashtirish</button>';
+  if(_curSubjFilter){ var _tn=''; if(_curTeacherFilter){ var _tt=tl.filter(function(t){return t.id===_curTeacherFilter;})[0]; if(_tt) _tn=' &#183; '+_qEsc(_tt.name); }
+    bar.innerHTML='<span class="sg-cur">'+subjEmoji(_curSubjFilter)+' '+_qEsc(subjName(_curSubjFilter))+_tn+'</span>'+
+    '<button class="btn bg bsm" onclick="setStudentSubject(null)">&#x1F504; Fanni almashtirish</button>'+(tl.length>1&&_curTeacherFilter?'<button class="btn bg bsm" onclick="setStudentTeacher(null)">&#x1F468;&#x200D;&#x1F3EB; Ustozni almashtirish</button>':''); }
   renderStHub();
 }
 function setStudentSubject(s){
-  _curSubjFilter=s; _curFolder=null;
-  if(s){ setTimeout(function(){ try{ maybeStartTour(); }catch(e){} },0); }
+  _curSubjFilter=s; _curFolder=null; _curTeacherFilter=null;
+  try{ sessionStorage.removeItem(_tchKey()); }catch(e){}
+  if(s&&!myStudentTeachers().length){ setTimeout(function(){ try{ maybeStartTour(); }catch(e){} },0); }
   try{ if(s) sessionStorage.setItem(_subjKey(),s); else sessionStorage.removeItem(_subjKey()); localStorage.removeItem(_subjKey()); }catch(e){}
   applySubjectTheme(s);
   renderTopics();
@@ -7653,14 +7795,21 @@ function renderSchoolClasses(){
 }
 // 2026-10-18: sinflar ESKI usulda — ustoz mavjud sinflardan o'zinikini BELGILAYDI (bosib yoqadi/o'chiradi)
 // Admin kiritgan maktab sinflari: db.schoolClasses[normSchool(maktab)] = {name, classes:[]}
+// Admin kamida bitta maktab sinflarini kiritgan bo'lsa — ustoz/o'quvchi faqat shularni ko'radi (maktab mos bo'lmasa hamma admin ro'yxatlari birlashmasi)
+function _adminClasses(maktab){
+  var sc=getDB().schoolClasses||{}, e=sc[normSchool(maktab)], out=[];
+  if(e&&Array.isArray(e.classes)&&e.classes.length) return e.classes.slice();
+  Object.keys(sc).forEach(function(k){ ((sc[k]&&sc[k].classes)||[]).forEach(function(c){ if(out.indexOf(c)<0) out.push(c); }); });
+  return out;
+}
 function schoolClassesFor(maktab){
   var e=(getDB().schoolClasses||{})[normSchool(maktab)];
   return (e&&Array.isArray(e.classes))?e.classes.slice():[];
 }
 function allClassOptions(){
   if(ME&&ME.role==='teacher'){
-    var sc=schoolClassesFor(ME.maktab);
-    if(sc.length){ var own=userClassList(ME); own.forEach(function(c){ if(sc.indexOf(c)<0) sc.push(c); }); return _clsSort(sc); }
+    var ac=_adminClasses(ME.maktab);
+    if(ac.length) return _clsSort(ac);   // eski sinflar ko'rinmaydi
   }
   var db=getDB(), out=(db.classes||[]).slice();
   (db.users||[]).forEach(function(u){ if(u.role==='teacher') userClassList(u).forEach(function(c){ if(out.indexOf(c)<0) out.push(c); }); });
@@ -10386,7 +10535,7 @@ function restoreSession(){
   var u=(getDB().users||[]).filter(function(x){return x.id===s.id;})[0];
   if(!u) return;
   if(u.role==='teacher'&&u.approved===false){ try{sessionStorage.removeItem('et_sess');localStorage.removeItem('et_sess_persist');}catch(e){} document.documentElement.classList.remove('et-restoring'); return; }
-  _authToken=s.t||null; ME=u; window._keepSubj=true; afterLogin();
+  _authToken=s.t||null; ME=u; window._keepSubj=true; window._staffChosen=!!u.parentId; afterLogin();
   // 2026-10-02: oxirgi ochiq tab (masalan "Tekshirish") tiklanadi
   setTimeout(function(){ try{ var t=sessionStorage.getItem('et_tab'); if(!t||!document.getElementById(t)) return;
     if(typeof openStSection==='function'&&/^st-/.test(t)) { openStSection(t); return; }
