@@ -526,13 +526,13 @@ html[data-px=night] #tab-rg.on{background:#7a4fd6!important;color:#fff!important
         <p class="ts tm" style="margin-top:10px;text-align:center;line-height:1.5">&#x1F4A1; Umumiy/maktab kompyuteridan foydalansangiz, brauzer parolni saqlashni so'rasa <b>"Hech qachon"</b> yoki <b>"Yo'q, rahmat"</b> tugmasini bosing - shunda boshqa o'quvchi sizning hisobingizdan foydalana olmaydi.</p>
       </div>
       <div id="form-rg" style="display:none">
-        <div class="fg"><label>Ism Familiya</label><input type="text" id="rg-n" placeholder="Masalan: Abror Karimov"></div>
+        <div class="fg"><label id="rg-n-lb">Ism Familiya</label><input type="text" id="rg-n" placeholder="Masalan: Abror Karimov"></div>
         <div id="rg-addr-fg" style="display:none">
           <select id="rg-vil" onchange="onVilChange()"><option value="">-- Belgilanmagan --</option></select>
           <select id="rg-tum" disabled><option value="">-- Avval viloyatni tanlang --</option></select>
         </div>
         <div class="fg" id="rg-maktab-fg">
-          <label>Maktab *</label>
+          <label id="rg-maktab-lb">Maktab *</label>
           <input type="text" id="rg-maktab" placeholder="Masalan: 21-maktab">
         </div>
         <div id="rg-cls-fg" class="fg">
@@ -1392,7 +1392,7 @@ var INIT_META = [{"topic": "Guruhlash qonuni", "questionsToAsk": 20}, {"topic": 
 
 var SK = 'edutest_v3';
 // APP_VER sw.js dagi CACHE bilan bir xil bo'lishi SHART (sw versiyasini oshirganda buni ham oshiring)
-var APP_VER = 'bilimtest-v134';
+var APP_VER = 'bilimtest-v135';
 (function(){
   try{
     if('serviceWorker' in navigator && navigator.serviceWorker.controller) return; // SW bor - o'zining yangilanish banneri ishlaydi
@@ -3129,11 +3129,14 @@ function goAuth(role){
   var isT=role==='teacher';
   var isA=role==='admin';
   document.getElementById('auth-title').textContent=isA?'Admin':(isT?'Ustoz':"O'quvchi");
-  document.getElementById('auth-sub').textContent=isA?'Boshqaruv paneli':(isT?'Ustoz paneli':"Test ishlash");
+  document.getElementById('auth-sub').textContent=isA?'Boshqaruv paneli':(isT?'Ustoz / maktab paneli':"Test ishlash");
   document.getElementById('rg-cls-fg').style.display=isT?'none':'block';
   document.getElementById('rg-maktab-fg').style.display=isT?'block':'none';   // maktab faqat ustozdan so'raladi
-  document.getElementById('rg-subj-fg').style.display=isT?'block':'none';
-  document.getElementById('rg-tcls-fg').style.display=isT?'block':'none'; if(isT){ try{ fillRegTeacherClasses(); }catch(e){} }
+  document.getElementById('rg-subj-fg').style.display='none';   // maktab hisobida fan/sinf so'ralmaydi — ustozlar keyin qo'shiladi
+  document.getElementById('rg-tcls-fg').style.display='none';
+  var _nl=document.getElementById('rg-n-lb'), _ml=document.getElementById('rg-maktab-lb');
+  if(_nl) _nl.textContent=isT?"Mas'ul shaxs: ism va familiya":'Ism Familiya';
+  if(_ml) _ml.textContent=isT?'Maktab / markaz nomi *':'Maktab *';
   document.getElementById('rg-email-fg').style.display='block';
   var _pl=document.getElementById('rg-phone-lb'), _el=document.getElementById('rg-email-lb');
   if(_pl) _pl.textContent=isT?'Telefon raqam (ixtiyoriy)':'Telefon raqam (ixtiyoriy)';
@@ -3243,8 +3246,6 @@ async function doRegister(){
   if(!pass){showErr("Parol kiriting!");return;}
   if(authRole==='teacher'&&!maktab){showErr("Maktab nomini kiriting!");return;}
   if(authRole==='student'&&!cls){showErr("Sinf tanlang!");return;}
-  if(authRole==='teacher'&&!subj){showErr("Fan tanlang!");return;}
-  if(authRole==='teacher'&&!tclasses.length){showErr("Kamida bitta sinf yozing (masalan: 5A, 5B)!");return;}
   if(!email){showErr("Email kiriting! Parolni unutsangiz, tiklash kodi shu emailga yuboriladi.");return;}
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){showErr("Email noto'g'ri formatda!");return;}
   if(!_rgV.ptok){showErr("Telefon raqamni Telegram orqali tasdiqlang (\"Telegram orqali tasdiqlash\" tugmasi).");return;}
@@ -3253,7 +3254,7 @@ async function doRegister(){
   var dup=db.users.filter(function(x){return x.login===user;});
   if(dup.length){showErr("Bu login band! Boshqa login tanlang.");return;}
   // MUHIM: endi maxfiy kod tizimi YOQ - uning ornini admin tasdigi
-  var nu={id:'u'+Date.now(),role:authRole,name:name,login:user,pass:pass,cls:cls,subject:subj,email:email,teachClasses:tclasses,myClasses:tclasses,viloyat:vil,tuman:tum,maktab:maktab,plan:'free',approved:(authRole!=='teacher'),usage:{month:curMonthKey(),images:0,pages:0,questions:0}};
+  var nu={id:'u'+Date.now(),role:authRole,name:name,login:user,pass:pass,cls:cls,subject:subj,school:authRole==='teacher',email:email,teachClasses:tclasses,myClasses:tclasses,viloyat:vil,tuman:tum,maktab:maktab,plan:'free',approved:(authRole!=='teacher'),usage:{month:curMonthKey(),images:0,pages:0,questions:0}};
   nu.phone=_rgV.phone; nu.tgId=_rgV.tg; nu.email=_rgV.email;
   // ro'yxatdan o'tish SERVERDA (baza endi kirmaganlarga parollarsiz
   var reg=null;
@@ -3298,7 +3299,7 @@ async function doRegister(){
 // ── Umumiy hisob (maktab/markaz): ichida ustoz profillari (faqat ism-familiya) ──
 function _ownerOf(u){ if(!u) return null; if(!u.parentId) return u; return (getDB().users||[]).filter(function(x){return x.id===u.parentId;})[0]||u; }
 function staffProfiles(owner){ return (getDB().users||[]).filter(function(x){ return x.parentId===owner.id && x.role==='teacher'; }); }
-function _needStaffPick(){ return !!ME&&ME.role==='teacher'&&!ME.parentId&&!window._staffChosen&&staffProfiles(ME).length>0; }
+function _needStaffPick(){ return !!ME&&ME.role==='teacher'&&!ME.parentId&&!window._staffChosen&&(!!ME.school||staffProfiles(ME).length>0); }
 function showStaffPicker(){
   if(!ME||ME.role!=='teacher') return;
   if(ME.parentId){ ME=_ownerOf(ME); }
@@ -3322,7 +3323,7 @@ function renderStaffList(){
     html+='<div class="stf-row" style="margin-top:8px"><button class="sg-card" onclick="enterStaff(\''+_cEsc(u.id)+'\')"><span style="font-size:30px">&#x1F468;&#x200D;&#x1F3EB;</span><b>'+_cEsc(u.name)+'</b><span class="ts tm">'+_cEsc(subjName(u.subject)||'')+' &#183; '+n+' ta savol</span></button>'+
       '<button class="stf-del" title="O\'chirish" onclick="delStaff(\''+_cEsc(u.id)+'\')">&#x2715;</button></div>';
   });
-  if(!html) html='<div class="alt ai">Hali ustoz qo\'shilmagan. Pastdan ustoz ism-familiyasini kiriting.</div>';
+  if(!html) html='<div class="alt ai">Hali ustoz qo\'shilmagan. Pastdan har bir ustozning ism-familiyasi va fanini kiriting.</div>';
   host.innerHTML=html;
 }
 function enterStaff(id){
