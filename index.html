@@ -1389,7 +1389,7 @@ var INIT_META = [{"topic": "Guruhlash qonuni", "questionsToAsk": 20}, {"topic": 
 
 var SK = 'edutest_v3';
 // APP_VER sw.js dagi CACHE bilan bir xil bo'lishi SHART (sw versiyasini oshirganda buni ham oshiring)
-var APP_VER = 'bilimtest-v152';
+var APP_VER = 'bilimtest-v153';
 (function(){
   try{
     if('serviceWorker' in navigator && navigator.serviceWorker.controller) return; // SW bor - o'zining yangilanish banneri ishlaydi
@@ -3379,19 +3379,39 @@ function addStaff(){
   document.getElementById('staff-name').value=''; msg.innerHTML='<div class="alt as mt8">&#x2705; Qo\'shildi. Ustoz nomini bosib uning bo\'limiga kiring va "Sozlamalar"da sinflarini belgilang.</div>';
   renderStaffList();
 }
-var SHEETS_CODE=['function doPost(e){',
+var SHEETS_CODE=['function fmtHead(sh){',
+ ' var lc=Math.max(sh.getLastColumn(),2);',
+ ' sh.getRange(1,1,1,lc).setFontWeight("bold").setFontColor("#ffffff").setBackground("#1f3a5f").setHorizontalAlignment("center").setVerticalAlignment("middle").setWrap(true);',
+ ' sh.setRowHeight(1,52); sh.setFrozenRows(1); sh.setFrozenColumns(2);',
+ ' sh.setColumnWidth(1,230); sh.setColumnWidth(2,70);',
+ ' if(lc>2) sh.setColumnWidths(3,lc-2,150);',
+ '}',
+ 'function fmtCell(cell,val){',
+ ' var p=parseInt(val,10);',
+ ' cell.setHorizontalAlignment("center").setBackground(isNaN(p)?null:(p>=70?"#d9f2d9":(p>=50?"#fff2cc":"#f8d7da")));',
+ '}',
+ 'function fmtAll(ss){',
+ ' ss.getSheets().forEach(function(sh){',
+ '  var lr=sh.getLastRow(), lc=sh.getLastColumn();',
+ '  if(lr<1||lc<2) return;',
+ '  fmtHead(sh);',
+ '  if(lr>1&&lc>2){ var v=sh.getRange(2,3,lr-1,lc-2).getValues(); for(var i=0;i<v.length;i++) for(var j=0;j<v[i].length;j++) if(v[i][j]!=="") fmtCell(sh.getRange(i+2,j+3),v[i][j]); }',
+ ' });',
+ '}',
+ 'function doPost(e){',
  ' var d=JSON.parse(e.postData.contents), ss=SpreadsheetApp.getActiveSpreadsheet();',
  ' var lock=LockService.getScriptLock(); lock.waitLock(30000);',
+ ' if(d.format){ fmtAll(ss); lock.releaseLock(); return ContentService.createTextOutput("ok"); }',
  ' d.rows.forEach(function(r){',
  '  var nm=String(r.sheet||r.cls||"Sinfsiz").replace(/[\\[\\]\\*\\?:\\/\\\\]/g,"-").substring(0,99);',
  '  var sh=ss.getSheetByName(nm)||ss.insertSheet(nm);',
  '  if(sh.getLastRow()===0) sh.appendRow(["Ism familiya","Sinf"]);',
  '  var lc=Math.max(sh.getLastColumn(),2), head=sh.getRange(1,1,1,lc).getValues()[0], c=head.indexOf(r.col)+1;',
- '  if(!c){ c=lc+1; sh.getRange(1,c).setValue(r.col); }',
+ '  if(!c){ c=lc+1; sh.getRange(1,c).setValue(r.col); fmtHead(sh); }',
  '  var lr=sh.getLastRow(), row=0;',
  '  if(lr>1){ var v=sh.getRange(2,1,lr-1,2).getValues(); for(var i=0;i<v.length;i++){ if(v[i][0]===r.student && v[i][1]===r.cls){ row=i+2; break; } } }',
  '  if(!row){ row=lr+1; sh.getRange(row,1,1,2).setValues([[r.student,r.cls]]); }',
- '  sh.getRange(row,c).setValue(r.value);',
+ '  var cell=sh.getRange(row,c); cell.setValue(r.value); fmtCell(cell,r.value);',
  ' });',
  ' lock.releaseLock();',
  ' return ContentService.createTextOutput("ok");',
