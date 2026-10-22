@@ -816,11 +816,14 @@ html[data-px=night] #tab-rg.on{background:#7a4fd6!important;color:#fff!important
   </div>
   <div class="card" id="sheets-card">
     <h3 style="margin:0 0 8px">&#x1F4CA; Google Sheets'ga natijalar</h3>
+    <div id="sheets-ok" style="display:none"><div class="alt as">&#x2705; Google Sheets ulangan. Har yangi natija jadvalga o'zi yoziladi.</div><button class="btn bs bsm mt8" onclick="sheetsReconf()">Havolani o'zgartirish / ajratish</button></div>
+    <div id="sheets-setup">
     <p class="ts tm" style="margin:0 0 10px">Har o'quvchi jadvalda bitta qator, har mavzu natijasi uning yoniga ustun bo'lib yoziladi. Sozlash: 1) Google Sheets'da yangi jadval oching; 2) Kengaytmalar &#8594; Apps Script; 3) pastdagi kodni joylang; 4) Deploy &#8594; New deployment &#8594; Web app (Execute as: Me, Access: Anyone); 5) chiqqan havolani shu yerga qo'ying.</p>
     <textarea id="sheets-code" readonly rows="6" style="width:100%;font-family:monospace;font-size:11px" onclick="this.select()"></textarea>
     <button class="btn bs bsm mt8" onclick="copySheetsCode()">Kodni nusxalash</button>
     <div class="fg mt8"><label>Web app havolasi (https://script.google.com/macros/s/...)</label><input type="text" id="sheets-url" placeholder="https://script.google.com/macros/s/.../exec"></div>
     <button class="btn bpu bsm" onclick="saveSheetsUrl()">Saqlash</button>
+    </div>
     <div id="sheets-msg"></div>
   </div>
 </div>
@@ -1389,7 +1392,7 @@ var INIT_META = [{"topic": "Guruhlash qonuni", "questionsToAsk": 20}, {"topic": 
 
 var SK = 'edutest_v3';
 // APP_VER sw.js dagi CACHE bilan bir xil bo'lishi SHART (sw versiyasini oshirganda buni ham oshiring)
-var APP_VER = 'bilimtest-v155';
+var APP_VER = 'bilimtest-v156';
 (function(){
   try{
     if('serviceWorker' in navigator && navigator.serviceWorker.controller) return; // SW bor - o'zining yangilanish banneri ishlaydi
@@ -3346,7 +3349,7 @@ function showStaffPicker(){
   try{ var _sd={id:ME.id, t:_authToken||null, exp:Date.now()+7*24*60*60*1000}; sessionStorage.setItem('et_sess',JSON.stringify(_sd)); localStorage.setItem('et_sess_persist',JSON.stringify(_sd)); }catch(e){}
   document.documentElement.classList.remove('is-profile');
   var sel=document.getElementById('staff-subj'); if(sel&&!sel.options.length) sel.innerHTML='<option value="">Fanni tanlang</option>'+SUBJECTS.map(function(x){return '<option value="'+_cEsc(x.v)+'">'+_cEsc(x.n)+'</option>';}).join('');
-  var us=document.getElementById('sheets-url'); if(us) us.value=ME.sheetsUrl||'';
+  var us=document.getElementById('sheets-url'); if(us) us.value=ME.sheetsUrl||''; sheetsUI();
   var sc=document.getElementById('sheets-code'); if(sc&&!sc.value) sc.value=SHEETS_CODE;
   document.getElementById('nav-user').textContent=ME.name+' (Ustozlar)';
   resetTheme(); renderStaffList(); showPg('pg-staff');
@@ -3478,13 +3481,15 @@ var SHEETS_CODE=['function fmtHead(sh){',
  ' lock.releaseLock();',
  ' return ContentService.createTextOutput("ok");',
  '}'].join(String.fromCharCode(10));
+function sheetsUI(on){ var ok=!!ME.sheetsUrl&&!on, a=document.getElementById('sheets-ok'), b=document.getElementById('sheets-setup'); if(a) a.style.display=ok?'':'none'; if(b) b.style.display=ok?'none':''; }
+function sheetsReconf(){ sheetsUI(true); }
 function copySheetsCode(){ var t=document.getElementById('sheets-code'); t.select(); try{ document.execCommand('copy'); }catch(e){} var m=document.getElementById('sheets-msg'); if(m) m.innerHTML='<div class="alt as mt8">Nusxalandi.</div>'; }
 function saveSheetsUrl(){
   var v=(document.getElementById('sheets-url').value||'').trim(), m=document.getElementById('sheets-msg');
   if(v&&v.indexOf('https://script.google.com/macros/s/')!==0){ m.innerHTML='<div class="alt ad mt8">Havola https://script.google.com/macros/s/ bilan boshlanishi kerak.</div>'; return; }
   var db=getDB(); db.users.forEach(function(u){ if(u.id===ME.id){ if(v) u.sheetsUrl=v; else delete u.sheetsUrl; } });
   ME.sheetsUrl=v||undefined; saveDB(db);
-  m.innerHTML='<div class="alt as mt8">&#x2705; Saqlandi. Bundan keyingi har yangi natija Sheets\'ga yoziladi.</div>';
+  m.innerHTML=''; sheetsUI();
 }
 // ── O'quvchi sinfi har yili o'zgaradi ──
 function _acYear(d){ d=d||new Date(); return d.getMonth()>=8?d.getFullYear():d.getFullYear()-1; }   // o'quv yili 1-sentyabrdan
