@@ -1389,7 +1389,7 @@ var INIT_META = [{"topic": "Guruhlash qonuni", "questionsToAsk": 20}, {"topic": 
 
 var SK = 'edutest_v3';
 // APP_VER sw.js dagi CACHE bilan bir xil bo'lishi SHART (sw versiyasini oshirganda buni ham oshiring)
-var APP_VER = 'bilimtest-v151';
+var APP_VER = 'bilimtest-v152';
 (function(){
   try{
     if('serviceWorker' in navigator && navigator.serviceWorker.controller) return; // SW bor - o'zining yangilanish banneri ishlaydi
@@ -3381,10 +3381,11 @@ function addStaff(){
 }
 var SHEETS_CODE=['function doPost(e){',
  ' var d=JSON.parse(e.postData.contents), ss=SpreadsheetApp.getActiveSpreadsheet();',
- ' var sh=ss.getSheetByName("Natijalar")||ss.insertSheet("Natijalar");',
  ' var lock=LockService.getScriptLock(); lock.waitLock(30000);',
- ' if(sh.getLastRow()===0) sh.appendRow(["Ism familiya","Sinf"]);',
  ' d.rows.forEach(function(r){',
+ '  var nm=String(r.sheet||r.cls||"Sinfsiz").replace(/[\\[\\]\\*\\?:\\/\\\\]/g,"-").substring(0,99);',
+ '  var sh=ss.getSheetByName(nm)||ss.insertSheet(nm);',
+ '  if(sh.getLastRow()===0) sh.appendRow(["Ism familiya","Sinf"]);',
  '  var lc=Math.max(sh.getLastColumn(),2), head=sh.getRange(1,1,1,lc).getValues()[0], c=head.indexOf(r.col)+1;',
  '  if(!c){ c=lc+1; sh.getRange(1,c).setValue(r.col); }',
  '  var lr=sh.getLastRow(), row=0;',
@@ -6124,7 +6125,7 @@ async function doSubmitTest(){
   correct=Math.round(correct*10)/10; // qisman ball (masalan 7.5) bo'lishi mumkin
   pts=Math.round(pts*100)/100;
   var pct=maxPts?Math.round(pts/maxPts*100):0;   // foiz ball bo'yicha: qiyin savol ko'proq hisoblanadi
-  var res={id:'res'+Date.now()+'_'+Math.random().toString(36).slice(2,8),student:ME.name,sid:ME.id,cls:ME.cls,topic:selTopic,mode:S.mode,correct:correct,total:S.test.length,pts:pts,maxPts:maxPts,pct:pct,date:new Date().toLocaleDateString('uz-UZ'),time:new Date().toLocaleTimeString('uz-UZ'),details:details};
+  var res={id:'res'+Date.now()+'_'+Math.random().toString(36).slice(2,8),student:ME.name,sid:ME.id,cls:ME.cls,tid:(S.test[0]&&S.test[0].teacherId)||'',topic:selTopic,mode:S.mode,correct:correct,total:S.test.length,pts:pts,maxPts:maxPts,pct:pct,date:new Date().toLocaleDateString('uz-UZ'),time:new Date().toLocaleTimeString('uz-UZ'),details:details};
   if(S.exits){ res.exits=S.exits; res.awaySec=S.awaySec||0; }
   S.lastRes=res;
   var isExam=(S.mode==='exam');
