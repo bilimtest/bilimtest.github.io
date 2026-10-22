@@ -790,7 +790,7 @@ html[data-px=night] #tab-rg.on{background:#7a4fd6!important;color:#fff!important
     <div id="r-flag-note" class="alt ai" style="margin:12px auto;max-width:420px;display:none"></div>
     <div class="fx center fxw" style="margin-top:14px;gap:8px">
       <button class="btn bp" onclick="showPg('pg-topic');loadMyHist()">&#x1F504; Yana test</button>
-      <button class="btn bg bsm" onclick="toggleDetail()">&#x1F4CB; Batafsil</button>
+      <button class="btn bg bsm" id="r-det-btn" onclick="toggleDetail()">&#x1F4CB; Batafsil</button>
       <button class="btn bg bsm" onclick="goMyPanel()">&#x1F3E0; Bosh sahifa</button>
     </div>
   </div>
@@ -1389,7 +1389,7 @@ var INIT_META = [{"topic": "Guruhlash qonuni", "questionsToAsk": 20}, {"topic": 
 
 var SK = 'edutest_v3';
 // APP_VER sw.js dagi CACHE bilan bir xil bo'lishi SHART (sw versiyasini oshirganda buni ham oshiring)
-var APP_VER = 'bilimtest-v150';
+var APP_VER = 'bilimtest-v151';
 (function(){
   try{
     if('serviceWorker' in navigator && navigator.serviceWorker.controller) return; // SW bor - o'zining yangilanish banneri ishlaydi
@@ -3735,7 +3735,7 @@ function loadMyHist(){
     return;
   }
   document.getElementById('my-hist-body').innerHTML='<table><thead><tr><th>Mavzu</th><th>Natija</th><th>Ball</th><th>Sana</th></tr></thead><tbody>'+
-    myR.slice(-10).reverse().map(function(r){var bc=r.pct>=70?'bgr':r.pct>=50?'byl':'brd';return '<tr><td><strong>'+r.topic+'</strong></td><td>'+resFrac(r)+'</td><td><span class="bdg '+bc+'">'+r.pct+'%</span></td><td class="ts tm">'+r.date+'</td></tr>';}).join('')+'</tbody></table>';
+    myR.slice(-10).reverse().map(function(r){var bc=r.pct>=70?'bgr':r.pct>=50?'byl':'brd';return '<tr><td><strong>'+r.topic+'</strong></td><td>'+r.correct+'/'+r.total+'</td><td><span class="bdg '+bc+'">'+r.pct+'%</span></td><td class="ts tm">'+r.date+'</td></tr>';}).join('')+'</tbody></table>';
 }
 
 // ── QIYINLIK DARAJASI VA BALL: 1 oson = 1 ball, 2 o'rta = 2 ball, 3 qiyin = 3 ball ──
@@ -6179,8 +6179,10 @@ function showResult(r,syncState){
   ring.style.borderColor=col;
   ring.style.transform='scale(.6)';ring.style.opacity='0';
   document.getElementById('r-pct').style.color=col;
-  document.getElementById('r-frac').textContent=r.maxPts?(_fmtPts(r.pts)+'/'+r.maxPts+' ball'):(r.correct+'/'+r.total);
-  var _rb=document.getElementById('r-ball'); if(_rb) _rb.innerHTML=r.maxPts?('<div style="font-weight:700;font-size:15px">'+r.correct+'/'+r.total+' ta to\'g\'ri &middot; '+_fmtPts(r.pts)+' / '+r.maxPts+' ball</div>'+resLvlBreak(r)):'';
+  var _isSt=!!(ME&&ME.role==='student');   // o'quvchi faqat foiz va nechtadan nechta topganini ko'radi
+  document.getElementById('r-frac').textContent=(r.maxPts&&!_isSt)?(_fmtPts(r.pts)+'/'+r.maxPts+' ball'):(r.correct+'/'+r.total);
+  var _db0=document.getElementById('r-det-btn'); if(_db0) _db0.style.display=_isSt?'none':'';
+  var _rb=document.getElementById('r-ball'); if(_rb) _rb.innerHTML=(r.maxPts&&!_isSt)?('<div style="font-weight:700;font-size:15px">'+r.correct+'/'+r.total+' ta to\'g\'ri &middot; '+_fmtPts(r.pts)+' / '+r.maxPts+' ball</div>'+resLvlBreak(r)):'';
   var titles=r.pct>=90?['A\'lo natija!','Zo\'r ketyapsiz!']:r.pct>=70?['Zo\'r natija!','Yaxshi ish!']:r.pct>=50?['Qoniqarli']:['Qayta urinib ko\'ring'];
   document.getElementById('r-title').textContent=titles[Math.floor(Math.random()*titles.length)];
   document.getElementById('r-sub').textContent=r.student+' - '+r.cls+' - '+r.topic;
@@ -6228,6 +6230,7 @@ function fireConfetti(count){
   setTimeout(function(){host.remove();},4200);
 }
 function toggleDetail(){
+  if(ME&&ME.role==='student'){ showDet=false; var _d0=document.getElementById('r-det'); if(_d0) _d0.style.display='none'; return; }
   showDet=!showDet;var el=document.getElementById('r-det');el.style.display=showDet?'block':'none';
   if(showDet&&S.lastRes){document.getElementById('r-det-body').innerHTML=S.lastRes.details.map(function(d,i){
     if(QTYPES[d.type]) return '<div style="padding:12px;border-radius:9px;background:'+_dBg(d)+';border:1px solid '+_dBd(d)+';margin-bottom:9px">'+_dTag(d)+'<div style="font-weight:700;margin-bottom:7px">'+(i+1)+'. '+(d.type==='fill'?'':_qEsc(d.text))+(d.score<1&&d.score>0?' <span class="ts tm">('+Math.round(d.score*100)+'%)</span>':'')+'</div>'+qDetailHtml(d)+explHtml(d)+'</div>';
@@ -7249,6 +7252,7 @@ function _dBg(d){ return _dUnm(d)?'#f3f4f6':(d.ok?'#f0fdf4':'#fff7f7'); }
 function _dBd(d){ return _dUnm(d)?'#d1d5db':(d.ok?'#bbf7d0':'#fecaca'); }
 function _dTag(d){ return lvChip(d)+(_dUnm(d)?'<div style="display:inline-block;font-size:11px;font-weight:700;color:#475569;background:#e2e8f0;border-radius:999px;padding:2px 10px;margin-bottom:7px">&#9675; Belgilanmagan</div>':''); }
 function showResultDetail(id){
+  if(ME&&ME.role==='student') return;
   if(!id){alert('Bu natija uchun batafsil malumot saqlanmagan (eski yozuv).');return;}
   var db=getDB();
   var r=(db.results||[]).find(function(x){return x.id===id;});
@@ -7274,6 +7278,7 @@ function showResultDetail(id){
       '</div>';
     }).join('');
   document.getElementById('rd-modal').style.display='flex';
+  try{ renderMathIn(body); }catch(e){}
 }
 function closeRD(){document.getElementById('rd-modal').style.display='none';}
 
