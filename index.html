@@ -1392,7 +1392,7 @@ var INIT_META = [{"topic": "Guruhlash qonuni", "questionsToAsk": 20}, {"topic": 
 
 var SK = 'edutest_v3';
 // APP_VER sw.js dagi CACHE bilan bir xil bo'lishi SHART (sw versiyasini oshirganda buni ham oshiring)
-var APP_VER = 'bilimtest-v156';
+var APP_VER = 'bilimtest-v157';
 (function(){
   try{
     if('serviceWorker' in navigator && navigator.serviceWorker.controller) return; // SW bor - o'zining yangilanish banneri ishlaydi
@@ -4291,6 +4291,7 @@ function recordMastery(db,res,testQs){
   if(!cnt) return;
   markActiveDay(m);
   // Mavzu bo'yicha guruhlaymiz (takrorlash testida savollar har xil mavzudan bo'ladi)
+  if(_reviewQs&&_reviewQs.cert&&_reviewQs.name===res.topic) return;   // sertifikat mashqlari ustozga ko'rinadigan mavzu statistikasiga kirmaydi
   var grp={};
   res.details.forEach(function(d,i){ var q=testQs[i]; if(!q||q.id==null) return;
     var k=q.topic||res.topic, g=grp[k]=grp[k]||{sum:0,cnt:0,subj:q.subject}; g.sum+=typeof d.score==='number'?d.score:(d.ok?1:0); g.cnt++; });
@@ -4388,7 +4389,7 @@ function renderHardTopics(){
   var db=getDB(), ms=db.mastery||{}, agg={};
   (typeof myVisibleStudents==='function'?myVisibleStudents():[]).forEach(function(u){
     var t=(ms[u.id]||{}).t||{};
-    Object.keys(t).forEach(function(k){ var a=agg[k]=agg[k]||{sum:0,n:0,subj:t[k].subj}; a.sum+=t[k].avg; a.n++; });
+    Object.keys(t).forEach(function(k){ if(/^(IELTS|CEFR|Multilevel|Milliy sertifikat|Mashq: |Xatolar mashqi)/i.test(k)) return; var a=agg[k]=agg[k]||{sum:0,n:0,subj:t[k].subj}; a.sum+=t[k].avg; a.n++; });
   });
   var list=Object.keys(agg).map(function(k){return {k:k,p:Math.round(agg[k].sum/agg[k].n*100),n:agg[k].n,subj:agg[k].subj};})
     .sort(function(a,b){return a.p-b.p;}).slice(0,6);
@@ -4544,7 +4545,7 @@ async function startCert(){
       if(j.passage){ o.passage=(j.title?j.title+'\n\n':'')+j.passage; o.pid='pr_'+j.id; } return o; });
     msg.innerHTML='';
     _certRun={exam:CERT.exam,level:lvl,band:CERT.band,name:name};
-    _reviewQs={name:name,qs:qs}; selTopic=name; startTest('practice');
+    _reviewQs={name:name,qs:qs,cert:true}; selTopic=name; startTest('practice');
   }catch(e){ msg.innerHTML='<div class="alt ar">&#x274C; Server bilan bog\'lanib bo\'lmadi.</div>'; }
 }
 var _certRun=null;
@@ -4639,7 +4640,7 @@ async function startMock(secs){
   }catch(e){ msg.innerHTML='<div class="alt ar">&#x274C; '+_qEsc(e.message||'Server bilan bog\'lanib bo\'lmadi')+'</div>'; }
 }
 function _mockStartObj(qs,mins){
-  _reviewQs={name:_mockRun.name,qs:qs,keepOrder:true}; selTopic=_mockRun.name; _certRun=null;
+  _reviewQs={name:_mockRun.name,qs:qs,keepOrder:true,cert:true}; selTopic=_mockRun.name; _certRun=null;
   startTest('practice');
   if(mins){ S.timeLeft=mins*60; var tel=document.getElementById('t-tmr'); if(tel) tel.style.display=''; startTimer(); }
 }
@@ -5458,7 +5459,7 @@ function startMsWeak(){
   if(!qs.length){ alert('Mashq uchun savol topilmadi.'); return; }
   var name='Xatolar mashqi — '+MS_SUBJECTS[L.subj].name;
   _msRun=null; _certRun=null; if(typeof _mockRun!=='undefined') _mockRun=null;
-  _reviewQs={name:name,qs:qs,keepOrder:true}; selTopic=name; startTest('practice');
+  _reviewQs={name:name,qs:qs,keepOrder:true,cert:true}; selTopic=name; startTest('practice');
 }
 function msGenerate(subj){
   var SB=MS_SUBJECTS[subj], P=MS_SPEC.pts, qs=[], n=1, uid=Date.now().toString(36);
@@ -5579,7 +5580,7 @@ async function startMs(subj){
   if(msg) msg.innerHTML='';
   var name='Milliy sertifikat — '+SB.name;
   _msRun={subj:subj,name:name,src:L.src}; _certRun=null; if(typeof _mockRun!=='undefined') _mockRun=null;
-  _reviewQs={name:name,qs:L.qs,keepOrder:true}; selTopic=name;
+  _reviewQs={name:name,qs:L.qs,keepOrder:true,cert:true}; selTopic=name;
   startTest('practice');
   S.timeLeft=MS_SPEC.minutes*60; var tel=document.getElementById('t-tmr'); if(tel) tel.style.display=''; startTimer();
 }
