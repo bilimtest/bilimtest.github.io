@@ -1392,7 +1392,7 @@ var INIT_META = [{"topic": "Guruhlash qonuni", "questionsToAsk": 20}, {"topic": 
 
 var SK = 'edutest_v3';
 // APP_VER sw.js dagi CACHE bilan bir xil bo'lishi SHART (sw versiyasini oshirganda buni ham oshiring)
-var APP_VER = 'bilimtest-v159';
+var APP_VER = 'bilimtest-v160';
 (function(){
   try{
     if('serviceWorker' in navigator && navigator.serviceWorker.controller) return; // SW bor - o'zining yangilanish banneri ishlaydi
@@ -1614,7 +1614,7 @@ function startDbPolling(){
       var remote=await sbPull(); // FAQAT haqiqatan ozgargan bolsa, tolik blokni tortamiz
       if(!remote) return;
       if(true){
-        if(mergeLocalAdds(remote,local)){ remote.v=(remote.v||0)+1; dbSetRaw(JSON.stringify(remote)); sbPush(remote); }
+        if(mergeLocalAdds(remote,local)+applyPendingDeletes(remote)){ remote.v=(remote.v||0)+1; dbSetRaw(JSON.stringify(remote)); sbPush(remote); }
         else dbSetRaw(JSON.stringify(remote));
         rememberSyncedIds(remote); try{ syncTimerUI(); }catch(_e){} try{ _rerenderAfterSync(); }catch(_e2){}
         renderNotifBell(); try{ updateCardsTab(); updateStatsTab(); }catch(e){}
@@ -1662,7 +1662,7 @@ async function _sbPushOnce(db) {
     if(!res.ok){ console.error('Server push xato (kod: '+res.status+')'); markConnLost(); return false; }
     markConnOk();
     if((db.v||0)>_lastOkV) _lastOkV=db.v||0;
-    rememberSyncedIds(db);
+    rememberSyncedIds(db); prunePendingDeletes(db);
     return true;
   } catch(e) { console.error('Server push xato (malumot juda katta bolishi yoki server band bolishi mumkin):', e); markConnLost(); return false; }
 }
@@ -1695,6 +1695,35 @@ var SYNCED_IDS_KEY='bt_synced_ids';
 function _collIds(db,c){ return (db[c]||[]).map(function(x){return x&&x.id!=null?String(x.id):null;}).filter(Boolean); }
 function serverV(){ try{ return parseInt(localStorage.getItem('bt_server_v'),10)||0; }catch(e){ return 0; } }
 function rememberSyncedIds(db){ try{ localStorage.setItem('bt_server_v', String(db.v||0)); }catch(e){} try{ var o={}; SYNC_COLLS.forEach(function(c){o[c]=_collIds(db,c);}); localStorage.setItem(SYNCED_IDS_KEY,JSON.stringify(o)); }catch(e){} }
+// O'CHIRILGANLAR: boshqa qurilma/eskirgan nusxa (409 to'qnashuv) serverdan eski bazani olganda o'chirilgan mavzu qaytib qolmasin —
+// o'chirilgan savol id lari serverga qabul qilinguncha eslab turiladi va har safar yangi nusxaga qayta qo'llanadi
+var PENDING_DEL_KEY='bt_pending_del';
+function _pdGet(){ try{ var o=JSON.parse(localStorage.getItem(PENDING_DEL_KEY)||'{}'); return {q:o.q||[],m:o.m||[]}; }catch(e){ return {q:[],m:[]}; } }
+function _pdSet(o){ try{ localStorage.setItem(PENDING_DEL_KEY,JSON.stringify(o)); }catch(e){} }
+function markDeletedQs(qids,topic,tid){
+  var o=_pdGet(); (qids||[]).forEach(function(id){ id=String(id); if(o.q.indexOf(id)<0) o.q.push(id); });
+  if(topic){ var k=(tid||'')+'|'+topic; if(o.m.indexOf(k)<0) o.m.push(k); }
+  _pdSet(o);
+}
+function applyPendingDeletes(remote){
+  var o=_pdGet(); if(!remote||(!o.q.length&&!o.m.length)) return 0;
+  var qs={}; o.q.forEach(function(id){ qs[id]=1; }); var n=0;
+  if(remote.userQs){ var a=remote.userQs.length; remote.userQs=remote.userQs.filter(function(q){ return !(q&&q.id!=null&&qs[String(q.id)]); }); n+=a-remote.userQs.length; }
+  if(remote.topicsMeta&&o.m.length){
+    var ms={}; o.m.forEach(function(k){ ms[k]=1; });
+    var alive={}; (remote.userQs||[]).forEach(function(q){ if(q) alive[(q.teacherId||'')+'|'+q.topic]=1; });
+    var b=remote.topicsMeta.length;
+    remote.topicsMeta=remote.topicsMeta.filter(function(m){ var k=m?(m.teacherId||'')+'|'+m.topic:''; return !(ms[k]&&!alive[k]); });   // mavzu qayta yaratilgan bo'lsa sozlamasi saqlanadi
+    n+=b-remote.topicsMeta.length;
+  }
+  return n;
+}
+function prunePendingDeletes(db){   // server o'chirilgan holatni qabul qildi — eslab turish shart emas
+  var o=_pdGet(); if(!o.q.length&&!o.m.length) return;
+  var have={}; (db.userQs||[]).forEach(function(q){ if(q&&q.id!=null) have[String(q.id)]=1; });
+  var hm={}; (db.topicsMeta||[]).forEach(function(m){ if(m) hm[(m.teacherId||'')+'|'+m.topic]=1; });
+  o.q=o.q.filter(function(id){ return have[id]; }); o.m=o.m.filter(function(k){ return hm[k]; }); _pdSet(o);
+}
 function mergeLocalAdds(remote,local){
   var synced={}; try{ synced=JSON.parse(localStorage.getItem(SYNCED_IDS_KEY)||'{}'); }catch(e){}
   var added=0;
@@ -1719,7 +1748,7 @@ async function sbResolveConflict(localDb){
     var pend=getPendingSync();
     var have={};
     (remote.results||[]).forEach(function(r){ have[r.id]=1; });
-    var added=mergeLocalAdds(remote,localDb);
+    var added=mergeLocalAdds(remote,localDb)+applyPendingDeletes(remote);
     if(added){
       remote.v=(remote.v||0)+1;
       var res2=await fetch(DB_SERVER+'/db_save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({value:JSON.stringify(remote)})});
@@ -2781,7 +2810,7 @@ async function syncFromCloud() {
     // TUZATISH: avval faqat v > local.v bo'lgandagina yangilardi
     var localEmpty = !(local.users && local.users.length > 1);
     if (true) { // 2026-10-01: ochilishda har doim server nusxasi olinadi (server - haqiqat manbai)
-      var _adds = localEmpty ? 0 : mergeLocalAdds(remote, local);
+      var _adds = (localEmpty ? 0 : mergeLocalAdds(remote, local)) + applyPendingDeletes(remote);
       if (_adds) remote.v = (remote.v||0) + 1;
       try { dbSetRaw(JSON.stringify(remote)); } catch(e) {}
       rememberSyncedIds(remote); try{ syncTimerUI(); }catch(_e){} try{ _rerenderAfterSync(); }catch(_e2){}
@@ -6501,6 +6530,7 @@ function deleteTopic(t){
   var db=getDB();
   var toDelete=(db.userQs||[]).filter(function(q){return q.topic===t&&q.teacherId===ME.id;});
   deleteStorageImagesFor(toDelete);
+  markDeletedQs(toDelete.map(function(q){return q.id;}),t,ME.id);
   db.userQs=(db.userQs||[]).filter(function(q){return !(q.topic===t&&q.teacherId===ME.id);});
   db.topicsMeta=(db.topicsMeta||[]).filter(function(m){return !(m.topic===t&&m.teacherId===ME.id);});
   saveDB(db);
@@ -6666,6 +6696,7 @@ function deleteQ(qid,topic){
   // Xavfsizlik uchun
   var matched=(db.userQs||[]).filter(function(q){return q.id===qid&&q.teacherId===ME.id&&(!topic||q.topic===topic);});
   deleteStorageImagesFor(matched.slice(0,1));
+  if(matched.length===1) markDeletedQs([qid],null,null);
   if(matched.length>1){
     // Bir nechta mos keldi - faqat birinchisini ochiramiz (xavfsizroq)
     var removedOne=false;
@@ -9499,7 +9530,7 @@ function matchImportClasses(grades,lang,subject){
   if(!_adminClasses(ME&&ME.maktab).length) STD_CLASSES.forEach(function(c){ if(opts.indexOf(c)<0) opts.push(c); });   // admin ro'yxati bo'lmasa standart sinflar ham
   _clsSort(opts);
   (grades||[]).forEach(function(g){
-    var c=opts.filter(function(x){ if(_clsGrade(x)!==g.g) return false; return !g.l||_clsLetter(x)===String(g.l).toUpperCase(); });
+    var c=opts.filter(function(x){ return _clsGrade(x)===g.g; });   // faqat sinf raqami: 9-C yozilgan bo'lsa ham hamma 9-sinflar (A, B, C...)
     if(c.length>1){   // sinf nomida til ko'rsatilgan bo'lsa ("Rus tili", "O'zbek tili") faylning tiliga qarab saralanadi
       var rus=c.filter(function(x){ return /rus|рус/i.test(x); }), uz=c.filter(function(x){ return /o.?zbek|uzb|\buz\b/i.test(x); });
       if(lang==='rus'&&rus.length) c=rus; else if(lang!=='rus'&&uz.length) c=uz;
@@ -9510,7 +9541,8 @@ function matchImportClasses(grades,lang,subject){
 }
 function applyImportGrades(topic,d){
   var gr=(d&&d.grades)||[]; if(!gr.length||!ME||ME.role==='student') return '';
-  var label=gr.map(function(g){ return g.g+(g.l?'-'+g.l:'')+'-sinf'; }).join(', ');
+  var _gs=[]; gr.forEach(function(g){ if(_gs.indexOf(g.g)<0) _gs.push(g.g); });
+  var label=_gs.map(function(g){ return g+'-sinf'; }).join(', ');
   var m=matchImportClasses(gr,d.lang,ME.subject);
   if(!m.length) return '<br><span class="ts">Fayldan <b>'+_cEsc(label)+'</b> aniqlandi, lekin mos sinf topilmadi — pastda chiqadigan oynada sinfni tanlang.</span>';
   try{
