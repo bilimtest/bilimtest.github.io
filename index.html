@@ -84,6 +84,7 @@ textarea{width:100%;padding:10px 13px;border:1.5px solid var(--bdr);border-radiu
 #aq-text .mfrag{font-size:1.5em}
 .mfrag:hover{border-bottom-color:var(--bdr)}
 .mfrag:focus-within{border-bottom-color:var(--pri)}
+.mathedit .mfrag{min-width:.9em;padding:0 2px;vertical-align:baseline;background:transparent!important}   /* formula qutichasiz, matn bilan bir qatorda */
 /* MathLive'ning o'zi qo'shadigan qo'shimcha asboblar */
 math-field::part(virtual-keyboard-toggle),
 math-field::part(menu-toggle){display:none!important}
@@ -755,6 +756,7 @@ html[data-px=night] #tab-rg.on{background:#7a4fd6!important;color:#fff!important
       </div>
     </div>
     <div class="pb" style="margin-top:10px"><div class="pf" id="t-prog" style="width:0%"></div></div>
+    <div class="alt aw" id="t-warn" style="margin:10px 0 0;padding:8px 12px;font-size:12.5px;line-height:1.4">&#x26A0;&#xFE0F; Test paytida hech qayerga chiqmang! Boshqa oyna, tab yoki ilovaga o'tsangiz test avtomatik tugaydi va natija shu holatda yuboriladi.</div>
   </div>
   <div class="card">
     <div class="fx between" style="margin-bottom:8px">
@@ -1392,7 +1394,7 @@ var INIT_META = [{"topic": "Guruhlash qonuni", "questionsToAsk": 20}, {"topic": 
 
 var SK = 'edutest_v3';
 // APP_VER sw.js dagi CACHE bilan bir xil bo'lishi SHART (sw versiyasini oshirganda buni ham oshiring)
-var APP_VER = 'bilimtest-v159';
+var APP_VER = 'bilimtest-v163';
 (function(){
   try{
     if('serviceWorker' in navigator && navigator.serviceWorker.controller) return; // SW bor - o'zining yangilanish banneri ishlaydi
@@ -2513,10 +2515,14 @@ function makeChip(latex){
 }
 
 // Matn (masalan DB'dan kelgan "...text $\frac{1}{2}$ text...") ni
+// Import ba'zan faqat indeks/darajani formula qiladi, asos harfi tashqarida qoladi: x$_{A}$ -> $x_{A}$ (muharrirda bo'sh katak bo'lib ko'rinmasin)
+function joinLoneScripts(text){
+  return String(text==null?'':text).replace(/([A-Za-z0-9Α-ω])\$([_^](?:\{[^{}$]*\}|[A-Za-z0-9]))\$/g,function(m,b,sc){ return '$'+b+sc+'$'; });
+}
 function mathEditSetValue(el, text){
   if(!el) return;
   el.innerHTML='';
-  text=(text||'').replace(/<br\s*\/?>/gi,'\n');
+  text=joinLoneScripts((text||'').replace(/<br\s*\/?>/gi,'\n'));
   var re=/\$([^$]+)\$/g, lastIdx=0, m;
   while((m=re.exec(text))){
     if(m.index>lastIdx) el.appendChild(document.createTextNode(text.slice(lastIdx,m.index)));
@@ -2929,7 +2935,7 @@ function subjClassMap(u){
   if(u.classesBySubj&&typeof u.classesBySubj==='object') return JSON.parse(JSON.stringify(u.classesBySubj));
   var subs=[]; function add(v){ if(v&&subs.indexOf(v)<0) subs.push(v); }
   add(u.subject); Object.keys(u.teachClassesBySubj||{}).forEach(add);
-  (getDB().userQs||[]).forEach(function(q){ if(q.teacherId===u.id) add(q.subject); });
+  (getDBro().userQs||[]).forEach(function(q){ if(q.teacherId===u.id) add(q.subject); });   // faqat o'qish: tsiklda har safar butun bazani qayta tahlil qilmasin
   var m={}, tb=u.teachClassesBySubj||{};
   subs.forEach(function(sb){ m[sb]=(tb[sb]&&tb[sb].length?tb[sb]:(u.teachClasses||[])).slice(); });
   if(!subs.length) m[u.subject||'']=(u.teachClasses||[]).slice();
@@ -3387,11 +3393,11 @@ var SHEETS_CODE=['function fmtHead(sh){',
  ' sh.getRange(1,1,1,lc).setFontWeight("bold").setFontColor("#ffffff").setBackground("#1f3a5f").setHorizontalAlignment("center").setVerticalAlignment("middle").setWrap(true);',
  ' sh.setRowHeight(1,52); sh.setFrozenRows(1); sh.setFrozenColumns(2);',
  ' sh.setColumnWidth(1,230); sh.setColumnWidth(2,70);',
- ' if(lc>2) sh.setColumnWidths(3,lc-2,150);',
+ ' if(lc>2) sh.setColumnWidths(3,lc-2,200);',
  '}',
  'function fmtCell(cell,val){',
  ' var p=parseInt(val,10);',
- ' cell.setHorizontalAlignment("center").setBackground(isNaN(p)?null:(p>=70?"#d9f2d9":(p>=50?"#fff2cc":"#f8d7da")));',
+ ' cell.setHorizontalAlignment("center").setVerticalAlignment("middle").setWrap(true).setBackground(isNaN(p)?null:(p>=70?"#d9f2d9":(p>=50?"#fff2cc":"#f8d7da")));',
  '}',
  'function writeDetails(ss,r){',
  ' var nm="Batafsil", sh=ss.getSheetByName(nm);',
