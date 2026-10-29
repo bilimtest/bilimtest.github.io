@@ -18,8 +18,7 @@
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
-<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
@@ -1394,7 +1393,7 @@ var INIT_META = [{"topic": "Guruhlash qonuni", "questionsToAsk": 20}, {"topic": 
 
 var SK = 'edutest_v3';
 // APP_VER sw.js dagi CACHE bilan bir xil bo'lishi SHART (sw versiyasini oshirganda buni ham oshiring)
-var APP_VER = 'bilimtest-v164';
+var APP_VER = 'bilimtest-v165';
 (function(){
   try{
     if('serviceWorker' in navigator && navigator.serviceWorker.controller) return; // SW bor - o'zining yangilanish banneri ishlaydi
@@ -2946,7 +2945,7 @@ function resultVisibleToMe(r){
   var cls=myTeachClasses();
   var rCls=r.cls||r.class||'';
   if(cls && cls.indexOf(rCls)<0) return false;
-  var db=getDB();
+  var db=getDBro();   // faqat o'qish: har natija uchun butun bazani qayta tahlil qilmasin
   var stu=(db.users||[]).find(function(u){return u.role==='student'&&u.name===r.student&&(u.cls||'')===rCls;});
   if(stu) return studentVisibleToMe(stu);
   return true;
@@ -8042,7 +8041,7 @@ function scFile(inp){
   try{
     if(ext==='txt'||ext==='csv'){ r.onload=function(){ done(String(r.result)); }; r.readAsText(f); }
     else if(ext==='docx'){ r.onload=function(){ try{ done(_scDocxText(r.result)); }catch(e){ msg.innerHTML='<div class="alt aw">Word faylini o\'qib bo\'lmadi: '+_cEsc(e.message)+'</div>'; } }; r.readAsArrayBuffer(f); }
-    else { r.onload=function(){ try{ var wb=XLSX.read(r.result,{type:'array'}), t=''; wb.SheetNames.forEach(function(sn){ t+=XLSX.utils.sheet_to_csv(wb.Sheets[sn])+'\n'; }); done(t); }catch(e){ msg.innerHTML='<div class="alt aw">Excel faylini o\'qib bo\'lmadi: '+_cEsc(e.message)+'</div>'; } }; r.readAsArrayBuffer(f); }
+    else { needXlsx().then(function(){ r.onload=function(){ try{ var wb=XLSX.read(r.result,{type:'array'}), t=''; wb.SheetNames.forEach(function(sn){ t+=XLSX.utils.sheet_to_csv(wb.Sheets[sn])+'\n'; }); done(t); }catch(e){ msg.innerHTML='<div class="alt aw">Excel faylini o\'qib bo\'lmadi: '+_cEsc(e.message)+'</div>'; } }; r.readAsArrayBuffer(f); },function(e){ msg.innerHTML='<div class="alt aw">'+_cEsc(e.message)+'</div>'; }); }
   }catch(e){ msg.innerHTML='<div class="alt aw">Xato: '+_cEsc(e.message)+'</div>'; }
   inp.value='';
 }
@@ -8425,11 +8424,21 @@ function buildResultsWorkbook(res){
   XLSX.utils.book_append_sheet(wb,ws2,'Batafsil');
   return wb;
 }
+// Excel kutubxonasi (415 KB) sahifa ochilganda emas, faqat eksport/import paytida yuklanadi
+var XLSX_URL='https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js', _xlsxP=null;
+function needXlsx(){
+  if(window.XLSX) return Promise.resolve();
+  if(_xlsxP) return _xlsxP;
+  _xlsxP=new Promise(function(res,rej){ var sc=document.createElement('script'); sc.src=XLSX_URL; sc.onload=function(){ res(); }; sc.onerror=function(){ _xlsxP=null; rej(new Error("Excel kutubxonasi yuklanmadi. Internetni tekshiring.")); }; document.head.appendChild(sc); });
+  return _xlsxP;
+}
 function exportAll(){
+  if(!window.XLSX){ needXlsx().then(exportAll,function(e){ alert(e.message); }); return; }
   var res=myVisibleResults();if(!res.length){alert("Natijalar yo'q!");return;}
   XLSX.writeFile(buildResultsWorkbook(res),'natijalar.xlsx');
 }
 function exportByClass(){
+  if(!window.XLSX){ needXlsx().then(exportByClass,function(e){ alert(e.message); }); return; }
   var res=myVisibleResults().filter(function(r){return r.mode==='exam';}),wb=XLSX.utils.book_new(),hasD=false;
   myVisibleClassNames().forEach(function(cls){
     var cr=res.filter(function(r){return r.cls===cls||r.class===cls;});if(!cr.length)return;hasD=true;
