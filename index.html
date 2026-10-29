@@ -1393,7 +1393,7 @@ var INIT_META = [{"topic": "Guruhlash qonuni", "questionsToAsk": 20}, {"topic": 
 
 var SK = 'edutest_v3';
 // APP_VER sw.js dagi CACHE bilan bir xil bo'lishi SHART (sw versiyasini oshirganda buni ham oshiring)
-var APP_VER = 'bilimtest-v165';
+var APP_VER = 'bilimtest-v166';
 (function(){
   try{
     if('serviceWorker' in navigator && navigator.serviceWorker.controller) return; // SW bor - o'zining yangilanish banneri ishlaydi
@@ -7259,7 +7259,7 @@ function renderReviewList(){
 }
 // navbatdagi savol ASL testdagi savoldan olinadi (snapshot'da
 function _flagOrigQ(g){
-  var db=getDB();
+  var db=getDBro();   // faqat o'qish: har xato javob/variant uchun butun bazani qayta tahlil qilmasin
   return (db.userQs||[]).find(function(x){return String(x.id)===String(g.question_id)&&x.teacherId===ME.id;})||null;
 }
 function _flagView(g){
