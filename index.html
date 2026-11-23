@@ -1403,7 +1403,7 @@ var INIT_META = [{"topic": "Guruhlash qonuni", "questionsToAsk": 20}, {"topic": 
 
 var SK = 'edutest_v3';
 // APP_VER sw.js dagi CACHE bilan bir xil bo'lishi SHART (sw versiyasini oshirganda buni ham oshiring)
-var APP_VER = 'bilimtest-v177';
+var APP_VER = 'bilimtest-v178';
 (function(){
   try{
     if('serviceWorker' in navigator && navigator.serviceWorker.controller) return; // SW bor - o'zining yangilanish banneri ishlaydi
@@ -12724,7 +12724,7 @@ function sendReport(){
 (function(){
   var KEY='et_alf', START=Date.UTC(2027,3,22,0,0,0)-5*3600*1000;   // Toshkent vaqti bilan 22-aprel
   function pref(){ try{ return localStorage.getItem(KEY)||''; }catch(e){ return ''; } }
-  function isOn(){ var p=pref(); if(p==='new') return true; if(p==='old') return false; return Date.now()>=START; }
+  function isOn(){ if(window.__ALF_FORCE) return window.__ALF_FORCE==='new'; return Date.now()>=START; }   // tanlov yo'q: 2027-04-22 dan hammaga (__ALF_FORCE faqat sinov uchun)
   // o'girilmaydigan joylar: savol/javob, formula, kod, kiritish, inglizcha bo'limlar
   var SKIP_SEL='input,textarea,select,script,style,code,pre,math-field,canvas,svg,.katex,.mathedit,.mfrag,[contenteditable],[lang]:not(html),.nt,'+
     '#t-qbody,#r-det-body,#rd-body,#q-detail-view,#duel-modal-body,#battle-modal-body,#fc-study-ov,#st-cert,#st-eng,#en-preview,#mock-body,#ms-body,'+
@@ -12837,7 +12837,7 @@ function sendReport(){
     document.body.appendChild(b);
   }
   function start(){
-    addBtn();
+    try{ localStorage.removeItem(KEY); }catch(e){}   // avvalgi tanlov tugmasi qoldig'i
     if(!isOn()) return;
     document.documentElement.setAttribute('data-alf','new');
     try{ document.title=conv(document.title); }catch(e){}
