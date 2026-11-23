@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mock testlar öyini</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600&family=Unbounded:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Layout: one narrow column, test booklet blue as the single accent, answer sheet feel */
+  --bg:#eef0f6; --surface:#ffffff; --ink:#141a2e; --muted:#5b6380; --line:#d9deea;
+  --accent:#2b44b5; --accent-soft:#e3e8fb; --good:#1d7f47; --good-soft:#e1f3e8; --bad:#b8323a; --bad-soft:#fbe7e8;
+  --paper:#ffffff;
+  --display:"Unbounded", "Trebuchet MS", sans-serif;
+  --body:"Onest", "Segoe UI", system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1320; --surface:#181d2e; --ink:#e8ebf5; --muted:#9aa3bf; --line:#2b3250;
+    --accent:#8fa2ff; --accent-soft:#232c52; --good:#55c98a; --good-soft:#16301f; --bad:#ff8086; --bad-soft:#3a1a1d;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f1320; --surface:#181d2e; --ink:#e8ebf5; --muted:#9aa3bf; --line:#2b3250;
+  --accent:#8fa2ff; --accent-soft:#232c52; --good:#55c98a; --good-soft:#16301f; --bad:#ff8086; --bad-soft:#3a1a1d;
+  color-scheme: dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.55}
+.wrap{max-width:760px;margin:0 auto;padding:20px 16px 48px;display:flex;flex-direction:column;gap:16px}
+h1,h2,h3{font-family:var(--display);font-weight:600;margin:0;text-wrap:balance;letter-spacing:-0.01em}
+h1{font-size:24px} h2{font-size:18px} h3{font-size:15px}
+.sub{color:var(--muted);font-size:14px;margin:4px 0 0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px}
+.tests{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.test{display:flex;flex-direction:column;gap:6px;text-align:left;cursor:pointer;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;color:var(--ink);font:inherit}
+.test[aria-pressed="true"]{border:2px solid var(--accent);padding:13px 15px;background:var(--accent-soft)}
+.test .t{font-family:var(--display);font-size:17px;font-weight:600}
+.test .m{font-size:13px;color:var(--muted)}
+.test .best{font-size:13px;color:var(--accent)}
+.modes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.btn{font:inherit;font-size:15px;font-weight:500;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:11px 14px;cursor:pointer;min-height:44px}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+.btn.sel{border:2px solid var(--accent);background:var(--accent-soft);padding:10px 13px}
+.btn:focus-visible,.test:focus-visible,input:focus-visible,.chip:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.bar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.stats{display:flex;gap:8px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:6px 12px;text-align:center;min-width:72px}
+.stat b{display:block;font-family:var(--display);font-size:18px;font-variant-numeric:tabular-nums}
+.stat span{font-size:12px;color:var(--muted)}
+.progress{height:6px;background:var(--line);border-radius:6px;overflow:hidden}
+.progress i{display:block;height:100%;background:var(--accent);width:0;transition:width .3s}
+.qhead{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.qnum{font-family:var(--display);font-size:15px}
+.zoom{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)}
+.zoom button{width:36px;height:36px;min-height:36px;padding:0;font-size:18px}
+.paper{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:10px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.paper img{display:block;height:auto;max-width:none}
+.hint{font-size:12px;color:var(--muted);margin:6px 2px 0;display:none}
+.answers{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.answers .btn{font-family:var(--display);font-size:18px;padding:12px 0}
+.match{display:flex;flex-direction:column;gap:10px}
+.mrow{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.mrow .lab{font-family:var(--display);font-size:15px;width:28px}
+.chip{font:inherit;font-weight:500;width:42px;height:42px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+.chip.sel{border:2px solid var(--accent);background:var(--accent-soft)}
+.open{display:flex;flex-direction:column;gap:12px}
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-size:14px;color:var(--muted)}
+.field .in{display:flex;gap:8px;align-items:center}
+input[type=text]{font:inherit;font-size:17px;width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);min-height:44px}
+.keys{display:flex;gap:6px;flex-wrap:wrap}
+.keys .btn{padding:6px 12px;min-height:38px;font-size:15px}
+.err{color:var(--bad);font-size:13px;min-height:18px}
+.ok{border-color:var(--good)!important;background:var(--good-soft)!important;color:var(--good)!important}
+.no{border-color:var(--bad)!important;background:var(--bad-soft)!important;color:var(--bad)!important}
+.fb{border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+.fb.g{background:var(--good-soft);border:1px solid var(--good)}
+.fb.r{background:var(--bad-soft);border:1px solid var(--bad)}
+.fb .head{font-weight:600}
+.fb.g .head{color:var(--good)} .fb.r .head{color:var(--bad)}
+.fb .ex{font-size:15px;color:var(--ink)}
+.fb .note{font-size:14px;color:var(--muted)}
+.big{font-family:var(--display);font-size:44px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.1}
+.res{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.res .stat{padding:12px}
+.res .stat b{font-size:24px}
+.miss{display:flex;gap:6px;flex-wrap:wrap}
+.miss span{font-variant-numeric:tabular-nums;background:var(--bad-soft);color:var(--bad);border-radius:8px;padding:4px 10px;font-size:14px}
+.legend{font-size:13px;color:var(--muted)}
+.col{display:flex;flex-direction:column;gap:12px}
+.tcell{display:flex;flex-direction:column;gap:6px}
+.tcell .test{flex:1}
+.tcell .btn{min-height:38px;padding:6px 12px;font-size:14px;color:var(--bad)}
+.vh{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden}
+.vh:focus-visible+label{outline:3px solid var(--accent);outline-offset:2px}
+label.btn{display:inline-flex;align-items:center}
+.kgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px 20px}
+.krow{display:grid;grid-template-columns:34px minmax(0,1fr) minmax(0,1fr);gap:8px;align-items:start}
+.krow .lab{font-family:var(--display);font-size:15px;padding-top:10px}
+.val{color:var(--muted);font-size:13px;min-height:18px}
+.thumbs{display:flex;flex-direction:column;gap:10px;margin-top:10px}
+.thumbs figure{margin:0;display:flex;flex-direction:column;gap:4px}
+.thumbs figcaption{font-size:13px;color:var(--muted)}
+.thumbs img{max-width:100%;height:auto;border:1px solid var(--line);border-radius:8px;background:var(--paper)}
+summary{cursor:pointer;color:var(--accent);font-weight:500}
+[hidden]{display:none!important}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <section id="home" class="wrap" style="padding:0">
+    <header>
+      <h1>Mock testlar öyini</h1>
+      <p class="sub">Milliy sertifikat · Matematika · rasmiy kalitlar asosida</p>
+    </header>
+
+    <div class="card" style="display:flex;flex-direction:column;gap:12px">
+      <h2>1. Testni tanlang</h2>
+      <div class="tests" id="tests"></div>
+      <div class="row"><button class="btn" id="addBtn" type="button">+ Yangi mock qöşiş</button></div>
+      <p class="err" id="dbErr" hidden></p>
+    </div>
+
+    <div class="card" style="display:flex;flex-direction:column;gap:12px">
+      <h2>2. Rejimni tanlang</h2>
+      <div class="modes" id="modes">
+        <button class="btn sel" data-mode="all" type="button">Hammasi (1–45)</button>
+        <button class="btn" data-mode="closed" type="button">Yopiq testlar (1–35)</button>
+        <button class="btn" data-mode="open" type="button">Oçiq topşiriqlar (36–45)</button>
+        <button class="btn" data-mode="rand" type="button">Tasodifiy 10 ta</button>
+      </div>
+      <p class="legend">Ball: yopiq test 10, moslaştiriş va oçiq topşiriqning har bir qismi 4–6 ball. Ketma-ket 3 ta töğri javobdan keyin har biriga +2 seriya bonusi.</p>
+      <button class="btn primary" id="startBtn" type="button">Boşlaş</button>
+    </div>
+  </section>
+
+  <section id="play" hidden style="display:flex;flex-direction:column;gap:14px">
+    <div class="bar">
+      <button class="btn" id="menuBtn" type="button">← Menyu</button>
+      <div class="stats">
+        <div class="stat"><b id="sScore">0</b><span>Ball</span></div>
+        <div class="stat"><b id="sStreak">0</b><span>Seriya</span></div>
+      </div>
+    </div>
+    <div class="progress" aria-hidden="true"><i id="prog"></i></div>
+
+    <div class="card" style="display:flex;flex-direction:column;gap:12px">
+      <div class="qhead">
+        <span class="qnum" id="qTitle">1-topşiriq</span>
+        <div class="zoom"><span>Rasm ölçami</span>
+          <button class="btn" id="zOut" type="button" aria-label="Rasmni kiçraytiriş">−</button>
+          <button class="btn" id="zIn" type="button" aria-label="Rasmni kattalaştiriş">+</button>
+        </div>
+      </div>
+      <div>
+        <div class="paper" id="paper"><img id="qImg" alt="Topşiriq matni"></div>
+        <p class="hint" id="scrollHint">Rasm keng: uni yon tomonga suring yoki “−” bilan kiçraytiring.</p>
+      </div>
+      <div id="answerArea"></div>
+      <div id="feedback"></div>
+      <div class="row" id="navRow" hidden>
+        <button class="btn primary" id="nextBtn" type="button">Keyingi savol</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="add" hidden style="display:flex;flex-direction:column;gap:14px">
+    <div class="bar"><button class="btn" id="addBack" type="button">← Menyu</button></div>
+    <div class="card col">
+      <h2>Yangi mock qöşiş</h2>
+      <p class="sub" style="margin:0">PDF faqat şu qurilmada qayta işlanadi va brauzer xotirasida saqlanadi, hec qayerga yuborilmaydi. Topşiriq raqamlari çap çetda “1.”, “2.” … körinişida bölishi kerak.</p>
+      <div class="field"><label for="mName">Nomi</label><input type="text" id="mName" autocomplete="off" placeholder="masalan: Mock 16"></div>
+      <div class="field"><label for="mMeta">Izoh (ixtiyoriy)</label><input type="text" id="mMeta" autocomplete="off" placeholder="masalan: 2026-yil noyabr, 1-smena"></div>
+      <div class="field"><span class="legend">PDF fayl</span>
+        <div class="row"><input type="file" id="mPdf" class="vh" accept="application/pdf,.pdf"><label for="mPdf" class="btn" id="mPdfBtn">PDF tanlaş</label><span class="legend" id="mPdfName">Fayl tanlanmagan</span></div>
+      </div>
+      <p class="legend" id="pdfStatus" aria-live="polite" style="margin:0"></p>
+      <p class="err" id="pdfErr" style="margin:0"></p>
+      <details id="cropView" hidden><summary>Qirqilgan rasmlarni körish</summary><div class="thumbs" id="cropList"></div></details>
+    </div>
+    <div class="card col" id="keyCard" hidden>
+      <h2>Javoblar kaliti</h2>
+      <div class="field">
+        <label for="kQuick">Tez to'ldiriş: 1–35 javoblarini ketma-ket yozing (1–32 uçun A–D, 33–35 uçun A–F)</label>
+        <input type="text" id="kQuick" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="BBCCDCDB…">
+        <div class="err" id="kQuickErr"></div>
+      </div>
+      <h3>1–32 · yopiq testlar</h3>
+      <div class="kgrid" id="kMC"></div>
+      <h3>33–35 · moslaştiriş</h3>
+      <div class="match" id="kMatch"></div>
+      <h3>36–45 · oçiq topşiriqlar</h3>
+      <p class="legend" style="margin:0">Masalan: 27/2, 2√3-2, 3π/4, -arctg5, 90°. Gradusda yozilgan javob radianda ham qabul qilinadi.</p>
+      <div class="col" id="kOpen"></div>
+      <div class="keys" id="kKeys"></div>
+      <p class="err" id="saveErr" style="margin:0"></p>
+      <button class="btn primary" id="saveMock" type="button">Saqlaş</button>
+    </div>
+  </section>
+
+  <section id="result" hidden style="display:flex;flex-direction:column;gap:14px">
+    <div class="card" style="display:flex;flex-direction:column;gap:14px">
+      <h2 id="rTitle">Natija</h2>
+      <div class="big" id="rScore">0</div>
+      <div class="res">
+        <div class="stat"><b id="rRight">0</b><span>Töğri javoblar</span></div>
+        <div class="stat"><b id="rPct">0%</b><span>Ballar ulişi</span></div>
+        <div class="stat"><b id="rBest">0</b><span>Eng uzun seriya</span></div>
+      </div>
+      <div id="missWrap" style="display:flex;flex-direction:column;gap:8px">
+        <h3>Xato qilingan topşiriqlar</h3>
+        <div class="miss" id="missList"></div>
+      </div>
+      <div class="row">
+        <button class="btn primary" id="retryBtn" type="button">Xatolarni qayta işlaş</button>
+        <button class="btn" id="againBtn" type="button">Qaytadan boşlaş</button>
+        <button class="btn" id="homeBtn" type="button">Boşqa test tanlaş</button>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+var PI=Math.PI, R3=Math.sqrt(3);
+function O(label,vals,show){return {label:label,vals:vals,show:show};}
+
+var T24=[
+ {n:1,a:"D",ex:"Har bir son 777…7·10 + oxirgi raqam körinişida, 777…7 esa 7 ga bölinadi. Demak qoldiq oxirgi raqamlardan çiqadi: 9 + 8 + 7 + 6 + 5 + 4 = 39 = 7·5 + 4. Qoldiq 4."},
+ {n:2,a:"B",ex:"u = 3/2029, v = 7/2031 desak 4 2026/2029 = 5 − u, 5 2024/2031 = 6 − v. (3 + u)(10 + v) − (5 − u)(6 − v) = 16u + 8v. 8v = 56/2031 oxirgi had bilan qisqaradi, qoladi 16u = 48/2029."},
+ {n:3,a:"A",ex:"Ikkinçi piyoda tezligi v, birinçisiniki v + 3. 36/v − 36/(v + 3) = 2 dan v² + 3v − 54 = 0, v = 6 km/soat. Vaqt: 36 : 6 = 6 soat."},
+ {n:4,a:"C",ex:"Kurtka narxi P. Birinçisi 0,94P ga sotilgan, foyda uning 20% i, demak tan narx 0,8·0,94P = 0,752P. Ikkinçisi P ga sotilgan: foyda 0,248P, ya'ni 24,8%."},
+ {n:5,a:"D",ex:"(2⁶·3)^(−1/2) = 2⁻³·3^(−1/2), maxraj 16⁻²·3⁻² = 2⁻⁸·3⁻². Bölinma: 2⁵·3^(3/2) = 32·3√3 = 96√3."},
+ {n:6,a:"A",ex:"9 − √56 = (√7 − √2)², şuning uçun ⁶√(9 − √56) = ∛(√7 − √2). ∛(√7 − √2)·∛(√7 + √2) = ∛5, ∛5·∛25 = ∛125 = 5."},
+ {n:7,a:"C",ex:"s = ∛2 desak ∛16 = 2s, ∛32 = 2s². 6/(s + 1) + 6/(s² − s + 1) = 6(s² + 2)/(s³ + 1) = 2s² + 4, çünki s³ = 2. 2s² ni ayirsak 4 qoladi."},
+ {n:8,a:"D",ex:"a₁ = 4,8, a₁₅ = 5,6 − 12 = −6,4. S₁₅ = (4,8 − 6,4)·15/2 = −12."},
+ {n:9,a:"B",ex:"1 + q² + q⁴ = (1 + q + q²)(1 − q + q²). Şartlarni bölsak (1 − q + q²)/(1 + q + q²) = 819/1521 = 7/13, bundan 3q² − 10q + 3 = 0, q = 1/3 (kamayuvçi). b₁·13/9 = 39, b₁ = 27. S₅ = 27(1 − 1/243)/(2/3) = 121/3 = 40⅓."},
+ {n:10,a:"A",ex:"Bu (a − b)⁴ yoyilmasi: a = 3x + 2, b = 3x, koeffitsiyentlar 1, 4, 6, 4, 1. a − b = 2, 2⁴ = 16."},
+ {n:11,a:"B",ex:"x = √a, y = √b desak birinçi qavs y(x + y)/(x − y) ga, ikkinçisi (x − y)/(x(x + y)) ga soddalaşadi. Köpaytma y/x = √(b/a) = √5."},
+ {n:12,a:"D",ex:"Surat ≥ 0, x = 2 va x = 8 da esa nol (u holda kasr 0, ya'ni > 0 emas). Maxraj > 0: (x − 9)(x + 4) < 0, −4 < x < 9. Butun yeçimlar −3, −2, −1, 0, 1, 3, 4, 5, 6, 7, yiğindisi 20."},
+ {n:13,a:"A",ex:"2030! + 2029! = 2029!·2031, demak kasr 2030 ga teng. y = x²: y² − 2030y + 2029 = 0, y = 1 yoki 2029. x = ±1 butun, ±√2029 butun emas. Jami 2 ta."},
+ {n:14,a:"C",ex:"Birinçi tenglamani kvadratga kötarsak x^(4y − 14) = 64 = x^(y + 1), demak 4y − 14 = y + 1, y = 5. x⁶ = 64, x = 2 (x³ = 8 ham bajariladi). x·y = 10."},
+ {n:15,a:"C",ex:"cos(π/2 + 3x) = −sin 3x = 0, x = πk/3. −π/2 ≤ πk/3 ≤ 7π/3 dan −1,5 ≤ k ≤ 7, k = −1, 0, …, 7: 9 ta."},
+ {n:16,a:"B",ex:"Kasr 1 ga teng bölsa surat = maxraj: −√(x³ − 8x² + 12x) = log²(…). Çap tomon ≤ 0, öng tomon ≥ 0, demak ikkalasi 0: x(x − 2)(x − 6) = 0. x = 0 da logarifm asosi 1 bölib qoladi. Qoladi x = 2 va x = 6: 2 ta."},
+ {n:17,a:"C",ex:"1 + 2 + … + k = k(k + 1)/2, har bir had 2x(1/k − 1/(k + 1)). Yiğindi teleskopik: 2x(1 − 1/2032) = 2031, ya'ni 2x·2031/2032 = 2031, x = 1016."},
+ {n:18,a:"D",ex:"sin⁶x + cos⁶x = 1 − 3sin²x cos²x. Tenglama sin 2x = 0 ga keladi, x = πk/2. −2π ≤ πk/2 ≤ 2π: k = −4, …, 4, jami 9 ta."},
+ {n:19,a:"A",ex:"Argument: √(12 + 4x − x²) > 0 va x ≠ 1, ya'ni −2 < x < 6. Asos: x + 3 > 0, x + 3 ≠ 1. Butun sonlar: −1, 0, 2, 3, 4, 5, jami 6 ta."},
+ {n:20,a:"B",ex:"√(x² − 8x + 16) = |x − 4| = 4 − x, çünki x ≤ 4. t = √(4 − x) desak t² < 3t + 10, t < 5, 4 − x < 25, x > −21. Butun sonlar −20 … 4: 25 ta."},
+ {n:21,a:"D",ex:"t = x², u = t + 2 ≥ 2 desak f = u − 4 + 7/u. u + 7/u ≥ 2√7, tenglik u = √7 ≥ 2 da. Eng kiçik qiymat 2√7 − 4 ≈ 1,29. Diqqat: f(0) = 3/2 eng kiçigi emas."},
+ {n:22,a:"C",ex:"f′ = e^(x − 8)(x − 9), x = 9 minimum: f(9) = −e. Uçlarida f(7) = −3/e ≈ −1,1 va f(11) = e³. Eng kiçigi −e."},
+ {n:23,a:"B",ex:"sin⁵x/cos⁹x toq funksiya, [−π/3; π/3] esa simmetrik oraliq. Integral 0."},
+ {n:24,a:"B",ex:"Vatar = 2R·sin(120°/2) = R√3 = 18, demak R = 18/√3 = 6√3. 18 javobi yoy 60° bölganda çiqardi."},
+ {n:25,a:"A",ex:"CF = AE = BD = 6, FA = EB = DC = 18. S(ABC) = (√3/4)·24² = 144√3. Har bir burçakdagi uçburçak ½·18·6·sin 60° = 27√3. S(FED) = 144√3 − 3·27√3 = 63√3."},
+ {n:26,a:"C",ex:"Bissektrisa xossasi: AB : 40 = 15 : 24, AB = 25. Tomonlar 25, 39, 40, p = 52, Geron: S = 468. Ikki bissektrisa içki aylana markazi I da keşişadi, r = S/p = 9. Böyalgan AIC: ½·40·9 = 180."},
+ {n:27,a:"A",ex:"Balandlik AB = 10. EBC va EDA öxşaş, nisbat 8 : 12 = 2 : 3, balandliklar ham 2 : 3. E dan AD gaça 10·3/5 = 6."},
+ {n:28,a:"D",ex:"n(n − 3)/2 = 54, n = 12. Bir uçdan çiqqan çiziqlar 150° li içki burçakni 10 ta 15° li burçakka böladi. Eng kiçik diagonal V₀V₂, eng kattasi V₀V₆ (diametr), orasida 4 ta bölak: 60°."},
+ {n:29,a:"B",ex:"AB örtasi M(2; 2; 1). CM = (1; 3; 1), uzunligi √11."},
+ {n:30,a:"C",ex:"Yon qirra 6√2 va 45°: balandlik 6, proyeksiyasi (oltiburçak radiusi, ya'ni tomoni) 6. S_asos = 6·(√3/4)·36 = 54√3. V = ⅓·54√3·6 = 108√3."},
+ {n:31,a:"D",ex:"B va D ikkalasi ham A va C bilan keşişadi, lekin B va D ö'zaro keşişmaydi. B∩(A∪C): 4, 7, 12, 15, 17, 21, 28. D∩(A∪C): 1, 8, 10, 13, 20, 22, 25. Jami 14 ta."},
+ {n:32,a:"A",ex:"MATEMATIKA da 10 ta harf, M ikki marta. Ehtimol 2/10 = 1/5."},
+ {n:"33–35",img:"q33",type:"match",parts:["E","A","C"],ex:"Konus asosi piramida asosiga içki çizilgan aylana, r = 3. Apofema l = r/cos 30° = 2√3, balandlik h = r·tg 30° = √3. Asos tomoni 6√3, S_asos = 27√3. 33) Konus yon sirti πrl = 3·3·2√3 = 18√3 (E). 34) Piramida yon sirti S_asos/cos 30° = 54 (A). 35) V = ⅓·27√3·√3 = 27 (C)."},
+ {n:36,type:"open",parts:[O("a",[12],"12"),O("b",[3],"3")],ex:"Ikkinçi tenglama (3x − y)(x − 3y) = 0. y = 3x bölsa x(x + 2) = 0: (0; 0), (−2; −6). x = 3y bölsa y(2 − y) = 0: (0; 0), (6; 2). Yeçimlar 3 ta, x·y ning eng kattasi 12."},
+ {n:37,type:"open",parts:[O("a",[-Math.atan(5)],"−arctg 5"),O("b",[6],"6")],ex:"sin 2x = 2sin x cos x, cos²x ga bölamiz (cos x = 0 ildiz emas): tg²x + 4tg x − 5 = 0, tg x = 1 yoki −5. Eng katta manfiy ildiz −arctg 5 ≈ −1,37, u −3π/4 dan katta. [−2π; π] uzunligi 3π: har bir qatordan 3 tadan, jami 6."},
+ {n:38,type:"open",parts:[O("a",[2],"2"),O("b",[5],"5")],ex:"Ikkinçi tenglamada x = 2t, birinçisida x = t + 2 deb olsak, ikkalasida ham f(2t + 1) va g(t − 5) çiqadi. Sistemadan g(s) = −(s + 4)/2, f(u) = (7u − 5)/4. f(1) = 1/2, teskarisi 2. f(x) + g(x) = 3 dan 5x − 13 = 12, x = 5."},
+ {n:39,type:"open",parts:[O("a",[-3],"−3"),O("b",[13.5],"27/2")],ex:"f = a·x(x + 2)(x − 3), f(−3) = −6 dan a = 1/3: a + b + c = 1/3 − 1/3 − 2 = −2. g = p·x(x − 3), g(−3) = −6 dan p = −1/3, q = 1: p + q = 2/3. Nisbat −3. f − g = ⅓x(x − 3)(x + 3), ikki bölak yuzasi 27/4 dan, jami 27/2."},
+ {n:40,type:"open",parts:[O("a",[7],"7"),O("b",[3],"3")],ex:"Ekstremumlar: −8, −7, −6, −4, −1, 2, 4 (uçlari −10 va 6 kirmaydi): 7 ta. f′ < 0 kamayiş oraliqlarida: (−10; −8), (−7; −6), (−4; −1), (2; 4). Eng katta butun yeçim 3."},
+ {n:41,type:"open",parts:[O("a",[4],"4"),O("b",[42],"42")],ex:"S(GHFD) = 10 + 50 = 60, DH diagonal: DH² = 120 = AD² + AH². S(GKD) = 10 şartidan AD = 2AH, demak AH² = 24, AD² = 96. S₁ = ½·AH·AK = 4. S₂ = 96 − S(ADH) − S(DFH) = 96 − 24 − 30 = 42."},
+ {n:42,type:"open",parts:[O("a",[2*R3-2],"2√3 − 2"),O("b",[30,PI/6],"30°")],ex:"B töğri burçak, BO = r√2 = 2. BO : OK = (√3 + 1) : 2 dan OK = 4/(√3 + 1) = 2√3 − 2, BK = 2√3. Bissektrisa uzunligi 2√3 va r = √2 şartlariga α = 30° mos keladi."},
+ {n:43,type:"open",parts:[O("a",[19],"19"),O("b",[2/7],"2/7")],ex:"Tomoni 12. A(0; 0), F(12; 0), B(−6; 6√3), C(0; 12√3) desak G(−4; 8√3), H(9; 0). GH = √(13² + 192) = 19. Kiçik bölak GBAH yuzi 48√3, butun oltiburçak 216√3, kattasi 168√3. Nisbat 48 : 168 = 2/7."},
+ {n:44,type:"open",parts:[O("a",[2*Math.sqrt(5)],"2√5"),O("b",[32/3],"32/3")],ex:"Sfera ABC ga oğirlik markazi G da, ABD ga ham urinadi, demak MG = 4/3 (M esa AB örtasi) va CM = 4. DC = 6 dan DM² = AM² + AD² = 36 − 16 = 20, DM = 2√5. DC ga urinişdan AD = 4, AM = 2. V = ⅓·(½·4·4)·4 = 32/3."},
+ {n:45,type:"open",parts:[O("a",[16],"16"),O("b",[17],"17")],ex:"Zarar qilmaslik: 3x/4 ≥ 3√x, √x ≥ 4, x ≥ 16. Foyda uçun 3x/4 > 3√x, x > 16, demak eng kamida 17 işçi."}
+];
+
+var K15="BDADBCDCCDBACBBAAADADCBDCABBCDDA";
+var T15=[];
+for(var i=0;i<32;i++){T15.push({n:i+1,a:K15[i]});}
+T15.push({n:"33–35",img:"q33",type:"match",parts:["A","E","B"]});
+T15=T15.concat([
+ {n:36,type:"open",parts:[O("a",[3],"3"),O("b",[24/13],"24/13")]},
+ {n:37,type:"open",parts:[O("a",[3*PI/4],"3π/4"),O("b",[3*PI/2],"3π/2")]},
+ {n:38,type:"open",parts:[O("a",[9/Math.sqrt(58)],"9/√58"),O("b",[21],"21")]},
+ {n:39,type:"open",parts:[O("a",[45/4],"45/4"),O("b",[93*PI/5],"93π/5")]},
+ {n:40,type:"open",parts:[O("a",[2.44],"2,44"),O("b",[3.2],"3,2")]},
+ {n:41,type:"open",parts:[O("a",[135],"135"),O("b",[3],"3")]},
+ {n:42,type:"open",parts:[O("a",[65*PI],"65π"),O("b",[195*R3/2],"195√3/2")]},
+ {n:43,type:"open",parts:[O("a",[2*Math.sqrt(13)],"2√13"),O("b",[8*R3],"8√3")]},
+ {n:44,type:"open",parts:[O("a",[0],"0"),O("b",[16],"16")]},
+ {n:45,type:"open",parts:[O("a",[2*R3/3],"2√3/3"),O("b",[(3-R3)/3],"(3 − √3)/3")]}
+]);
+
+var K14="BBCCDCDBDDACBBBBACDDBAAADDBCDBBB",R5=Math.sqrt(5);
+var T14=[];
+for(var i=0;i<32;i++){T14.push({n:i+1,a:K14[i]});}
+T14.push({n:"33–35",img:"q33",type:"match",parts:["D","B","E"]});
+T14=T14.concat([
+ {n:36,type:"open",parts:[O("a",[1],"1"),O("b",[0],"0")]},
+ {n:37,type:"open",parts:[O("a",[PI/6],"π/6"),O("b",[6*PI],"6π")]},
+ {n:38,type:"open",parts:[O("a",[8],"8"),O("b",[81/10],"81/10")]},
+ {n:39,type:"open",parts:[O("a",[14],"14"),O("b",[44],"44")]},
+ {n:40,type:"open",parts:[O("a",[15/2],"15/2"),O("b",[-3/2],"−3/2")]},
+ {n:41,type:"open",parts:[O("a",[90,PI/2],"90°"),O("b",[16*R5/5],"16√5/5")]},
+ {n:42,type:"open",parts:[O("a",[14/3],"14/3"),O("b",[4/3],"4/3")]},
+ {n:43,type:"open",parts:[O("a",[Math.sqrt(130)],"√130"),O("b",[356],"356")]},
+ {n:44,type:"open",parts:[O("a",[8*PI],"8π"),O("b",[8*R3*PI/3],"8√3π/3")]},
+ {n:45,type:"open",parts:[O("a",[37],"37"),O("b",[5440],"5440")]}
+]);
+
+var TESTS={
+ m24:{name:"24-mock",meta:"2026-yil 28-fevral, 2-smena · yeçişlar bilan",dir:"q",qs:T24},
+ m15:{name:"15-mock",meta:"22.11.2026 · faqat rasmiy kalit",dir:"q15",qs:T15},
+ m14:{name:"Mock 14",meta:"Sayxun Team · Alpha Academy",dir:"q14",qs:T14}
+};
+Object.keys(TESTS).forEach(function(k){TESTS[k].qs.forEach(function(q){ if(!q.type) q.type="mc"; });});
+
+function pad(n){return (n<10?"0":"")+n;}
+function imgName(q){return q.img||("q"+pad(q.n));}
+/* qurilgan testlar papkadan, foydalanuvçi qöşgan mocklar IndexedDB dagi Blob dan (object URL) */
+function imgOf(t,q){var T=TESTS[t];return T.imgs?T.imgs[imgName(q)]:T.dir+"/"+imgName(q)+".png";}
+
+/* safe expression evaluator for open answers */
+var FN={sqrt:Math.sqrt,arctg:Math.atan,arctan:Math.atan,atan:Math.atan,tg:Math.tan,tan:Math.tan,sin:Math.sin,cos:Math.cos,ln:Math.log};
+function evalExpr(raw){
+  var s=String(raw).toLowerCase();
+  if(s.indexOf("=")>=0) s=s.slice(s.lastIndexOf("=")+1);
+  s=s.replace(/\s+/g,"").replace(/[−–—]/g,"-").replace(/,/g,".").replace(/[×·]/g,"*").replace(/:/g,"/").replace(/°/g,"").replace(/π/g,"pi").replace(/√/g,"sqrt");
+  var t=[],m,re=/(\d+\.?\d*|\.\d+)|([a-z]+)|([+\-*/^()])/y;
+  re.lastIndex=0;
+  while(re.lastIndex<s.length){
+    m=re.exec(s); if(!m) throw new Error("bad");
+    if(m[1]!==undefined) t.push({t:"num",v:m[1]});
+    else if(m[2]!==undefined) t.push({t:"id",v:m[2]});
+    else t.push({t:"op",v:m[3]});
+  }
+  if(!t.length) throw new Error("empty");
+  var i=0;
+  function peek(){return t[i];}
+  function expr(){var v=term();while(peek()&&(peek().v==="+"||peek().v==="-")){var op=t[i++].v,r=term();v=op==="+"?v+r:v-r;}return v;}
+  function term(){var v=unary();for(;;){var p=peek();if(!p)break;
+    if(p.v==="*"||p.v==="/"){i++;var r=unary();v=p.v==="*"?v*r:v/r;}
+    else if(p.t==="num"||p.t==="id"||p.v==="("){v=v*power();}
+    else break;}return v;}
+  function unary(){var p=peek();if(p&&(p.v==="-"||p.v==="+")){i++;var v=unary();return p.v==="-"?-v:v;}return power();}
+  function power(){var b=primary();if(peek()&&peek().v==="^"){i++;b=Math.pow(b,unary());}return b;}
+  function primary(){var p=t[i++];if(!p)throw new Error("end");
+    if(p.t==="num")return parseFloat(p.v);
+    if(p.v==="("){var v=expr();if(!peek()||peek().v!==")")throw new Error(")");i++;return v;}
+    if(p.t==="id"){if(p.v==="pi")return Math.PI;var f=FN[p.v];if(!f)throw new Error("fn");return f(power());}
+    throw new Error("tok");}
+  var v=expr(); if(i!==t.length||!isFinite(v)) throw new Error("bad"); return v;
+}
+function matches(input,vals){var x=evalExpr(input);return vals.some(function(v){return Math.abs(x-v)<=0.002*Math.max(1,Math.abs(v));});}
+
+/* state */
+var store={get:function(k,d){try{var v=localStorage.getItem(k);return v===null?d:JSON.parse(v);}catch(e){return d;}},set:function(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}},del:function(k){try{localStorage.removeItem(k);}catch(e){}}};
+function esc(s){return String(s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+var S={test:"m24",mode:"all",list:[],idx:0,score:0,streak:0,bestStreak:0,right:0,max:0,missed:[],answered:false};
+var zoom=store.get("mz",0.9);
+
+var $=function(id){return document.getElementById(id);};
+
+function renderTests(){
+  var box=$("tests"); box.innerHTML="";
+  if(!TESTS[S.test]) S.test="m24";
+  Object.keys(TESTS).forEach(function(k){
+    var T=TESTS[k],b=document.createElement("button");
+    b.type="button";b.className="test";b.setAttribute("aria-pressed",S.test===k?"true":"false");
+    var best=store.get("best_"+k,null);
+    b.innerHTML='<span class="t">'+esc(T.name)+'</span><span class="m">'+esc(T.meta?T.meta+' · ':'')+T.count+' topşiriq</span>'+(best!==null?'<span class="best">Eng yaxşi natija: '+best+'%</span>':'');
+    b.onclick=function(){S.test=k;renderTests();};
+    if(!T.user){box.appendChild(b);return;}
+    var cell=document.createElement("div");cell.className="tcell";cell.appendChild(b);
+    var d=document.createElement("button");d.type="button";d.className="btn";d.textContent="Öçiriş";d.setAttribute("aria-label",T.name+" ni öçiriş");
+    d.onclick=function(){if(confirm("“"+T.name+"” öçirilsinmi? Rasmlar va kalit qurilmadan butunlay öçadi."))deleteUserMock(k);};
+    cell.appendChild(d);box.appendChild(cell);
+  });
+}
+Array.prototype.forEach.call(document.querySelectorAll("#modes .btn"),function(b){
+  b.onclick=function(){S.mode=b.dataset.mode;Array.prototype.forEach.call(document.querySelectorAll("#modes .btn"),function(x){x.classList.toggle("sel",x===b);});};
+});
+
+function qMax(q){return q.type==="mc"?10:12;}
+function show(id){["home","play","result","add"].forEach(function(s){$(s).hidden=(s!==id);});window.scrollTo(0,0);}
+
+function start(list){
+  S.list=list;S.idx=0;S.score=0;S.streak=0;S.bestStreak=0;S.right=0;S.missed=[];
+  S.max=list.reduce(function(a,q){return a+qMax(q);},0);
+  $("sScore").textContent="0";$("sStreak").textContent="0";
+  show("play");renderQ();
+}
+function buildList(){
+  var qs=TESTS[S.test].qs.slice();
+  if(S.mode==="closed") qs=qs.filter(function(q){return q.type!=="open";});
+  if(S.mode==="open") qs=qs.filter(function(q){return q.type==="open";});
+  if(S.mode==="rand"){for(var i=qs.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=qs[i];qs[i]=qs[j];qs[j]=t;}qs=qs.slice(0,10);}
+  return qs;
+}
+$("startBtn").onclick=function(){start(buildList());};
+
+function applyZoom(){
+  var img=$("qImg"); if(!img.naturalWidth) return;
+  img.style.width=Math.round(img.naturalWidth/1.458*zoom)+"px";
+  var p=$("paper"); $("scrollHint").style.display=(p.scrollWidth>p.clientWidth+4)?"block":"none";
+}
+$("qImg").onload=applyZoom;
+window.addEventListener("resize",applyZoom);
+$("zIn").onclick=function(){zoom=Math.min(1.4,+(zoom+0.15).toFixed(2));store.set("mz",zoom);applyZoom();};
+$("zOut").onclick=function(){zoom=Math.max(0.45,+(zoom-0.15).toFixed(2));store.set("mz",zoom);applyZoom();};
+
+function renderQ(){
+  var q=S.list[S.idx];S.answered=false;
+  $("qTitle").textContent=(typeof q.n==="number"?q.n+"-topşiriq":q.n+" topşiriqlar")+" · "+(S.idx+1)+" / "+S.list.length;
+  $("prog").style.width=(S.idx/S.list.length*100)+"%";
+  $("qImg").src=imgOf(S.test,q);
+  $("qImg").alt=TESTS[S.test].name+", "+q.n+"-topşiriq";
+  $("feedback").innerHTML="";$("navRow").hidden=true;
+  $("nextBtn").textContent=S.idx+1<S.list.length?"Keyingi savol":"Natijani köriş";
+  var A=$("answerArea");A.innerHTML="";
+  if(q.type==="mc"){
+    var g=document.createElement("div");g.className="answers";
+    "ABCD".split("").forEach(function(L){var b=document.createElement("button");b.type="button";b.className="btn";b.textContent=L;b.dataset.l=L;b.onclick=function(){answerMC(L);};g.appendChild(b);});
+    A.appendChild(g);
+  } else if(q.type==="match"){
+    var w=document.createElement("div");w.className="match";
+    ["33","34","35"].forEach(function(lab,pi){
+      var r=document.createElement("div");r.className="mrow";r.innerHTML='<span class="lab">'+lab+'.</span>';
+      "ABCDEF".split("").forEach(function(L){var c=document.createElement("button");c.type="button";c.className="chip";c.textContent=L;c.dataset.p=pi;c.dataset.l=L;
+        c.onclick=function(){if(S.answered)return;Array.prototype.forEach.call(r.querySelectorAll(".chip"),function(x){x.classList.toggle("sel",x===c);});$("mErr").textContent="";};r.appendChild(c);});
+      w.appendChild(r);
+    });
+    var e=document.createElement("div");e.className="err";e.id="mErr";w.appendChild(e);
+    var cb=document.createElement("button");cb.type="button";cb.className="btn primary";cb.textContent="Tekşiriş";cb.onclick=answerMatch;w.appendChild(cb);
+    A.appendChild(w);
+  } else {
+    var o=document.createElement("div");o.className="open";
+    q.parts.forEach(function(p,pi){
+      var f=document.createElement("div");f.className="field";
+      f.innerHTML='<label for="in'+pi+'">'+p.label+') javob</label><div class="in"><input type="text" id="in'+pi+'" autocomplete="off" inputmode="text" placeholder="masalan: 27/2, 2√3-2, 3π/4"></div><div class="err" id="er'+pi+'"></div>';
+      o.appendChild(f);
+    });
+    var keys=document.createElement("div");keys.className="keys";
+    [["√","√"],["π","π"],["/","/"],["−","-"],["(","("],[")",")"],["arctg","arctg"]].forEach(function(k){
+      var b=document.createElement("button");b.type="button";b.className="btn";b.textContent=k[0];b.setAttribute("aria-label","Qöşiş: "+k[0]);
+      b.onmousedown=function(ev){ev.preventDefault();};
+      b.onclick=function(){insertKey(k[1]);};keys.appendChild(b);
+    });
+    o.appendChild(keys);
+    var cb2=document.createElement("button");cb2.type="button";cb2.className="btn primary";cb2.textContent="Tekşiriş";cb2.onclick=answerOpen;o.appendChild(cb2);
+    A.appendChild(o);
+    lastInput=null;
+    Array.prototype.forEach.call(o.querySelectorAll("input"),function(inp,pi){
+      inp.addEventListener("focus",function(){lastInput=inp;});
+      inp.addEventListener("input",function(){$("er"+pi).textContent="";});
+      inp.addEventListener("keydown",function(ev){if(ev.key==="Enter"){ev.preventDefault();answerOpen();}});
+    });
+  }
+}
+var lastInput=null;
+function insertKey(v,inp){
+  inp=inp||lastInput||document.getElementById("in0"); if(!inp||inp.readOnly) return;
+  var s=inp.selectionStart==null?inp.value.length:inp.selectionStart,e=inp.selectionEnd==null?s:inp.selectionEnd;
+  inp.value=inp.value.slice(0,s)+v+inp.value.slice(e);inp.focus();inp.setSelectionRange(s+v.length,s+v.length);
+}
+
+function finishQ(gained,full,html){
+  S.answered=true;
+  if(full){S.streak++;S.right++;if(S.streak>=3)gained+=2;}
+  else{S.streak=0;S.missed.push(S.list[S.idx]);}
+  S.bestStreak=Math.max(S.bestStreak,S.streak);
+  S.score+=gained;
+  $("sScore").textContent=S.score;$("sStreak").textContent=S.streak;
+  $("feedback").innerHTML=html;$("navRow").hidden=false;$("nextBtn").focus({preventScroll:true});
+}
+function exHtml(q){
+  var T=TESTS[S.test];
+  if(q.ex) return '<div class="ex"><b>Yeçiş:</b> '+q.ex+'</div>';
+  return '<div class="note">'+(T.user?'Bu mock uçun faqat siz kiritgan kalit bor.':'Bu test uçun faqat rasmiy kalit berilgan. Yeçişi kerak bölsa, çatda “'+esc(T.name)+', '+q.n+'-masala” deb yozing.')+'</div>';
+}
+function answerMC(L){
+  if(S.answered)return;var q=S.list[S.idx],ok=L===q.a;
+  Array.prototype.forEach.call(document.querySelectorAll(".answers .btn"),function(b){if(b.dataset.l===q.a)b.classList.add("ok");else if(b.dataset.l===L)b.classList.add("no");});
+  finishQ(ok?10:0,ok,'<div class="fb '+(ok?"g":"r")+'"><div class="head">'+(ok?"Töğri! +10 ball":"Xato. Töğri javob: "+q.a)+(ok&&S.streak>=2?" · seriya bonusi +2":"")+'</div>'+exHtml(q)+'</div>');
+}
+function answerMatch(){
+  if(S.answered)return;var q=S.list[S.idx],picks=[];
+  for(var pi=0;pi<3;pi++){var s=document.querySelector('.chip.sel[data-p="'+pi+'"]');picks.push(s?s.dataset.l:null);}
+  if(picks.indexOf(null)>=0){$("mErr").textContent="Har bir qatorda (33, 34, 35) bitta harf tanlang.";return;}
+  var good=0;
+  picks.forEach(function(L,pi){
+    Array.prototype.forEach.call(document.querySelectorAll('.chip[data-p="'+pi+'"]'),function(c){if(c.dataset.l===q.parts[pi])c.classList.add("ok");else if(c.dataset.l===L)c.classList.add("no");});
+    if(L===q.parts[pi])good++;
+  });
+  var full=good===3;
+  finishQ(good*4,full,'<div class="fb '+(full?"g":"r")+'"><div class="head">'+(full?"Hammasi töğri! +12 ball":good+" / 3 töğri, +"+good*4+" ball. Töğrisi: 33 → "+q.parts[0]+", 34 → "+q.parts[1]+", 35 → "+q.parts[2])+'</div>'+exHtml(q)+'</div>');
+}
+function answerOpen(){
+  if(S.answered)return;var q=S.list[S.idx],vals=[],bad=false;
+  q.parts.forEach(function(p,pi){
+    var v=$("in"+pi).value.trim();
+    if(!v){$("er"+pi).textContent="Bu qismga javob yozing.";bad=true;return;}
+    try{evalExpr(v);}catch(e){$("er"+pi).textContent="Javobni son yoki ifoda körinişida yozing, masalan 2√3-2 yoki 27/2.";bad=true;}
+    vals.push(v);
+  });
+  if(bad)return;
+  var good=0,lines=[];
+  q.parts.forEach(function(p,pi){
+    var ok=matches(vals[pi],p.vals),inp=$("in"+pi);
+    inp.classList.add(ok?"ok":"no");inp.readOnly=true;
+    if(ok)good++;
+    lines.push(p.label+") "+(ok?"töğri":"xato, töğrisi: "+p.show));
+  });
+  var full=good===q.parts.length;
+  finishQ(good*6,full,'<div class="fb '+(full?"g":"r")+'"><div class="head">'+(full?"Ikkalasi ham töğri! +12 ball":good+" / 2 töğri, +"+good*6+" ball")+'</div><div class="ex">'+lines.join("<br>")+'</div>'+exHtml(q)+'</div>');
+}
+
+$("nextBtn").onclick=function(){
+  if(S.idx+1<S.list.length){S.idx++;renderQ();window.scrollTo(0,0);}
+  else finish();
+};
+document.addEventListener("keydown",function(ev){
+  if($("play").hidden)return;
+  var q=S.list[S.idx]; if(!q)return;
+  if(!S.answered&&q.type==="mc"){var k=ev.key.toUpperCase();if("ABCD".indexOf(k)>=0&&k.length===1){answerMC(k);}}
+  else if(S.answered&&ev.key==="Enter"&&document.activeElement.tagName!=="INPUT"){ev.preventDefault();$("nextBtn").click();}
+});
+
+function finish(){
+  $("prog").style.width="100%";
+  var pct=S.max?Math.round(S.score/S.max*100):0;
+  if(pct>100)pct=100;
+  $("rTitle").textContent=TESTS[S.test].name+" · natija";
+  $("rScore").textContent=S.score+" / "+S.max+" ball";
+  $("rRight").textContent=S.right+" / "+S.list.length;
+  $("rPct").textContent=pct+"%";
+  $("rBest").textContent=S.bestStreak;
+  var ml=$("missList");ml.innerHTML="";
+  S.missed.forEach(function(q){var s=document.createElement("span");s.textContent=q.n;ml.appendChild(s);});
+  $("missWrap").hidden=!S.missed.length;
+  $("retryBtn").hidden=!S.missed.length;
+  if(S.mode==="all"&&S.list.length===TESTS[S.test].qs.length){var b=store.get("best_"+S.test,0);if(pct>b)store.set("best_"+S.test,pct);}
+  show("result");
+}
+$("retryBtn").onclick=function(){var m=S.missed.slice();start(m);};
+$("againBtn").onclick=function(){start(buildList());};
+$("homeBtn").onclick=function(){renderTests();show("home");};
+$("menuBtn").onclick=function(){renderTests();show("home");};
+
+/* ---------- foydalanuvçi qöşgan mocklar: IndexedDB ---------- */
+var IDB={
+  open:function(){return new Promise(function(res,rej){
+    try{var r=indexedDB.open("mock-oyini",1);
+      r.onupgradeneeded=function(){r.result.createObjectStore("mocks",{keyPath:"id"});};
+      r.onsuccess=function(){res(r.result);};r.onerror=function(){rej(r.error);};r.onblocked=function(){rej(new Error("blocked"));};
+    }catch(e){rej(e);}
+  });},
+  run:function(mode,fn){return IDB.open().then(function(db){return new Promise(function(res,rej){
+    try{var t=db.transaction("mocks",mode),rq=fn(t.objectStore("mocks")),out;
+      if(rq)rq.onsuccess=function(){out=rq.result;};
+      t.oncomplete=function(){db.close();res(out);};
+      t.onerror=t.onabort=function(){db.close();rej(t.error||new Error("tx"));};
+    }catch(e){db.close();rej(e);}
+  });});},
+  all:function(){return IDB.run("readonly",function(st){return st.getAll();});},
+  put:function(rec){return IDB.run("readwrite",function(st){return st.put(rec);});},
+  del:function(id){return IDB.run("readwrite",function(st){return st.delete(id);});}
+};
+/* kalitdagi oçiq javob matnidan O(...) yasaydi; gradusli javob radianda ham qabul qilinadi */
+function openPart(label,txt){var v=evalExpr(txt),vals=[v];if(/°/.test(txt))vals.push(v*PI/180);return O(label,vals,txt);}
+/* IndexedDB yozuvi -> TESTS dagi kabi test obyekti (faqat rasmi topilgan topşiriqlar) */
+function userTest(rec){
+  var imgs={},qs=[],k=rec.key;
+  Object.keys(rec.imgs).forEach(function(n){imgs[n]=URL.createObjectURL(rec.imgs[n]);});
+  for(var i=1;i<=32;i++){if(imgs["q"+pad(i)])qs.push({n:i,type:"mc",a:k.mc[i-1]});}
+  if(imgs.q33)qs.push({n:"33–35",img:"q33",type:"match",parts:k.match.slice()});
+  for(var j=36;j<=45;j++){if(imgs["q"+j])qs.push({n:j,type:"open",parts:[openPart("a",k.open[j][0]),openPart("b",k.open[j][1])]});}
+  return {name:rec.name,meta:rec.meta||"",user:true,id:rec.id,imgs:imgs,qs:qs};
+}
+function countOf(T){return T.qs.reduce(function(a,q){return a+(q.type==="match"?3:1);},0);}
+function addUserTest(rec){
+  try{var T=userTest(rec);T.count=countOf(T);TESTS["u"+rec.id]=T;return "u"+rec.id;}
+  catch(e){console.warn("Saqlangan mockni öqib bölmadi:",rec&&rec.name,e);return null;}
+}
+function loadUserMocks(){
+  if(!window.indexedDB){return Promise.resolve();}
+  return IDB.all().then(function(list){
+    (list||[]).sort(function(a,b){return a.id-b.id;}).forEach(addUserTest);
+    renderTests();
+  }).catch(function(e){
+    console.warn("IndexedDB:",e);
+    $("dbErr").textContent="Saqlangan mocklarni öqib bölmadi (brauzer xotirasi yopiq bölişi mumkin).";$("dbErr").hidden=false;
+  });
+}
+function deleteUserMock(k){
+  var T=TESTS[k];
+  IDB.del(T.id).then(function(){
+    Object.keys(T.imgs).forEach(function(n){URL.revokeObjectURL(T.imgs[n]);});
+    delete TESTS[k];store.del("best_"+k);renderTests();
+  }).catch(function(e){console.warn(e);alert("Öçirib bölmadi: brauzer xotirasiga yozib bölmadi.");});
+}
+
+/* ---------- PDF ni brauzerda qirqiş (tools/crop_questions.py bilan bir xil algoritm) ---------- */
+var PDFJS_BASE="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/",pdfjsP=null;
+function loadPdfJs(){
+  if(window.pdfjsLib)return Promise.resolve(window.pdfjsLib);
+  if(pdfjsP)return pdfjsP;
+  pdfjsP=new Promise(function(res,rej){
+    var s=document.createElement("script");s.src=PDFJS_BASE+"pdf.min.js";s.crossOrigin="anonymous";
+    s.onload=function(){var L=window.pdfjsLib;if(!L){rej(new Error("pdfjs"));return;}L.GlobalWorkerOptions.workerSrc=PDFJS_BASE+"pdf.worker.min.js";res(L);};
+    s.onerror=function(){pdfjsP=null;s.remove();rej(new Error("net"));};
+    document.head.appendChild(s);
+  });
+  return pdfjsP;
+}
+var DPI=140,SC=DPI/72;  /* applyZoom() dagi 1.458 = 140/96 bilan mos */
+function isInk(d,i){return d[i]<150&&d[i+1]<150&&d[i+2]<150;}
+function rowInk(img,y,x0,x1){var d=img.data,w=img.width;for(var x=x0;x<x1;x++){if(isInk(d,(y*w+x)*4))return true;}return false;}
+/* top..bottom (px) orasidagi eng uzun siyohsiz qatorlar oraliğining örtasi */
+function cutBetween(img,x0,x1,top,bottom){
+  top=Math.max(0,Math.round(top));bottom=Math.min(img.height,Math.round(bottom));
+  if(bottom-top<1)return (top+bottom)/2;
+  var bs=0,bn=0,run=0,rs=0;
+  for(var y=top;y<=bottom;y++){
+    var ink=y===bottom||rowInk(img,y,x0,x1);
+    if(!ink){if(!run)rs=y;run++;}else{if(run>bn){bs=rs;bn=run;}run=0;}
+  }
+  return bn?bs+bn/2:bottom;
+}
+function cropBlob(canvas,img,x0,y0,x1,y1){
+  x0=Math.max(0,Math.round(x0));y0=Math.max(0,Math.round(y0));x1=Math.min(img.width,Math.round(x1));y1=Math.min(img.height,Math.round(y1));
+  var d=img.data,w=img.width,bx0=x1,by0=y1,bx1=-1,by1=-1;
+  for(var y=y0;y<y1;y++)for(var x=x0;x<x1;x++){if(isInk(d,(y*w+x)*4)){if(x<bx0)bx0=x;if(x>bx1)bx1=x;if(y<by0)by0=y;if(y>by1)by1=y;}}
+  if(bx1>=0){var p=10;x0=Math.max(x0,bx0-p);y0=Math.max(y0,by0-p);x1=Math.min(x1,bx1+1+p);y1=Math.min(y1,by1+1+p);}
+  var c=document.createElement("canvas");c.width=Math.max(1,x1-x0);c.height=Math.max(1,y1-y0);
+  c.getContext("2d").drawImage(canvas,x0,y0,c.width,c.height,0,0,c.width,c.height);
+  return new Promise(function(res,rej){c.toBlob(function(b){b?res(b):rej(new Error("blob"));},"image/png");});
+}
+/* sahifa matnidan sözlar (px, yuqori çap burçakdan) */
+function pageWords(L,items,vp){
+  var out=[];
+  items.forEach(function(it){
+    if(!it.str||!it.str.trim())return;
+    var m=L.Util.transform(vp.transform,it.transform),h=Math.hypot(m[2],m[3]);
+    out.push({x0:m[4],x1:m[4]+it.width*vp.scale,y0:m[5]-h*0.85,y1:m[5]+h*0.2,s:it.str});
+  });
+  return out;
+}
+/* "N." raqamlari: bitta element ("12. ...") yoki ikkiga bölingan ("12" + ".") bölişi mumkin */
+function numberAt(words,i){
+  var w=words[i],m=/^\s*(\d{1,2})\.(?!\d)/.exec(w.s);
+  if(m)return +m[1];
+  if(/^\s*\d{1,2}\s*$/.test(w.s)&&words[i+1]&&/^\./.test(words[i+1].s)&&Math.abs(words[i+1].y0-w.y0)<4)return +w.s.trim();
+  return 0;
+}
+async function cropPdf(file,onStep){
+  var L=await loadPdfJs();
+  var pdf=await L.getDocument({data:new Uint8Array(await file.arrayBuffer())}).promise;
+  var out={},expected=1,textSeen=false;
+  for(var pn=1;pn<=pdf.numPages;pn++){
+    onStep(pn,pdf.numPages);
+    var page=await pdf.getPage(pn),vp=page.getViewport({scale:SC});
+    var words=pageWords(L,(await page.getTextContent()).items,vp);
+    if(!words.length)continue;textSeen=true;
+    var H=vp.height,W=vp.width;
+    var foot=Math.min.apply(null,words.filter(function(w){return w.y0>H*0.903;}).map(function(w){return w.y0;}).concat([H*0.992]));
+    var body=words.filter(function(w){return w.y0>H*0.059&&w.y1<foot-3*SC;});
+    if(!body.length)continue;
+    var left=Math.min.apply(null,body.map(function(w){return w.x0;}));
+    var X0=Math.max(0,left-8*SC),X1=Math.min(W,Math.max.apply(null,body.map(function(w){return w.x1;}))+8*SC);
+    var bottom=Math.max.apply(null,body.map(function(w){return w.y1;}))+6*SC;
+    /* raqamlar: çap çetda (sahifa matni boşlanişidan 20pt içida), tartib bilan */
+    var cand=[];
+    body.forEach(function(w,i){var n=numberAt(body,i);if(n&&w.x0<left+20*SC)cand.push({n:n,y0:w.y0});});
+    cand.sort(function(a,b){return a.y0-b.y0;});
+    var nums=[];
+    cand.forEach(function(c){if(c.n===expected){nums.push(c);expected++;}});
+    if(!nums.length)continue;
+    /* 34, 35 alohida rasm emas: 33 bloki ularni öz içiga oladi */
+    var segs=nums.filter(function(c){return c.n!==34&&c.n!==35;});
+    var canvas=document.createElement("canvas");canvas.width=Math.ceil(W);canvas.height=Math.ceil(H);
+    var ctx=canvas.getContext("2d");ctx.fillStyle="#fff";ctx.fillRect(0,0,canvas.width,canvas.height);
+    await page.render({canvasContext:ctx,viewport:vp}).promise;
+    var img=ctx.getImageData(0,0,canvas.width,canvas.height),ix0=Math.round(X0),ix1=Math.round(X1);
+    var dq=body.filter(function(w){return /^\s*Diqqat/.test(w.s);}).map(function(w){return w.y0;}).sort(function(a,b){return a-b;});
+    var cuts=segs.map(function(c,i){
+      if(i+1>=segs.length)return bottom;
+      var ny=segs[i+1].y0,above=body.filter(function(w){return w.y0>=c.y0&&w.y1<ny-1;}).map(function(w){return w.y1;});
+      return cutBetween(img,ix0,ix1,above.length?Math.max.apply(null,above):c.y0,ny);
+    });
+    for(var i=0;i<segs.length;i++){
+      var c=segs[i],start,y1=cuts[i];
+      if(i>0)start=cuts[i-1];
+      else if(c.n===33)start=Math.min.apply(null,body.map(function(w){return w.y0;}))-6*SC; /* 33–35: butun sahifa (sarlavhasi bilan) */
+      else{var ab=words.filter(function(w){return w.y0>H*0.047&&w.y1<c.y0-1;}).map(function(w){return w.y1;});
+        start=cutBetween(img,ix0,ix1,ab.length?Math.max.apply(null,ab):Math.max(H*0.047,c.y0-30*SC),c.y0);}
+      var ds=dq.filter(function(d){return c.y0<d&&d<y1+8*SC;});
+      if(ds.length)y1=Math.min(y1,ds[0]-6*SC);
+      out["q"+pad(c.n)]=await cropBlob(canvas,img,X0,start,X1,y1);
+    }
+    page.cleanup();
+  }
+  pdf.destroy();
+  return {imgs:out,textSeen:textSeen};
+}
+
+/* ---------- qöşiş ekrani: kalit formasi ---------- */
+var U={imgs:null,thumbs:[],busy:false,mc:[],match:[null,null,null]};
+var ALL_NUMS=(function(){var a=[];for(var i=1;i<=33;i++)a.push(i);for(var j=36;j<=45;j++)a.push(j);return a;})();
+function chipRow(lab,letters,get,set,aria){
+  var r=document.createElement("div");r.className="mrow";r.setAttribute("role","group");r.setAttribute("aria-label",aria);
+  r.innerHTML='<span class="lab">'+lab+'.</span>';
+  letters.split("").forEach(function(L){
+    var c=document.createElement("button");c.type="button";c.className="chip";c.textContent=L;c.dataset.l=L;
+    c.onclick=function(){set(get()===L?null:L);paint();};r.appendChild(c);
+  });
+  function paint(){var v=get();Array.prototype.forEach.call(r.querySelectorAll(".chip"),function(x){var on=x.dataset.l===v;x.classList.toggle("sel",on);x.setAttribute("aria-pressed",on?"true":"false");});}
+  r.paint=paint;paint();return r;
+}
+var keyRows=[];
+function buildKeyForm(){
+  keyRows=[];U.mc=[];for(var i=0;i<32;i++)U.mc.push(null);U.match=[null,null,null];
+  var mc=$("kMC");mc.innerHTML="";
+  U.mc.forEach(function(_,i){var r=chipRow(i+1,"ABCD",function(){return U.mc[i];},function(v){U.mc[i]=v;},(i+1)+"-savol javobi");keyRows.push(r);mc.appendChild(r);});
+  var mt=$("kMatch");mt.innerHTML="";
+  [0,1,2].forEach(function(i){var r=chipRow(33+i,"ABCDEF",function(){return U.match[i];},function(v){U.match[i]=v;},(33+i)+"-savol javobi");keyRows.push(r);mt.appendChild(r);});
+  var op=$("kOpen");op.innerHTML="";
+  for(var n=36;n<=45;n++){
+    var row=document.createElement("div");row.className="krow";row.innerHTML='<span class="lab">'+n+'.</span>';
+    ["a","b"].forEach(function(p){
+      var f=document.createElement("div");f.className="field";
+      f.innerHTML='<input type="text" id="k'+n+p+'" autocomplete="off" spellcheck="false" placeholder="'+p+')" aria-label="'+n+'-topşiriq '+p+') javob"><div class="val" id="k'+n+p+'v"></div>';
+      row.appendChild(f);
+    });
+    op.appendChild(row);
+  }
+  Array.prototype.forEach.call(op.querySelectorAll("input"),function(inp){
+    inp.addEventListener("input",function(){checkOpenField(inp);});
+    inp.addEventListener("focus",function(){lastInput=inp;});
+  });
+  $("kQuick").value="";$("kQuickErr").textContent="";$("saveErr").textContent="";
+}
+/* oçiq javob maydonini evalExpr() bilan tekşiradi; xato bölsa yonida xabar */
+function checkOpenField(inp){
+  var v=inp.value.trim(),box=$(inp.id+"v");
+  box.className="val";inp.classList.remove("no");
+  if(!v){box.textContent="";return null;}
+  try{var x=evalExpr(v);box.textContent="≈ "+(+x.toFixed(4)).toString().replace(".",",");return v;}
+  catch(e){box.className="err";box.textContent="Tuşunilmadi. Masalan: 27/2, 2√3-2, 3π/4";inp.classList.add("no");return false;}
+}
+/* tez to'ldiriş: harflarni 1–32, keyin 33–35 ga taqsimlaydi (kirill А В С Д Е ham qabul qilinadi) */
+var CYR={"А":"A","В":"B","С":"C","Д":"D","Е":"E","Ф":"F"};
+$("kQuick").addEventListener("input",function(){
+  var s=this.value.toUpperCase().replace(/[АВСДЕФ]/g,function(c){return CYR[c];}).replace(/[^A-Z]/g,""),err="";
+  if(s.length>35)err="35 tadan ortiq harf: "+s.length+" ta.";
+  for(var i=0;i<Math.min(s.length,35)&&!err;i++){
+    var ok=i<32?"ABCD":"ABCDEF";
+    if(ok.indexOf(s[i])<0)err=(i+1)+"-savol uçun “"+s[i]+"” böla olmaydi ("+(i<32?"A–D":"A–F")+").";
+  }
+  $("kQuickErr").textContent=err;
+  if(err)return;
+  for(var j=0;j<35;j++){var L=s[j]||null;if(j<32)U.mc[j]=L;else U.match[j-32]=L;}
+  keyRows.forEach(function(r){r.paint();});
+});
+(function(){
+  var keys=$("kKeys");
+  [["√","√"],["π","π"],["/","/"],["−","-"],["°","°"],["arctg","arctg"]].forEach(function(k){
+    var b=document.createElement("button");b.type="button";b.className="btn";b.textContent=k[0];b.setAttribute("aria-label","Qöşiş: "+k[0]);
+    b.onmousedown=function(ev){ev.preventDefault();};
+    b.onclick=function(){var inp=lastInput&&lastInput.id.charAt(0)==="k"?lastInput:$("k36a");insertKey(k[1],inp);checkOpenField(inp);};
+    keys.appendChild(b);
+  });
+})();
+function clearThumbs(){U.thumbs.forEach(function(u){URL.revokeObjectURL(u);});U.thumbs=[];$("cropList").innerHTML="";}
+function resetAdd(){
+  U.imgs=null;clearThumbs();$("mName").value="";$("mMeta").value="";$("mPdf").value="";$("mPdfName").textContent="Fayl tanlanmagan";
+  $("pdfStatus").textContent="";$("pdfErr").textContent="";$("cropView").hidden=true;$("cropView").open=false;$("keyCard").hidden=true;
+  buildKeyForm();
+}
+/* forma özgarsa eski "saqlab bölmaydi" xabari qolib ketmasin */
+["input","click"].forEach(function(ev){$("keyCard").addEventListener(ev,function(e){if(e.target.id!=="saveMock")$("saveErr").textContent="";});});
+$("mName").addEventListener("input",function(){$("saveErr").textContent="";});
+$("addBtn").onclick=function(){if(!U.busy)resetAdd();show("add");};
+$("addBack").onclick=function(){renderTests();show("home");};
+$("mPdf").addEventListener("change",function(){
+  var f=this.files&&this.files[0];if(!f||U.busy)return;
+  $("mPdfName").textContent=f.name;
+  U.imgs=null;clearThumbs();$("cropView").hidden=true;$("keyCard").hidden=true;$("pdfErr").textContent="";
+  if(!$("mName").value.trim())$("mName").value=f.name.replace(/\.pdf$/i,"").replace(/[_-]+/g," ").trim();
+  U.busy=true;$("mPdf").disabled=true;$("pdfStatus").textContent="PDF öqiş vositasi yuklanmoqda…";
+  cropPdf(f,function(p,n){$("pdfStatus").textContent="Sahifa "+p+" / "+n+" qirqilmoqda…";}).then(function(r){
+    var names=Object.keys(r.imgs);
+    if(!r.textSeen)throw {msg:"PDF da matn qatlami yöq (skaner qilingan rasm). Topşiriq raqamlarini topib bölmadi."};
+    if(!names.length)throw {msg:"Topşiriq raqamlari (“1.”, “2.” …) topilmadi. PDF tuzilişi boşqaça bölişi mumkin."};
+    U.imgs=r.imgs;
+    var miss=ALL_NUMS.filter(function(n){return !r.imgs["q"+pad(n)];});
+    $("pdfStatus").textContent="Topildi: "+(ALL_NUMS.length-miss.length)+" / "+ALL_NUMS.length+" rasm (33–35 bitta rasm)."+(miss.length?" Topilmadi: "+miss.map(function(n){return n===33?"33–35":n;}).join(", ")+" — bular öyinga kirmaydi.":" Rasmlarni tekşirib, kalitni kiriting.");
+    var list=$("cropList");
+    ALL_NUMS.forEach(function(n){var b=r.imgs["q"+pad(n)];if(!b)return;var u=URL.createObjectURL(b);U.thumbs.push(u);
+      var fg=document.createElement("figure");fg.innerHTML='<figcaption>'+(n===33?"33–35":n)+'-topşiriq</figcaption><img alt="'+(n===33?"33–35":n)+'-topşiriq rasmi" src="'+u+'">';list.appendChild(fg);});
+    $("cropView").hidden=false;$("keyCard").hidden=false;
+  }).catch(function(e){
+    console.warn(e);
+    $("pdfStatus").textContent="";
+    $("pdfErr").textContent=e&&e.msg?e.msg:(e&&e.message==="net"?"PDF öqiş vositasini (pdf.js) yuklab bölmadi. Internetni tekşiring: u birinçi marta tarmoqdan yuklanadi.":"PDF ni öqib bölmadi: fayl buzilgan yoki PDF emas.");
+  }).then(function(){U.busy=false;$("mPdf").disabled=false;});
+});
+$("saveMock").onclick=function(){
+  var err=[],name=$("mName").value.trim();
+  if(!U.imgs){$("saveErr").textContent="Avval PDF tanlang.";return;}
+  if(!name)err.push("nomini yozing");
+  var noMC=[],open={},noOpen=[],badOpen=[];
+  for(var i=1;i<=32;i++){if(U.imgs["q"+pad(i)]&&!U.mc[i-1])noMC.push(i);}
+  if(noMC.length)err.push("yopiq javob yöq: "+noMC.join(", "));
+  if(U.imgs.q33&&U.match.indexOf(null)>=0)err.push("33–35 ni to'ldiring");
+  for(var n=36;n<=45;n++){
+    if(!U.imgs["q"+n])continue;
+    var a=checkOpenField($("k"+n+"a")),b=checkOpenField($("k"+n+"b"));
+    if(a===false||b===false)badOpen.push(n);else if(!a||!b)noOpen.push(n);else open[n]=[a,b];
+  }
+  if(noOpen.length)err.push("oçiq javob yöq: "+noOpen.join(", "));
+  if(badOpen.length)err.push("oçiq javob xato yozilgan: "+badOpen.join(", "));
+  if(err.length){$("saveErr").textContent="Saqlab bölmaydi: "+err.join("; ")+".";return;}
+  var rec={id:Date.now(),name:name,meta:$("mMeta").value.trim(),created:new Date().toISOString(),
+    key:{mc:U.mc.map(function(x){return x||"";}).join(""),match:U.match.slice(),open:open},imgs:U.imgs};
+  $("saveMock").disabled=true;$("saveErr").textContent="";
+  IDB.put(rec).then(function(){
+    var k=addUserTest(rec);if(k)S.test=k;
+    resetAdd();renderTests();show("home");
+  }).catch(function(e){console.warn(e);$("saveErr").textContent="Brauzer xotirasiga saqlab bölmadi (xotira töla yoki maxfiy rejim bölişi mumkin).";})
+  .then(function(){$("saveMock").disabled=false;});
+};
+
+Object.keys(TESTS).forEach(function(k){TESTS[k].count=countOf(TESTS[k]);});
+renderTests();
+loadUserMocks();
+</script>
+</body>
+</html>
