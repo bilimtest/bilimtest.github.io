@@ -1135,6 +1135,12 @@ html[data-px=night] #tab-rg.on{background:#7a4fd6!important;color:#fff!important
       <div id="admin-pending-teachers"></div>
     </div>
     <div class="card">
+      <h3 style="margin-bottom:8px">&#x1F393; Yangi o'quv yili</h3>
+      <p style="font-size:13px;color:var(--mut);margin-bottom:10px">Bu o'quv yilida sinfini hali yangilamagan o'quvchilarni keyingi sinfga o'tkazadi (5A &rarr; 6A, 10B &rarr; 11B). 11-sinf va raqamsiz sinflar o'zgarmaydi. Eski sinf saqlanadi, natijalar yo'qolmaydi.</p>
+      <button type="button" class="btn bpu bsm" onclick="adminPromoteYear()">Keyingi sinfga o'tkazish</button>
+      <div id="promote-msg" class="mt8"></div>
+    </div>
+    <div class="card">
       <h3 style="margin-bottom:8px">&#x1F3EB; Maktab sinflari</h3>
       <p style="font-size:13px;color:var(--mut);margin-bottom:10px">Maktab nomini va uning sinflarini kiriting (masalan: 5A, 5B, 6A). Shu maktab ustozlari va o'quvchilari faqat shu sinflardan tanlaydi. Sinflarni qo'lda yozish yoki Word / Excel / CSV / TXT fayldan yuklash mumkin.</p>
       <div class="fg"><label>Maktab nomi (ustoz ro'yxatdan o'tganda yozgani bilan bir xil)</label><input type="text" id="sc-name" list="sc-names" placeholder="Masalan: 12-maktab"><datalist id="sc-names"></datalist></div>
@@ -1397,7 +1403,7 @@ var INIT_META = [{"topic": "Guruhlash qonuni", "questionsToAsk": 20}, {"topic": 
 
 var SK = 'edutest_v3';
 // APP_VER sw.js dagi CACHE bilan bir xil bo'lishi SHART (sw versiyasini oshirganda buni ham oshiring)
-var APP_VER = 'bilimtest-v170';
+var APP_VER = 'bilimtest-v171';
 (function(){
   try{
     if('serviceWorker' in navigator && navigator.serviceWorker.controller) return; // SW bor - o'zining yangilanish banneri ishlaydi
@@ -7859,6 +7865,27 @@ function renderAdminAllUsers(){
     return '<tr><td><strong>'+_cEsc(u.name)+'</strong></td><td>'+_cEsc(u.login)+'</td><td class="ts tm" style="font-family:monospace">'+passShown+'</td><td><span class="bdg '+(u.role==='teacher'?'bbl':'bgy')+'">'+roleLbl+'</span></td><td class="ts">'+extra+'</td><td style="display:flex;gap:4px"><button class="btn bp bsm" onclick="adminEditUser(\''+u.id+'\')">&#x270F;&#65039;</button><button class="btn bd bsm" onclick="adminDelUser(\''+u.id+'\')">&#x1F5D1;&#65039;</button></td></tr>';
   }).join('')||'<tr><td colspan="6" style="text-align:center;padding:14px;color:var(--mut)">Foydalanuvchilar yoq</td></tr>';
 }
+function _promoteCls(c){   // "5A" -> "6A"; 11-sinf va raqamsiz -> null
+  var m=/^(\d{1,2})(.*)$/.exec(String(c||'').trim()); if(!m) return null;
+  var n=parseInt(m[1],10); if(n<1||n>=11) return null;
+  return (n+1)+m[2];
+}
+function _promotePlan(db){
+  var yr=_acYear(), out=[];
+  (db.users||[]).forEach(function(u){ if(u.role!=='student'||!u.cls||_clsYearOf(u)>=yr) return; var nc=_promoteCls(u.cls); if(nc) out.push([u,nc]); });
+  return out;
+}
+function adminPromoteYear(){
+  if(!ME||ME.role!=='admin') return;
+  var db=getDB(), plan=_promotePlan(db), yr=_acYear(), msg=document.getElementById('promote-msg');
+  if(!plan.length){ if(msg) msg.innerHTML='<div class="alt ai">O\'tkaziladigan o\'quvchi yo\'q: hammasi bu o\'quv yilida sinfini yangilagan yoki 11-sinfda.</div>'; return; }
+  var ex=plan.slice(0,3).map(function(x){ return x[0].cls+' \u2192 '+x[1]; }).join(', ');
+  if(!confirm(plan.length+' ta o\'quvchi keyingi sinfga o\'tkaziladi ('+yr+'/'+(yr+1)+' o\'quv yili).\nMasalan: '+ex+'\n\nDavom etilsinmi?')) return;
+  plan.forEach(function(x){ var u=x[0], old=u.cls; u.prevCls=(u.prevCls||[]).filter(function(c){ return c!==old&&c!==x[1]; }); u.prevCls.push(old); u.cls=x[1]; u.clsYear=yr; });
+  saveDB(db);
+  if(msg) msg.innerHTML='<div class="alt as">&#x2705; '+plan.length+' ta o\'quvchi keyingi sinfga o\'tkazildi.</div>';
+  try{ renderAdminAllUsers(); renderAdminOverview(); }catch(e){}
+}
 function adminEditUser(uid){
   var db=getDB();
   var u=db.users.find(function(x){return x.id===uid;});
@@ -7882,6 +7909,15 @@ function adminEditUser(uid){
   }
   var newPass=prompt('Parol (o\'zgartirmaslik uchun bo\'sh qoldiring):','');
   if(newPass===null)return;
+  if(u.role==='student'){
+    var _sl=schoolOwnersList();
+    if(_sl.length>1){
+      var _ci=-1; _sl.forEach(function(o,i){ if(o.id===u.schoolId) _ci=i; });
+      var _a=prompt('Maktab (raqamini yozing):\n'+_sl.map(function(o,i){ return (i+1)+'. '+(o.maktab||o.name); }).join('\n'), _ci>=0?String(_ci+1):'');
+      if(_a===null) return;
+      var _k=parseInt(_a,10); if(_k>=1&&_k<=_sl.length) u.schoolId=_sl[_k-1].id;
+    }
+  }
   u.name=newName.trim()||u.name;
   u.login=newLogin||u.login;
   if(newPass.trim())u.pass=newPass.trim();
