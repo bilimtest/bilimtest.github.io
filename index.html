@@ -1403,7 +1403,7 @@ var INIT_META = [{"topic": "Guruhlash qonuni", "questionsToAsk": 20}, {"topic": 
 
 var SK = 'edutest_v3';
 // APP_VER sw.js dagi CACHE bilan bir xil bo'lishi SHART (sw versiyasini oshirganda buni ham oshiring)
-var APP_VER = 'bilimtest-v173';
+var APP_VER = 'bilimtest-v176';
 (function(){
   try{
     if('serviceWorker' in navigator && navigator.serviceWorker.controller) return; // SW bor - o'zining yangilanish banneri ishlaydi
@@ -3999,7 +3999,7 @@ function saveTimerMinutes(val){
 // SAVOL TURLARI TIZIMI
 function qType(q){ return (q&&q.type)||'choice'; }
 function _qEsc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}).replace(/&lt;br\s*\/?&gt;/gi,'<br>'); }
-function _qNorm(s){ return String(s||'').toLowerCase().replace(/[’`ʻʼ‘]/g,"'").replace(/\s+/g,' ').trim(); }
+function _qNorm(s){ return String(s||'').toLowerCase().replace(/[’`ʻʼ‘]/g,"'").replace(/ö/g,"o'").replace(/ğ/g,"g'").replace(/ş/g,'sh').replace(/ç/g,'ch').replace(/\s+/g,' ').trim(); }
 var BLANK_RE=/_{3,}/g;
 // YOZMA JAVOB TEKSHIRUVI (2026-10-16): katta/kichik harf, kirill/lotin, apostrof turlari, raqam so'z bilan (o'zbekcha/inglizcha),
 // o'nli vergul/nuqta, kasr, foiz, daraja belgilari, birlik (5 sm = 5), "x=5" = "5". ES5 (eski iPhone uchun).
@@ -4041,6 +4041,7 @@ function _oaCanon(s){
   try{ s=s.normalize('NFKC'); }catch(e){}
   s=s.toLowerCase();
   s=s.replace(/[’`ʻʼ‘´ʹ′]/g,"'").replace(/[−–—‒]/g,'-').replace(/[×·⋅]/g,'*').replace(/÷/g,'/');
+  s=s.replace(/ö/g,"o'").replace(/ğ/g,"g'").replace(/ş/g,'sh').replace(/ç/g,'ch');   // yangi alifbo (2027) = eski
   s=s.replace(/√/g,'sqrt').replace(/π/g,'pi').replace(/±/g,'+-').replace(/≤/g,'<=').replace(/≥/g,'>=').replace(/!=/g,'<>').replace(/≠/g,'<>').replace(/≈/g,'~').replace(/∞/g,' inf ').replace(/°/g,'deg');
   s=s.replace(/[а-яёўқғҳ]/g,function(c){ return _OA_CYR[c]!==undefined?_OA_CYR[c]:c; });
   return s.replace(/\s+/g,' ').trim();
@@ -12715,5 +12716,124 @@ function sendReport(){
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
 })();
 </script>
+<script id="alf-mod">
+/* ─── YANGI O'ZBEK ALIFBOSI (2026-11-23): sayt yozuvlari Ö Ğ Ş Ç bilan ───
+   Faqat interfeys matni o'giriladi. Savollar, javoblar, formulalar, kiritish maydonlari va
+   inglizcha matnlar o'zgarmaydi. Tanlov localStorage 'et_alf' (new|old); tanlanmagan bo'lsa
+   2027-04-22 dan yangi alifbo. ES5 (eski iPhone uchun). */
+(function(){
+  var KEY='et_alf', START=Date.UTC(2027,3,22,0,0,0)-5*3600*1000;   // Toshkent vaqti bilan 22-aprel
+  function pref(){ try{ return localStorage.getItem(KEY)||''; }catch(e){ return ''; } }
+  function isOn(){ var p=pref(); if(p==='new') return true; if(p==='old') return false; return Date.now()>=START; }
+  // o'girilmaydigan joylar: savol/javob, formula, kod, kiritish, inglizcha bo'limlar
+  var SKIP_SEL='input,textarea,select,script,style,code,pre,math-field,canvas,svg,.katex,.mathedit,.mfrag,[contenteditable],[lang]:not(html),.nt,'+
+    '#t-qbody,#r-det-body,#rd-body,#q-detail-view,#duel-modal-body,#battle-modal-body,#fc-study-ov,#st-cert,#st-eng,#en-preview,#mock-body,#ms-body,'+
+    '#review-list,#qt-list,#ai-check-body,#imp-preview,.q-item,.qrow,.opt';
+  var PROTECT={chrome:1,check:1,checkbox:1,match:1,shift:1,push:1,flash:1,english:1,chat:1,sheets:1,sheet:1,cash:1,share:1,show:1,search:1,
+    switch:1,touch:1,batch:1,church:1,teacher:1,school:1,each:1,much:1,such:1,which:1,sh:1,ch:1};
+  // foydalanuvchi yozgan nomlar (ism, mavzu, papka, maktab) o'girilmaydi
+  var LEX={}, lexK='';
+  function lex(){
+    try{ var d=(typeof getDBro==='function')?getDBro():null; if(!d) return;
+      var k=(d.v||0)+'|'+((d.users||[]).length)+'|'+((d.userQs||[]).length);
+      if(k===lexK) return; lexK=k; var L={};
+      function add(t){ String(t||'').split(/[^A-Za-zʻ‘’`ʼ']+/).forEach(function(w){ w=w.replace(/^'+|'+$/g,''); if(w) L[w.toLowerCase()]=1; }); }
+      (d.users||[]).forEach(function(u){ add(u.name); add(u.maktab); });
+      (d.topicsMeta||[]).forEach(function(m){ add(m&&m.topic); });
+      (d.userQs||[]).forEach(function(q){ add(q&&q.topic); add(q&&q.folder); });
+      (d.qFolders||[]).forEach(function(f){ add(f&&(f.name||f)); });
+      (d.decks||[]).forEach(function(x){ add(x&&(x.name||x.title)); });
+      LEX=L;
+    }catch(e){}
+  }
+  function foreign(w){
+    var l=w.toLowerCase().replace(/^'+|'+$/g,''), base=l.split(/['ʻ‘’`ʼ]/)[0];
+    if(PROTECT[l]||PROTECT[base]||LEX[l]||LEX[base]) return true;
+    if(/w|ee|oo|th|ph|tch|ck|ght/.test(l)) return true;
+    if(/c(?!h)/.test(l)) return true;                      // o'zbek lotinida 'c' faqat 'ch' ichida
+    return false;
+  }
+  var AP="['ʻ‘’`ʼ]";
+  var RX_O=new RegExp('([OoGg])'+AP+'(?=[A-Za-z])','g');
+  function word(w){
+    if(w.length<2||foreign(w)) return w;
+    var up=w===w.toUpperCase()&&/[A-Z]{2}/.test(w);
+    var r=w.replace(RX_O,function(m,c){ return {O:'Ö',o:'ö',G:'Ğ',g:'ğ'}[c]; });
+    r=r.replace(/Sh|SH|sh|sH/g,function(m){ return (m.charAt(0)==='S')?'Ş':'ş'; })
+       .replace(/Ch|CH|ch|cH/g,function(m){ return (m.charAt(0)==='C')?'Ç':'ç'; });
+    if(up) r=r.toUpperCase();
+    return r;
+  }
+  var RX_W=new RegExp("[A-Za-zʻ‘’`ʼ']+",'g');
+  function conv(s){
+    lex();
+    if(!s||!/[OoGg]['ʻ‘’`ʼ]|[Ss][Hh]|[Cc][Hh]/.test(s)) return s;
+    return s.replace(RX_W,function(w){
+      if(/^['ʻ‘’`ʼ]+$/.test(w)) return w;
+      return word(w);
+    });
+  }
+  function skipped(el){ while(el&&el.nodeType===1&&el!==document.documentElement&&el!==document.body){ if(el.matches&&el.matches(SKIP_SEL)) return true; el=el.parentNode; } return false; }
+  var urlRx=/(?:https?:\/\/|www\.|@)\S*/;
+  function doText(n){
+    var v=n.nodeValue; if(!v||urlRx.test(v)) return;
+    var p=n.parentNode; if(!p||skipped(p)) return;
+    var c=conv(v); if(c!==v) n.nodeValue=c;
+  }
+  function doAttrs(el){
+    if(skipped(el)) return;
+    ['placeholder','title','aria-label'].forEach(function(a){ var v=el.getAttribute&&el.getAttribute(a); if(v){ var c=conv(v); if(c!==v) el.setAttribute(a,c); } });
+  }
+  function walk(root){
+    if(!root) return;
+    if(root.nodeType===3){ doText(root); return; }
+    if(root.nodeType!==1||skipped(root)) return;
+    doAttrs(root);
+    var tw=document.createTreeWalker(root,NodeFilter.SHOW_ELEMENT|NodeFilter.SHOW_TEXT,{acceptNode:function(n){
+      if(n.nodeType===1&&n.matches&&n.matches(SKIP_SEL)) return NodeFilter.FILTER_REJECT; return NodeFilter.FILTER_ACCEPT; }},false), n;
+    while((n=tw.nextNode())){ if(n.nodeType===3){ var v=n.nodeValue; if(v&&!urlRx.test(v)){ var c=conv(v); if(c!==v) n.nodeValue=c; } } else doAttrs(n); }
+  }
+  window.alfConv=conv; window.alfIsNew=isOn;
+  window.toggleAlphabet=function(){
+    try{ localStorage.setItem(KEY,isOn()?'old':'new'); }catch(e){}
+    if(window.S&&S.test&&S.test.length&&S.mode){ alert(isOn()?'Yangi alifbo test tugagach yoqiladi.':'Eski alifbo test tugagach yoqiladi.'); return; }
+    location.reload();
+  };
+  function addBtn(){
+    if(document.getElementById('alfBtn')) return;
+    var st=document.createElement('style');
+    st.textContent='#alfBtn{position:fixed;right:14px;bottom:132px;z-index:150;width:46px;height:46px;border-radius:50%;border:2px solid rgba(255,255,255,.55);'+
+      'background:rgba(20,26,74,.85);color:#fff;font:700 15px/1 system-ui,sans-serif;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.3)}'+
+      'html[data-px=day] #alfBtn{background:rgba(255,255,255,.88);color:#25316d;border-color:rgba(255,255,255,.9)}'+
+      'html.et-testing #alfBtn,body.testing #alfBtn{display:none}@media print{#alfBtn{display:none}}';
+    document.head.appendChild(st);
+    var b=document.createElement('button'); b.id='alfBtn'; b.type='button';
+    b.className='nt'; b.setAttribute('aria-label','Alifbo');
+    b.title=isOn()?"Eski alifboga o'tish (Oʻ, Gʻ, Sh, Ch)":'Yangi alifboga oʻtish (Ö, Ğ, Ş, Ç)';
+    b.textContent=isOn()?'Öş':'Oʻz';
+    b.onclick=window.toggleAlphabet;
+    document.body.appendChild(b);
+  }
+  function start(){
+    addBtn();
+    if(!isOn()) return;
+    document.documentElement.setAttribute('data-alf','new');
+    try{ document.title=conv(document.title); }catch(e){}
+    walk(document.body);
+    var busy=false;
+    new MutationObserver(function(ms){
+      if(busy) return; busy=true;
+      try{ ms.forEach(function(m){
+        if(m.type==='characterData') doText(m.target);
+        else if(m.type==='attributes') doAttrs(m.target);
+        else for(var i=0;i<m.addedNodes.length;i++) walk(m.addedNodes[i]);
+      }); }catch(e){}
+      busy=false;
+    }).observe(document.body,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['placeholder','title','aria-label']});
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',start); else start();
+})();
+
+</script><!--/alf-mod-->
 </body>
       </html>
