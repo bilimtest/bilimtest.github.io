@@ -1397,7 +1397,7 @@ var INIT_META = [{"topic": "Guruhlash qonuni", "questionsToAsk": 20}, {"topic": 
 
 var SK = 'edutest_v3';
 // APP_VER sw.js dagi CACHE bilan bir xil bo'lishi SHART (sw versiyasini oshirganda buni ham oshiring)
-var APP_VER = 'bilimtest-v169';
+var APP_VER = 'bilimtest-v170';
 (function(){
   try{
     if('serviceWorker' in navigator && navigator.serviceWorker.controller) return; // SW bor - o'zining yangilanish banneri ishlaydi
@@ -2952,12 +2952,18 @@ function myVisibleStudents(){
   return (db.users||[]).filter(function(u){ return u.role==='student' && studentVisibleToMe(u); });
 }
 // Natija (result) yozuvlarida oquvchining maktabi saqlanmaydi
+function _myOwnTids(){   // men (profil bo'lsam faqat o'zim; maktab egasi bo'lsam o'zim + profillarim)
+  var o={}; if(!ME) return o; o[ME.id]=1;
+  if(!ME.parentId) (getDBro().users||[]).forEach(function(u){ if(u.parentId===ME.id) o[u.id]=1; });
+  return o;
+}
 function resultVisibleToMe(r){
   if(!ME || ME.role==='admin') return true;
   if(ME.role!=='teacher') return false;
   if(r.sid){ var _rs=(getDBro().users||[]).find(function(u){ return u.id===r.sid; });
     if(_rs&&_rs.schoolId&&_rs.schoolId!==_uOwner(ME)) return false; }
-  if(_myTopicSet()[r.topic]) return true;   // o'z mavzularimning natijalari doim ko'rinadi
+  if(r.tid) return !!_myOwnTids()[r.tid];   // har ustoz faqat o'z testlarining natijasini ko'radi
+  if(_myTopicSet()[r.topic]) return true;   // eski (tid siz) natijalar: o'z mavzularim
   var cls=myTeachClasses();
   var rCls=r.cls||r.class||'';
   if(cls && cls.indexOf(rCls)<0) return false;
@@ -4462,7 +4468,8 @@ function renderHardTopics(){
   var db=getDB(), ms=db.mastery||{}, agg={};
   (typeof myVisibleStudents==='function'?myVisibleStudents():[]).forEach(function(u){
     var t=(ms[u.id]||{}).t||{};
-    Object.keys(t).forEach(function(k){ if(/^(IELTS|CEFR|Multilevel|Milliy sertifikat|Mashq: |Xatolar mashqi)/i.test(k)) return; var a=agg[k]=agg[k]||{sum:0,n:0,subj:t[k].subj}; a.sum+=t[k].avg; a.n++; });
+    var _mt=(ME&&ME.role==='teacher')?_myTopicSet():null;
+    Object.keys(t).forEach(function(k){ if(/^(IELTS|CEFR|Multilevel|Milliy sertifikat|Mashq: |Xatolar mashqi)/i.test(k)) return; if(_mt&&!_mt[k]) return; var a=agg[k]=agg[k]||{sum:0,n:0,subj:t[k].subj}; a.sum+=t[k].avg; a.n++; });
   });
   var list=Object.keys(agg).map(function(k){return {k:k,p:Math.round(agg[k].sum/agg[k].n*100),n:agg[k].n,subj:agg[k].subj};})
     .sort(function(a,b){return a.p-b.p;}).slice(0,6);
