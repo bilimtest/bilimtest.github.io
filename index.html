@@ -1403,7 +1403,7 @@ var INIT_META = [{"topic": "Guruhlash qonuni", "questionsToAsk": 20}, {"topic": 
 
 var SK = 'edutest_v3';
 // APP_VER sw.js dagi CACHE bilan bir xil bo'lishi SHART (sw versiyasini oshirganda buni ham oshiring)
-var APP_VER = 'bilimtest-v176';
+var APP_VER = 'bilimtest-v177';
 (function(){
   try{
     if('serviceWorker' in navigator && navigator.serviceWorker.controller) return; // SW bor - o'zining yangilanish banneri ishlaydi
@@ -12731,24 +12731,24 @@ function sendReport(){
     '#review-list,#qt-list,#ai-check-body,#imp-preview,.q-item,.qrow,.opt';
   var PROTECT={chrome:1,check:1,checkbox:1,match:1,shift:1,push:1,flash:1,english:1,chat:1,sheets:1,sheet:1,cash:1,share:1,show:1,search:1,
     switch:1,touch:1,batch:1,church:1,teacher:1,school:1,each:1,much:1,such:1,which:1,sh:1,ch:1};
-  // foydalanuvchi yozgan nomlar (ism, mavzu, papka, maktab) o'girilmaydi
-  var LEX={}, lexK='';
+  // foydalanuvchi yozgan nomlar (ism, mavzu, papka, maktab) BUTUNLIGICHA o'girilmaydi ("Bosh Admin" — lekin "Bosh sahifa" o'giriladi)
+  var LEX=[], lexK='';
   function lex(){
     try{ var d=(typeof getDBro==='function')?getDBro():null; if(!d) return;
       var k=(d.v||0)+'|'+((d.users||[]).length)+'|'+((d.userQs||[]).length);
       if(k===lexK) return; lexK=k; var L={};
-      function add(t){ String(t||'').split(/[^A-Za-zʻ‘’`ʼ']+/).forEach(function(w){ w=w.replace(/^'+|'+$/g,''); if(w) L[w.toLowerCase()]=1; }); }
+      function add(t){ t=String(t||'').trim(); if(t.length>=2&&/[Ss][Hh]|[Cc][Hh]|[OoGg]['ʻ‘’`ʼ]/.test(t)) L[t]=1; }
       (d.users||[]).forEach(function(u){ add(u.name); add(u.maktab); });
       (d.topicsMeta||[]).forEach(function(m){ add(m&&m.topic); });
       (d.userQs||[]).forEach(function(q){ add(q&&q.topic); add(q&&q.folder); });
       (d.qFolders||[]).forEach(function(f){ add(f&&(f.name||f)); });
       (d.decks||[]).forEach(function(x){ add(x&&(x.name||x.title)); });
-      LEX=L;
+      LEX=Object.keys(L).sort(function(a,b){ return b.length-a.length; });
     }catch(e){}
   }
   function foreign(w){
     var l=w.toLowerCase().replace(/^'+|'+$/g,''), base=l.split(/['ʻ‘’`ʼ]/)[0];
-    if(PROTECT[l]||PROTECT[base]||LEX[l]||LEX[base]) return true;
+    if(PROTECT[l]||PROTECT[base]) return true;
     if(/w|ee|oo|th|ph|tch|ck|ght/.test(l)) return true;
     if(/c(?!h)/.test(l)) return true;                      // o'zbek lotinida 'c' faqat 'ch' ichida
     return false;
@@ -12765,13 +12765,27 @@ function sendReport(){
     return r;
   }
   var RX_W=new RegExp("[A-Za-zʻ‘’`ʼ']+",'g');
+  function isL(c){ return !!c&&/[A-Za-z\u00C0-\u024F\u0400-\u04FFʻ‘’`ʼ']/.test(c); }
+  function mask(s,found){   // nomlarni (so'z chegarasida) \u0001N\u0002 belgisi bilan yashiradi
+    for(var i=0;i<LEX.length;i++){ var nm=LEX[i]; if(s.indexOf(nm)<0) continue;
+      var out='', pos=0, j;
+      while((j=s.indexOf(nm,pos))>=0){
+        if(isL(s.charAt(j-1))||isL(s.charAt(j+nm.length))){ out+=s.slice(pos,j+1); pos=j+1; continue; }
+        out+=s.slice(pos,j)+'\u0001'+found.length+'\u0002'; found.push(nm); pos=j+nm.length;
+      }
+      s=out+s.slice(pos);
+    }
+    return s;
+  }
   function conv(s){
     lex();
     if(!s||!/[OoGg]['ʻ‘’`ʼ]|[Ss][Hh]|[Cc][Hh]/.test(s)) return s;
-    return s.replace(RX_W,function(w){
+    var found=[], m=mask(s,found);
+    var r=m.replace(RX_W,function(w){
       if(/^['ʻ‘’`ʼ]+$/.test(w)) return w;
       return word(w);
     });
+    return found.length?r.replace(/\u0001(\d+)\u0002/g,function(x,i){ return found[+i]; }):r;
   }
   function skipped(el){ while(el&&el.nodeType===1&&el!==document.documentElement&&el!==document.body){ if(el.matches&&el.matches(SKIP_SEL)) return true; el=el.parentNode; } return false; }
   var urlRx=/(?:https?:\/\/|www\.|@)\S*/;
@@ -12795,9 +12809,17 @@ function sendReport(){
   }
   window.alfConv=conv; window.alfIsNew=isOn;
   window.toggleAlphabet=function(){
-    try{ localStorage.setItem(KEY,isOn()?'old':'new'); }catch(e){}
-    if(window.S&&S.test&&S.test.length&&S.mode){ alert(isOn()?'Yangi alifbo test tugagach yoqiladi.':'Eski alifbo test tugagach yoqiladi.'); return; }
-    location.reload();
+    var nv=isOn()?'old':'new';
+    try{ localStorage.setItem(KEY,nv); }catch(e){}
+    if(window.S&&S.test&&S.test.length&&S.mode){ alert(nv==='new'?'Yangi alifbo test tugagach yoqiladi.':'Eski alifbo test tugagach yoqiladi.'); return; }
+    var done=false; function go(){ if(!done){ done=true; location.reload(); } }
+    try{   // Telegram xabarlari va emaillar ham shu alifboda kelsin (kirgan bo'lsa)
+      if(window._authToken&&window.DB_SERVER){
+        fetch(DB_SERVER+'/user_pref',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+_authToken},body:JSON.stringify({alf:nv})}).then(go,go);
+        setTimeout(go,2500); return;
+      }
+    }catch(e){}
+    go();
   };
   function addBtn(){
     if(document.getElementById('alfBtn')) return;
