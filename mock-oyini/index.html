@@ -379,9 +379,16 @@ function renderTests(){
     b.onclick=function(){S.test=k;renderTests();};
     if(!T.user){box.appendChild(b);return;}
     var cell=document.createElement("div");cell.className="tcell";cell.appendChild(b);
+    /* tasdiqlaş sahifaning özida: confirm() ba'zi oynalarda (masalan, claude.ai havolasida) işlamaydi */
     var d=document.createElement("button");d.type="button";d.className="btn";d.textContent="Öçiriş";d.setAttribute("aria-label",T.name+" ni öçiriş");
-    d.onclick=function(){if(confirm("“"+T.name+"” öçirilsinmi? Rasmlar va kalit qurilmadan butunlay öçadi."))deleteUserMock(k);};
-    cell.appendChild(d);box.appendChild(cell);
+    var ask=document.createElement("div");ask.className="row";ask.hidden=true;
+    ask.innerHTML='<span class="legend">Rasmlar va kalit qurilmadan öçadi.</span>';
+    var yes=document.createElement("button");yes.type="button";yes.className="btn";yes.textContent="Ha, öçirilsin";yes.onclick=function(){deleteUserMock(k);};
+    var no=document.createElement("button");no.type="button";no.className="btn";no.textContent="Yöq";no.style.color="var(--ink)";
+    no.onclick=function(){ask.hidden=true;d.hidden=false;d.focus();};
+    d.onclick=function(){d.hidden=true;ask.hidden=false;yes.focus();};
+    ask.appendChild(yes);ask.appendChild(no);
+    cell.appendChild(d);cell.appendChild(ask);box.appendChild(cell);
   });
 }
 Array.prototype.forEach.call(document.querySelectorAll("#modes .btn"),function(b){
@@ -604,7 +611,7 @@ function deleteUserMock(k){
   IDB.del(T.id).then(function(){
     Object.keys(T.imgs).forEach(function(n){URL.revokeObjectURL(T.imgs[n]);});
     delete TESTS[k];store.del("best_"+k);renderTests();
-  }).catch(function(e){console.warn(e);alert("Öçirib bölmadi: brauzer xotirasiga yozib bölmadi.");});
+  }).catch(function(e){console.warn(e);$("dbErr").textContent="Öçirib bölmadi: brauzer xotirasiga yozib bölmadi.";$("dbErr").hidden=false;});
 }
 
 /* ---------- PDF ni brauzerda qirqiş (tools/crop_questions.py bilan bir xil algoritm) ---------- */
