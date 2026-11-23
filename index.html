@@ -1403,7 +1403,7 @@ var INIT_META = [{"topic": "Guruhlash qonuni", "questionsToAsk": 20}, {"topic": 
 
 var SK = 'edutest_v3';
 // APP_VER sw.js dagi CACHE bilan bir xil bo'lishi SHART (sw versiyasini oshirganda buni ham oshiring)
-var APP_VER = 'bilimtest-v171';
+var APP_VER = 'bilimtest-v172';
 (function(){
   try{
     if('serviceWorker' in navigator && navigator.serviceWorker.controller) return; // SW bor - o'zining yangilanish banneri ishlaydi
@@ -1501,7 +1501,7 @@ function _sessionExpired(){
   }
 }
 var _AUTH_HOSTS=/^https:\/\/[^\/]*\.(?:nip\.io|duckdns\.org)(?::\d+)?(?=\/)/;
-var _AUTH_PATHS=/^\/(?:db_get|db_save|result_add|ai_check|parse|parse_batch|parse_batch_start|parse_batch_status\/[^\/?#]+|extract_batch_start|convert_emfs|compose_parts|parse_document|parse_image|eng_generate|practice_generate|mock_set|mock_practice|mock_grade_writing|generate_test_start|generate_test_status\/[^\/?#]+|upload_image|notify_teacher|notify_teacher_status|parent_link_create|report_issue|r2_stats|send_email_smtp|ms_draft_gen|ms_drafts|ms_bank_save|vocab_image|auth\/contact)(?:[?#]|$)/;
+var _AUTH_PATHS=/^\/(?:db_get|db_save|result_add|ai_check|parse|parse_batch|parse_batch_start|parse_batch_status\/[^\/?#]+|extract_batch_start|convert_emfs|compose_parts|parse_document|parse_image|eng_generate|practice_generate|mock_set|mock_practice|mock_grade_writing|generate_test_start|generate_test_status\/[^\/?#]+|upload_image|notify_teacher|notify_teacher_status|parent_link_create|report_issue|r2_stats|send_email_smtp|ms_draft_gen|ms_drafts|ms_bank_save|vocab_image|auth\/contact|grade_submit|q_check)(?:[?#]|$)/;
 (function(){
   var origFetch=window.fetch.bind(window);
   window.fetch=function(input,init){
@@ -1865,6 +1865,7 @@ function queuePendingResult(resultId){
 var _flushingSync=false;
 async function flushPendingSync(){
   if(_flushingSync) return;
+  try{ if(typeof _flushPendingGrades==='function'&&_authToken) await _flushPendingGrades(); }catch(e){}
   var pending=getPendingSync();
   if(!pending.length) return;
   _flushingSync=true;
@@ -5708,11 +5709,11 @@ function startTest(mode){
   toAsk=Math.min(toAsk,rawQs.length);
   var qs=(_rv&&_reviewQs.keepOrder?rawQs.slice():pickBalanced(rawQs,toAsk)).slice(0,toAsk).map(function(q){
     if(QTYPES[qType(q)]) return QTYPES[qType(q)].prepare(q);
-    var orig=q.options.slice(),sh=q.keep?orig.slice():shuf(orig);
-    var nc=q.correct.map(function(ci){return sh.indexOf(orig[ci]);});
+    var orig=q.options.slice(), oi0=orig.map(function(_,i){return i;}), oi=q.keep?oi0:shuf(oi0), sh=oi.map(function(i){return orig[i];});
+    var nc=Array.isArray(q.correct)?q.correct.map(function(ci){return oi.indexOf(ci);}):null;   // o'quvchida to'g'ri javob yo'q - server tekshiradi
     var newOptImg={};
-    if(q.optImages){orig.forEach(function(opt,oi){var ni=sh.indexOf(opt);if(q.optImages[String(oi)])newOptImg[String(ni)]=q.optImages[String(oi)];});}
-    return Object.assign({},q,{options:sh,shuffledCorrect:nc,optImages:Object.keys(newOptImg).length?newOptImg:q.optImages});
+    if(q.optImages){oi.forEach(function(o,ni){ if(q.optImages[String(o)]) newOptImg[String(ni)]=q.optImages[String(o)]; });}
+    return Object.assign({},q,{options:sh,_oi:oi,shuffledCorrect:nc,optImages:Object.keys(newOptImg).length?newOptImg:q.optImages});
   });
   qs=groupByPassage(qs);
   precacheTestImages(qs,true);
@@ -6283,8 +6284,86 @@ async function flagWrongAnswersForReview(res){
   }catch(e){ console.warn('Tekshirish navbatiga yuborishda xato:', e); }
   return toFlag.length;
 }
+function _needServerGrade(){
+  return !!(ME&&ME.role==='student'&&(S.test||[]).some(function(q){ return qType(q)==='choice'&&!Array.isArray(q.shuffledCorrect)&&q.id!=null; }));
+}
+function _gradeItems(){
+  return S.test.map(function(q,i){ var ans=S.answers[i]||[];
+    if(qType(q)==='choice') return {id:q.id, ans:ans.map(function(k){ return q._oi?q._oi[k]:k; })};
+    var T=QTYPES[qType(q)]; return {id:q.id, ans:ans, score:T?Math.round(T.grade(q,ans)*100)/100:0}; });
+}
+var PENDING_GRADE_KEY='bt_pending_grade';
+function _pgGet(){ try{ return JSON.parse(localStorage.getItem(PENDING_GRADE_KEY)||'[]'); }catch(e){ return []; } }
+function _pgSet(a){ try{ localStorage.setItem(PENDING_GRADE_KEY,JSON.stringify(a)); }catch(e){} }
+async function _postGrade(sub){
+  var ctl=('AbortController' in window)?new AbortController():null, tm=ctl?setTimeout(function(){ ctl.abort(); },30000):null;
+  try{ var r=await fetch(DB_SERVER+'/grade_submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(sub),signal:ctl?ctl.signal:undefined});
+    var j={}; try{ j=await r.json(); }catch(e){}
+    return {status:r.status, j:j};
+  }catch(e){ return {status:0, j:{}}; }
+  finally{ if(tm) clearTimeout(tm); }
+}
+async function _qCheck(id,ans){
+  try{ var r=await fetch(DB_SERVER+'/q_check',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({items:[{id:id,ans:ans}]})});
+    var j=await r.json(); return !!(j&&j.oks&&j.oks[0]===true); }catch(e){ return false; }
+}
+async function _submitServer(){
+  var isExam=(S.mode==='exam'), rid='res'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
+  var sub={rid:rid, topic:selTopic, mode:isExam?'exam':'practice', items:_gradeItems(), exits:S.exits||0, awaySec:S.awaySec||0};
+  var testQs=S.test, base={id:rid,student:ME.name,sid:ME.id,cls:ME.cls,tid:(S.test[0]&&S.test[0].teacherId)||'',topic:selTopic,mode:S.mode,date:new Date().toLocaleDateString('uz-UZ'),time:new Date().toLocaleTimeString('uz-UZ')};
+  testAwakeOff(); _stopAllSpeech();
+  S.mode='';S._blurWarnPending=false;
+  if(typeof updateOfflineOverlay==='function') updateOfflineOverlay();
+  showResult(Object.assign({pending:true},base),'grading'); showPg('pg-res');
+  var rr=await _postGrade(sub);
+  if(rr.status===200&&rr.j&&rr.j.ok){ _afterServerGrade(base,rr.j,testQs,isExam); return; }
+  if(rr.status===409){ showResult(Object.assign({pending:true,blocked:true},base)); return; }
+  if(rr.status===0||rr.status>=500){
+    if(isExam){ var pg=_pgGet(); pg.push({sub:sub,base:base}); _pgSet(pg); S.lastRes=Object.assign({pending:true,offline:true},base); }
+    showResult(Object.assign({pending:true,offline:true,practice:!isExam},base)); markConnLost(); return;
+  }
+  showResult(Object.assign({pending:true,failed:true},base));
+}
+function _afterServerGrade(base,j,testQs,isExam){
+  var oks=j.oks||[], sm=j.res||{};
+  var res=Object.assign({},base,{correct:sm.correct,total:sm.total,pts:sm.pts,maxPts:sm.maxPts,pct:sm.pct,graded:'server',
+    details:testQs.map(function(q,i){ var o=oks[i]||{}, lv=qLvl(q), mp=LVL_PTS[lv];
+      return {type:qType(q)==='choice'?undefined:qType(q),text:q.text,options:q.options||[],userAns:S.answers[i]||[],correct:[],ok:!!o.ok,score:typeof o.score==='number'?o.score:(o.ok?1:0),img:q.img||q.image||'',lvl:lv,pts:(o.score||0)*mp,max:mp}; })});
+  S.lastRes=res;
+  var db=getDB();
+  try{ recordMastery(db,res,testQs); }catch(e){}
+  if(isExam){
+    if(!(db.results||[]).some(function(x){ return x.id===res.id; })) (db.results=db.results||[]).push(res);
+    db.v=(db.v||0)+1; try{ dbSetRaw(JSON.stringify(db)); }catch(e){}
+    _fastSent[res.id]=true;
+    try{ flagWrongAnswersForReview(res).then(function(n){ var el=document.getElementById('r-flag-note');
+      if(el&&n>0){ el.style.display='block'; el.innerHTML='&#x1F50D; '+n+' ta xato javobingiz tekshirish uchun ustozga yuborildi - agar savolda xato topilsa, ballingiz avtomatik tuzatiladi.'; } }); }catch(e){}
+    pushResultsFast([]).then(function(){});      // o'zlashtirish (mastery) ma'lumoti
+    try{ notifyResultToTeacher(res,false); }catch(e){}
+    showResult(res,'synced');
+  } else { saveDB(db); showResult(res,null); }
+}
+async function _flushPendingGrades(){
+  var pg=_pgGet(); if(!pg.length) return;
+  var keep=[];
+  for(var i=0;i<pg.length;i++){ var it=pg[i], rr=await _postGrade(it.sub);
+    if(rr.status===200&&rr.j&&rr.j.ok){ var sm=rr.j.res||{}, res=Object.assign({},it.base,{correct:sm.correct,total:sm.total,pts:sm.pts,maxPts:sm.maxPts,pct:sm.pct,graded:'server',details:[]});
+      var db=getDB(); if(!(db.results||[]).some(function(x){ return x.id===res.id; })){ (db.results=db.results||[]).push(res); db.v=(db.v||0)+1; try{ dbSetRaw(JSON.stringify(db)); }catch(e){} }
+      _fastSent[res.id]=true; try{ notifyResultToTeacher(res,true); }catch(e){}
+      if(S.lastRes&&S.lastRes.id===res.id){ S.lastRes=res; if((document.querySelector('.pg.on')||{}).id==='pg-res') showResult(res,'synced'); }
+    } else if(rr.status===0||rr.status>=500) keep.push(it);   // internet yo'q - keyin yana
+  }
+  _pgSet(keep);
+}
 async function doSubmitTest(){
   if(S.iv)clearInterval(S.iv);_backWarned=false;
+  if(_needServerGrade()){
+    if(document.fullscreenElement||document.webkitFullscreenElement){
+      if(document.exitFullscreen)document.exitFullscreen().catch(function(){});
+      else if(document.webkitExitFullscreen)document.webkitExitFullscreen();
+    }
+    return _submitServer();
+  }
   // To'liq ekrandan chiqish - faqat haqiqatan fullscreen bolsa
   if(document.fullscreenElement||document.webkitFullscreenElement){
     if(document.exitFullscreen)document.exitFullscreen().catch(function(){});
@@ -6349,6 +6428,25 @@ function updateSyncBanner(state){
 }
 function showResult(r,syncState){
   var _fn=document.getElementById('r-flag-note'); if(_fn) _fn.style.display='none';
+  if(r&&r.pending){
+    var _rg=document.getElementById('r-ring'); if(_rg){ _rg.style.borderColor='#94a3b8'; _rg.style.transform='scale(1)'; _rg.style.opacity='1'; }
+    var _pe=document.getElementById('r-pct'); if(_pe){ _pe.style.color='#64748b'; _pe.textContent=r.blocked?'!':'\u23F3'; }
+    document.getElementById('r-frac').textContent='';
+    var _b0=document.getElementById('r-det-btn'); if(_b0) _b0.style.display='none';
+    var _bb=document.getElementById('r-ball'); if(_bb) _bb.innerHTML='';
+    document.getElementById('r-title').textContent=r.blocked?'Imtihon allaqachon topshirilgan':(r.offline||r.failed?'Javoblaringiz qabul qilindi':'Tekshirilmoqda...');
+    document.getElementById('r-sub').textContent=r.student+' - '+r.cls+' - '+r.topic;
+    document.getElementById('r-synote').style.display='none';
+    var _sn=document.getElementById('r-syncnote');
+    if(_sn){ _sn.style.display='block';
+      if(r.blocked){ _sn.className='alt ar'; _sn.innerHTML='Siz bu mavzudan imtihonni oldin topshirgansiz. Imtihon faqat bir marta topshiriladi.'; }
+      else if(r.offline&&r.practice){ _sn.className='alt ar'; _sn.innerHTML='&#x26A0;&#xFE0F; Internet yo\'q. Sinov natijasini ko\'rish uchun internet kerak.'; }
+      else if(r.offline){ _sn.className='alt ar'; _sn.innerHTML='&#x26A0;&#xFE0F; Internet yo\'q - javoblaringiz qurilmada saqlandi. Internet ulanganda tekshirilib, natija shu yerda chiqadi va ustozga yuboriladi.'; }
+      else if(r.failed){ _sn.className='alt ar'; _sn.innerHTML='Javoblarni tekshirib bo\'lmadi. Sahifani yangilab, ustozingizga xabar bering.'; }
+      else { _sn.className='alt ai'; _sn.innerHTML='&#x23F3; Javoblaringiz tekshirilmoqda...'; } }
+    ['r-advice','r-cert-est','r-ms-res','r-mock-res'].forEach(function(id){ var e=document.getElementById(id); if(e) e.style.display='none'; });
+    return;
+  }
   var passed=r.pct>=70,col=passed?'#16a34a':r.pct>=50?'#d97706':'#dc2626';
   var ring=document.getElementById('r-ring');
   ring.style.borderColor=col;
@@ -10560,7 +10658,7 @@ function startDuel(){
 function startBotDuel(){
   var qs=duelPick(DL.topic,DL.level,10);
   if(qs.length<3){ alert('Bu mavzuda yetarli savol yoq!'); closeDuelModal(); return; }
-  DL.questions=qs; DL.idx=0; DL.answers=[]; DL.botScore=0; DL.botDone=false; DL.myDone=false; DL.startTs=Date.now();
+  DL.questions=qs; DL.idx=0; DL.answers=[]; DL._pend=[]; DL.botScore=0; DL.botDone=false; DL.myDone=false; DL.startTs=Date.now();
   ME.duelRating=ME.duelRating||1000;
   renderDuelRace();
   simulateBotProgress();
@@ -10614,15 +10712,18 @@ function renderDuelRace(){
 function answerDuel(optIdx){
   if(DL.timerIv){clearInterval(DL.timerIv);DL.timerIv=null;}
   var q=DL.questions[DL.idx];
-  var isOk=optIdx>=0 && (q.correct||[]).indexOf(optIdx)>=0;
-  DL.answers.push(isOk);
+  var _ai=DL.answers.length;
+  if(Array.isArray(q.correct)||optIdx<0){ DL.answers.push(optIdx>=0 && (q.correct||[]).indexOf(optIdx)>=0); }
+  else { DL.answers.push(false); DL._pend=DL._pend||[];
+    DL._pend.push(_qCheck(q.id,[optIdx]).then(function(ok){ DL.answers[_ai]=ok; if(DL.mode==='online'&&DL.matchId) updateOnlineDuelProgress(); })); }
   DL.idx++;
   if(DL.mode==='online' && DL.matchId){
     updateOnlineDuelProgress();
   }
   renderDuelRace();
 }
-function finishMyDuelSide(){
+async function finishMyDuelSide(){
+  if(DL._pend&&DL._pend.length){ var _p=DL._pend; DL._pend=[]; try{ await Promise.all(_p); }catch(e){} }
   DL.myDone=true;
   var myScore=duelScore();
   if(DL.mode==='bot'){
@@ -10721,7 +10822,7 @@ async function startOnlineDuel(){
 }
 function beginOnlineDuelRace(){
   if(DL.chan){_sb.removeChannel(DL.chan);}
-  DL.idx=0; DL.answers=[]; DL.myDone=false; DL.startTs=Date.now();
+  DL.idx=0; DL.answers=[]; DL._pend=[]; DL.myDone=false; DL.startTs=Date.now();
   ME.duelRating=ME.duelRating||1000;
   DL.chan=_sb.channel('duelm_'+DL.matchId)
     .on('postgres_changes',{event:'UPDATE',schema:'public',table:'duel_matches',filter:'id=eq.'+DL.matchId},function(payload){
