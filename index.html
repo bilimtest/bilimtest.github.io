@@ -535,6 +535,10 @@ html[data-px=night] #tab-rg.on{background:#7a4fd6!important;color:#fff!important
           <label id="rg-maktab-lb">Maktab *</label>
           <input type="text" id="rg-maktab" placeholder="Masalan: 21-maktab">
         </div>
+        <div id="rg-school-fg" class="fg" style="display:none">
+          <label>Maktab *</label>
+          <select id="rg-school" onchange="fillStudentClassSel()"><option value="">-- Maktabni tanlang --</option></select>
+        </div>
         <div id="rg-cls-fg" class="fg">
           <label>Sinf</label>
           <select id="rg-cls"><option value="">-- Sinf tanlang --</option></select>
@@ -1393,7 +1397,7 @@ var INIT_META = [{"topic": "Guruhlash qonuni", "questionsToAsk": 20}, {"topic": 
 
 var SK = 'edutest_v3';
 // APP_VER sw.js dagi CACHE bilan bir xil bo'lishi SHART (sw versiyasini oshirganda buni ham oshiring)
-var APP_VER = 'bilimtest-v168';
+var APP_VER = 'bilimtest-v169';
 (function(){
   try{
     if('serviceWorker' in navigator && navigator.serviceWorker.controller) return; // SW bor - o'zining yangilanish banneri ishlaydi
@@ -2858,6 +2862,16 @@ function reloadTopicsNow(btn){
   }).catch(function(){ if(btn){ btn.disabled=false; btn.textContent='🔄 Qayta yuklash'; } });
 }
 function normSchool(s){ return (s||'').trim().toLowerCase(); }
+// Maktab hisoblari: admin tasdiqlagan, profil bo'lmagan, school belgili ustozlar
+function _uOwner(u){ return u?(u.parentId||u.id):null; }
+function schoolOwnersList(){
+  return (getDBro().users||[]).filter(function(u){ return u&&u.role==='teacher'&&!u.parentId&&u.school&&u.approved!==false; });
+}
+function _schoolOkFor(stu,t){   // o'quvchi va ustoz bir maktabdami (o'quvchida schoolId bo'lsa)
+  if(stu&&stu.schoolId) return !!t&&_uOwner(t)===stu.schoolId;
+  var a=normSchool(stu&&stu.maktab), b=normSchool(t&&t.maktab);
+  return !(a&&b&&a!==b);
+}
 function getAllQs() {
   var db=getDBro();
   var all=BQ.concat(db.userQs||[]);
@@ -2883,15 +2897,14 @@ function getAllQs() {
     var t=teacherMap[q.teacherId];
     if(!t) return true; // ustoz topilmadi (ochirilgan hisob) - eski malumot sifatida korsatamiz
     // 1) Maktab mos kelishi kerak (agar ikkalasi ham korsatgan bolsa)
-    var tSchool=normSchool(t.maktab);
-    var schoolOk=!(mySchool && tSchool && mySchool!==tSchool);
+    var schoolOk=_schoolOkFor(ME,t);
     // 2) Ustoz aynan shu oquvchining sinfiga dars berishi kerak
     var classOk=tTeachesCls(t,q.subject,ME.cls);
     if(schoolOk && classOk) return true;
     // 3) Yoki - shu savol egasi bilan hamkorlik qilgan (ruxsat olgan)
     var collabTeachers=acceptedByOwner[q.teacherId]||[];
     return collabTeachers.some(function(rt){
-      var rtSchoolOk=!(mySchool && normSchool(rt.maktab) && mySchool!==normSchool(rt.maktab));
+      var rtSchoolOk=_schoolOkFor(ME,rt);
       var rtClassOk=tTeachesCls(rt,q.subject,ME.cls);
       return rtSchoolOk && rtClassOk;
     });
@@ -2927,8 +2940,9 @@ function _myTopicSet(){   // o'z mavzularimning nomlari
 function studentVisibleToMe(student){
   if(!ME || ME.role==='admin') return true;
   if(ME.role!=='teacher') return false;
-  var tSchool=normSchool(ME.maktab), sSchool=normSchool(student.maktab);
-  if(tSchool && sSchool && tSchool!==sSchool) return false;
+  if(student.schoolId){ if(student.schoolId!==_uOwner(ME)) return false; }
+  else { var tSchool=normSchool(ME.maktab), sSchool=normSchool(student.maktab);
+    if(tSchool && sSchool && tSchool!==sSchool) return false; }
   var cls=myTeachClasses();
   if(cls && (!student.cls || cls.indexOf(student.cls)<0)) return false;
   return true;
@@ -2941,6 +2955,8 @@ function myVisibleStudents(){
 function resultVisibleToMe(r){
   if(!ME || ME.role==='admin') return true;
   if(ME.role!=='teacher') return false;
+  if(r.sid){ var _rs=(getDBro().users||[]).find(function(u){ return u.id===r.sid; });
+    if(_rs&&_rs.schoolId&&_rs.schoolId!==_uOwner(ME)) return false; }
   if(_myTopicSet()[r.topic]) return true;   // o'z mavzularimning natijalari doim ko'rinadi
   var cls=myTeachClasses();
   var rCls=r.cls||r.class||'';
@@ -3003,9 +3019,27 @@ function schoolClassList(maktab){
   }
   return out.length?_clsSort(out):STD_CLASSES.slice();
 }
+function _fillSchoolSel(){
+  var fg=document.getElementById('rg-school-fg'), sel=document.getElementById('rg-school'); if(!fg||!sel) return;
+  var list=(authRole==='student')?schoolOwnersList():[];
+  if(list.length<2){ fg.style.display='none'; sel.innerHTML='<option value=""></option>'; return; }   // bitta maktab: so'ralmaydi
+  var cur=sel.value;
+  list.sort(function(a,b){ return String(a.maktab||a.name).localeCompare(String(b.maktab||b.name),'uz'); });
+  sel.innerHTML='<option value="">-- Maktabni tanlang --</option>'+list.map(function(u){ return '<option value="'+_cEsc(u.id)+'"'+(u.id===cur?' selected':'')+'>'+_cEsc(u.maktab||u.name||'Maktab')+'</option>'; }).join('');
+  fg.style.display='block';
+}
+function _schoolOwnClasses(ownerId){   // tanlangan maktab sinflari: admin ro'yxati yoki shu maktab ustozlarining sinflari
+  var db=getDBro(), o=(db.users||[]).find(function(u){ return u.id===ownerId; }); if(!o) return [];
+  var e=(db.schoolClasses||{})[normSchool(o.maktab)];
+  if(e&&Array.isArray(e.classes)&&e.classes.length) return _clsSort(e.classes.slice());
+  var ids={}, out=[]; (db.users||[]).forEach(function(u){ if(u.id===ownerId||u.parentId===ownerId){ ids[u.id]=1; userClassList(u).forEach(function(c){ if(out.indexOf(c)<0) out.push(c); }); } });
+  (db.topicsMeta||[]).forEach(function(m){ if(m&&ids[m.teacherId]&&Array.isArray(m.classes)) m.classes.forEach(function(c){ if(c&&out.indexOf(c)<0) out.push(c); }); });
+  return out.length?_clsSort(out):STD_CLASSES.slice();
+}
 function fillStudentClassSel(){
   var sel=document.getElementById('rg-cls'); if(!sel) return;
-  var cur=sel.value, list=schoolClassList((document.getElementById('rg-maktab')||{}).value);
+  var _sch=(document.getElementById('rg-school')||{}).value||'';
+  var cur=sel.value, list=_sch?_schoolOwnClasses(_sch):schoolClassList((document.getElementById('rg-maktab')||{}).value);
   sel.innerHTML='<option value="">-- Sinf tanlang --</option>'+list.map(function(c){ return '<option'+(c===cur?' selected':'')+'>'+_cEsc(c)+'</option>'; }).join('');
 }
 function _saveMyClassList(list){
@@ -3220,6 +3254,7 @@ function goAuth(role){
   document.getElementById('auth-err').innerHTML='';
   var db=getDB();
   var sel=document.getElementById('rg-cls');
+  _fillSchoolSel();
   fillStudentClassSel();
   var _mk=document.getElementById('rg-maktab'); if(_mk) _mk.oninput=fillStudentClassSel;
   var subjSel=document.getElementById('rg-subj');
@@ -3320,6 +3355,9 @@ async function doRegister(){
   if(!user){showErr("Login kiriting!");return;}
   if(!pass){showErr("Parol kiriting!");return;}
   if(authRole==='teacher'&&!maktab){showErr("Maktab nomini kiriting!");return;}
+  var _schList=authRole==='student'?schoolOwnersList():[], schoolId=(document.getElementById('rg-school')||{}).value||'';
+  if(_schList.length===1) schoolId=_schList[0].id;
+  if(authRole==='student'&&_schList.length>1&&!schoolId){showErr("Maktabingizni tanlang!");return;}
   if(authRole==='student'&&!cls){showErr("Sinf tanlang!");return;}
   var _phTyped=(document.getElementById('rg-phone').value||'').trim();
   if(authRole==='teacher'&&!email){showErr("Email kiriting! Parolni unutsangiz va admin xabarlari shu emailga yuboriladi.");return;}
@@ -3330,7 +3368,7 @@ async function doRegister(){
   var dup=db.users.filter(function(x){return x.login===user;});
   if(dup.length){showErr("Bu login band! Boshqa login tanlang.");return;}
   // MUHIM: endi maxfiy kod tizimi YOQ - uning ornini admin tasdigi
-  var nu={id:'u'+Date.now(),role:authRole,name:name,login:user,pass:pass,cls:cls,subject:subj,school:authRole==='teacher',email:email,teachClasses:tclasses,myClasses:tclasses,viloyat:vil,tuman:tum,maktab:maktab,plan:'free',approved:(authRole!=='teacher'),usage:{month:curMonthKey(),images:0,pages:0,questions:0}};
+  var nu={id:'u'+Date.now(),role:authRole,name:name,login:user,pass:pass,cls:cls,subject:subj,school:authRole==='teacher',email:email,teachClasses:tclasses,myClasses:tclasses,viloyat:vil,tuman:tum,maktab:maktab,schoolId:schoolId,plan:'free',approved:(authRole!=='teacher'),usage:{month:curMonthKey(),images:0,pages:0,questions:0}};
   nu.phone=_rgV.ptok?_rgV.phone:''; nu.tgId=_rgV.ptok?_rgV.tg:''; nu.email=_rgV.etok?_rgV.email:'';
   // ro'yxatdan o'tish SERVERDA (baza endi kirmaganlarga parollarsiz
   var reg=null;
@@ -3339,6 +3377,8 @@ async function doRegister(){
     var rr=await fetch(DB_SERVER+'/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({},nu,{ptok:_rgV.ptok,etok:_rgV.etok}))});
     if(rr.status===409){showErr("Bu login band! Boshqa login tanlang.");return;}
     if(rr.status===429){showErr("Juda ko'p urinish. Birozdan so'ng qayta urinib ko'ring.");return;}
+    if(rr.status===400){ var _eb={}; try{ _eb=await rr.clone().json(); }catch(e){}
+      if(_eb.error==='school_required'){ _fillSchoolSel(); showErr("Maktabingizni tanlang!"); return; } }
     if(rr.ok) reg=await rr.json();
     else if(rr.status!==404){showErr("Serverda xato. Qaytadan urinib ko'ring.");return;}
   }catch(e){ showErr("&#x26A0;&#xFE0F; Server bilan bog'lanib bo'lmadi. Internetni tekshiring."); return; }
@@ -3720,8 +3760,7 @@ function renderTopics(){
 // O'QUVCHI FANI : o'quvchi o'z sinfiga dars beradigan ustozlar
 function _teacherTeachesMe(t){
   if(!t||t.role!=='teacher'||t.approved===false||!ME) return false;
-  var ms=normSchool(ME.maktab), ts=normSchool(t.maktab);
-  var schoolOk=!(ms&&ts&&ms!==ts), classOk=!(t.teachClasses&&t.teachClasses.length)||(ME.cls&&t.teachClasses.indexOf(ME.cls)>=0);
+  var schoolOk=_schoolOkFor(ME,t), classOk=!(t.teachClasses&&t.teachClasses.length)||(ME.cls&&t.teachClasses.indexOf(ME.cls)>=0);
   return schoolOk&&classOk;
 }
 function myStudentSubjects(){
@@ -11323,8 +11362,7 @@ function fcDeckVisible(d,anySubj){
   if(!ME) return false; if(ME.role!=='student') return true;
   if(!anySubj&&_curSubjFilter&&d.subject&&d.subject!==_curSubjFilter) return false;
   var db=getDBro(), t=(db.users||[]).find(function(u){return u.id===d.teacherId;}); if(!t) return false;
-  var ms=normSchool(ME.maktab), ts=normSchool(t.maktab);
-  var schoolOk=!(ms&&ts&&ms!==ts), classOk=_teachesMeStrict(t,d.subject);
+  var schoolOk=_schoolOkFor(ME,t), classOk=_teachesMeStrict(t,d.subject);
   return schoolOk&&classOk;
 }
 function fcCardState(deckId,i){ var m=myMastery(); return (m.c||{})[deckId+':'+i]; }
