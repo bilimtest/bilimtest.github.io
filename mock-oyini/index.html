@@ -151,7 +151,7 @@ summary{cursor:pointer;color:var(--accent);font-weight:500}
         <button class="btn" data-mode="rand" type="button">Tasodifiy 10 ta</button>
         <button class="btn" data-mode="exam" type="button" style="grid-column:1/-1">Sertifikat imtihoni: 45 topşiriq, 150 daqiqa, javoblar oxirida</button>
       </div>
-      <p class="legend">Ball Milliy sertifikat şkalasida (75 dan). Darajalar: A+ 70, A 65, B+ 60, B 55, C+ 50, C 46; 46 dan kam bölsa sertifikat berilmaydi. Har bir yopiq test, moslaştirişning har bir qatori va oçiq topşiriqning har bir qismi teng hisoblanadi, şuning uçun natija taxminiy: haqiqiy imtihonda topşiriq bali qiyinligiga qarab Rasch modeli bilan aniqlanadi.</p>
+      <p class="legend">Ball Milliy sertifikat şkalasida (75 dan). Darajalar: A+ 70, A 65, B+ 60, B 55, C+ 50, C 46; 46 dan kam bölsa sertifikat berilmaydi. Har bir topşiriq qiyinligiga qarab baholanadi (Rasch modeli): oson 1,3, örta 2,2, qiyin 3,2 ball; oçiq topşiriqda a) va b) alohida. Qiyinlik darajalari ekspert bahosi, şuning uçun natija taxminiy.</p>
       <button class="btn primary" id="startBtn" type="button">Boşlaş</button>
     </div>
 
@@ -175,7 +175,7 @@ summary{cursor:pointer;color:var(--accent);font-weight:500}
 
     <div class="card" style="display:flex;flex-direction:column;gap:12px">
       <div class="qhead">
-        <span class="qnum" id="qTitle">1-topşiriq</span>
+        <span class="col" style="gap:2px"><span class="qnum" id="qTitle">1-topşiriq</span><span class="legend" id="qLevel"></span></span>
         <div class="zoom"><span>Rasm ölçami</span>
           <button class="btn" id="zOut" type="button" aria-label="Rasmni kiçraytiriş">−</button>
           <button class="btn" id="zIn" type="button" aria-label="Rasmni kattalaştiriş">+</button>
@@ -380,6 +380,35 @@ Object.keys(TP).forEach(function(k){
   if(a.length!==TESTS[k].qs.length) console.warn("TP uzunligi mos emas:",k,a.length);
   TESTS[k].qs.forEach(function(q,i){q.tp=(a[i]||"").split("+").filter(function(t){return TOPICS[t];});});
 });
+/* ---------- Rasch: topşiriq qiyinligi va bali ----------
+   Har bir birlik (yopiq test; 33, 34, 35 qatorlari; oçiq topşiriqning a va b qismi) darajasi:
+   1 oson, 2 örta, 3 qiyin. Mc — bitta raqam, 33–35 — uç raqam ("223"), oçiq — ikki raqam ("23", a va b).
+   Darajalar masalalar yeçilişiga qarab qöyilgan (ekspert bahosi), rasmiy emas. */
+var LV={
+ m24:"2 2 1 2 1 2 3 1 3 2 2 2 2 2 1 3 3 2 2 2 3 2 1 1 2 3 2 3 1 2 2 1 223 22 23 33 23 22 33 33 23 33 22",
+ m15:"2 1 3 2 2 3 2 2 2 1 3 1 3 2 2 3 2 2 1 3 3 2 3 2 2 3 3 3 2 3 2 2 222 23 23 23 23 33 33 23 23 23 32",
+ m14:"3 2 3 2 1 2 2 1 2 3 2 2 2 1 2 1 2 3 2 1 2 3 2 1 3 3 2 3 1 1 3 3 222 22 22 23 33 23 33 23 23 23 23"
+};
+/* Rasch: kutilgan yeçiliş ulişi p -> qiyinlik b = ln((1-p)/p) (logit).
+   Haqiqiy imtihonda p barça qatnaşçilar javobidan olinadi; bu yerda darajadan. */
+var LEVEL_P={1:0.73,2:0.5,3:0.27}, LEVEL_NAME={1:"Oson",2:"Örta",3:"Qiyin"};
+function raschB(p){return Math.log((1-p)/p);}
+/* b -> ball: b = -1, 0, +1 uçun rasmiy namunadagi 1,3 / 2,2 / 3,2 ball (oraliqlar 0,9 va 1,0) */
+function pointsOfB(b){return Math.round((2.2+(b<0?0.9:1.0)*b)*10)/10;}
+Object.keys(LV).forEach(function(k){
+  var a=LV[k].split(" ");
+  if(a.length!==TESTS[k].qs.length) console.warn("LV uzunligi mos emas:",k,a.length);
+  TESTS[k].qs.forEach(function(q,i){q.lv=(a[i]||"").split("").map(Number);});
+});
+/* darajasi yöq savol (foydalanuvçi mocki): raqamiga qarab */
+function lvOf(q,i){
+  if(q.lv&&q.lv[i])return q.lv[i];
+  if(q.type==="mc")return q.n<=10?1:q.n<=24?2:3;
+  if(q.type==="match")return 2;
+  return i===0?2:3;
+}
+function unitPts(q,i){return pointsOfB(raschB(LEVEL_P[lvOf(q,i)]));}
+
 /* Aralaş mock: har bir raqam (1, 2, …, 33–35, …, 45) joyida qoladi, lekin shu raqamli savol
    tasodifiy mockdan olinadi. Har boşlaşda yangidan tuziladi (testQs). */
 TESTS.mix={name:"Aralaş mock",meta:"har bir raqam tasodifiy mockdan, har safar yangi",mix:true,qs:[]};
@@ -472,7 +501,14 @@ Array.prototype.forEach.call(document.querySelectorAll("#modes .btn"),function(b
 /* ---------- baholaş (Milliy sertifikat şkalasi) ----------
    Har bir birlik (yopiq test, moslaştiriş qatori, oçiq topşiriq qismi) vazni.
    Rasmiy vaznlar qiyinlikka bog'liq (Rasch); ular topilsa, faqat şu funksiyani almaştiring. */
-function unitW(q,i){return 1;}
+function unitW(q,i){return unitPts(q,i);}
+function unitsOf(q){return q.type==="mc"?1:q.type==="match"?3:q.parts.length;}
+/* sarlavha uçun: "Örta · 2,2 ball" yoki "a) Örta 2,2 · b) Qiyin 3,2 ball" */
+function levelText(q){
+  if(q.type==="mc")return LEVEL_NAME[lvOf(q,0)]+" · "+fmt1(unitW(q,0))+" ball";
+  var lab=q.type==="match"?["33","34","35"]:q.parts.map(function(p){return p.label+")";});
+  return lab.map(function(l,i){return l+" "+fmt1(unitW(q,i));}).join(" · ")+" ball";
+}
 function qMax(q){var n=q.type==="mc"?1:q.type==="match"?3:q.parts.length,t=0;for(var i=0;i<n;i++)t+=unitW(q,i);return t;}
 var CERT_MAX=75, GRADES=[[70,"A+"],[65,"A"],[60,"B+"],[55,"B"],[50,"C+"],[46,"C"]];
 function to75(raw,max){return max?raw/max*CERT_MAX:0;}
@@ -520,6 +556,7 @@ $("zOut").onclick=function(){zoom=Math.max(0.45,+(zoom-0.15).toFixed(2));store.s
 function renderQ(){
   var q=S.list[S.idx];S.answered=false;
   $("qTitle").textContent=(q._t?TESTS[q._t].name+", ":"")+(typeof q.n==="number"?q.n+"-topşiriq":q.n+" topşiriqlar")+" · "+(S.idx+1)+" / "+S.list.length;
+  $("qLevel").textContent=levelText(q);
   $("prog").style.width=(S.idx/S.list.length*100)+"%";
   $("qImg").src=imgOf(S.test,q);
   $("qImg").alt=TESTS[q._t||S.test].name+", "+q.n+"-topşiriq";
@@ -597,7 +634,7 @@ function exHtml(q){
 function answerMC(L){
   if(S.answered)return;var q=S.list[S.idx],ok=L===q.a;
   Array.prototype.forEach.call(document.querySelectorAll(".answers .btn"),function(b){if(b.dataset.l===q.a)b.classList.add("ok");else if(b.dataset.l===L)b.classList.add("no");});
-  finishQ(ok?qMax(q):0,ok,'<div class="fb '+(ok?"g":"r")+'"><div class="head">'+(ok?"Töğri!":"Xato. Töğri javob: "+q.a)+'</div>'+exHtml(q)+'</div>');
+  finishQ(ok?qMax(q):0,ok,'<div class="fb '+(ok?"g":"r")+'"><div class="head">'+(ok?"Töğri! +"+fmt1(qMax(q))+" ball":"Xato. Töğri javob: "+q.a)+'</div>'+exHtml(q)+'</div>');
 }
 function answerMatch(){
   if(S.answered)return;var q=S.list[S.idx],picks=[];
@@ -609,7 +646,7 @@ function answerMatch(){
     if(L===q.parts[pi]){good++;g+=unitW(q,pi);}
   });
   var full=good===3;
-  finishQ(g,full,'<div class="fb '+(full?"g":"r")+'"><div class="head">'+(full?"Hammasi töğri!":good+" / 3 töğri. Töğrisi: 33 → "+q.parts[0]+", 34 → "+q.parts[1]+", 35 → "+q.parts[2])+'</div>'+exHtml(q)+'</div>');
+  finishQ(g,full,'<div class="fb '+(full?"g":"r")+'"><div class="head">'+(full?"Hammasi töğri! +"+fmt1(g)+" ball":good+" / 3 töğri, +"+fmt1(g)+" ball. Töğrisi: 33 → "+q.parts[0]+", 34 → "+q.parts[1]+", 35 → "+q.parts[2])+'</div>'+exHtml(q)+'</div>');
 }
 function answerOpen(){
   if(S.answered)return;var q=S.list[S.idx],vals=[],bad=false;
@@ -628,7 +665,7 @@ function answerOpen(){
     lines.push(p.label+") "+(ok?"töğri":"xato, töğrisi: "+p.show));
   });
   var full=good===q.parts.length;
-  finishQ(g,full,'<div class="fb '+(full?"g":"r")+'"><div class="head">'+(full?"Ikkalasi ham töğri!":good+" / 2 töğri")+'</div><div class="ex">'+lines.join("<br>")+'</div>'+exHtml(q)+'</div>');
+  finishQ(g,full,'<div class="fb '+(full?"g":"r")+'"><div class="head">'+(full?"Ikkalasi ham töğri! +"+fmt1(g)+" ball":good+" / 2 töğri, +"+fmt1(g)+" ball")+'</div><div class="ex">'+lines.join("<br>")+'</div>'+exHtml(q)+'</div>');
 }
 
 $("nextBtn").onclick=function(){
@@ -653,7 +690,7 @@ function finish(){
   $("rScore").textContent=fmt1(b75)+" / "+CERT_MAX+" ball";
   var gr=gradeOf(b75),gw=$("rGrade");
   gw.innerHTML=(gr?'<span class="pill '+(b75>=60?"good":"mid")+'">'+(full45?"Daraja: ":"Taxminiy daraja: ")+gr+'</span>':'<span class="pill bad">Sertifikat berilmaydi: 46 balldan kam</span>')+
-    '<span class="legend">'+(full45?"Taxminiy: har bir birlik teng hisoblangan.":"Faqat "+S.list.length+" ta savol böyiça. Aniq baho uçun to'liq testni yoki “Sertifikat imtihoni” ni işlang.")+'</span>';
+    '<span class="legend">'+(full45?"Taxminiy: topşiriq qiyinligi rasmiy emas, ekspert bahosi.":"Faqat "+S.list.length+" ta savol böyiça. Aniq baho uçun to'liq testni yoki “Sertifikat imtihoni” ni işlang.")+'</span>';
   $("rRight").textContent=S.right+" / "+S.list.length;
   $("rPct").textContent=fmt1(S.score)+" / "+fmt1(S.max);
   $("rBest").textContent=S.bestStreak;

@@ -72,6 +72,9 @@ cd mock-oyini && python3 -m http.server 8000
 
 14. **Aralaş mock** (`TESTS.mix`, `mixQs()`, `testQs()`): har bir raqam joyida, savol şu raqamli savoli bor barça mocklar (foydalanuvçi mocklari ham) orasidan tasodifiy olinadi, `q._t` — manba. Barça rejimlar (yopiq, oçiq, tasodifiy, imtihon) bilan işlaydi. `topicPool()` uni çetlab ötadi (takror bölmasin).
 
+15. **Rasch böyiça ballar** (2026-11-24): `LV` — har bir birlikning qiyinlik darajasi (1 oson, 2 örta, 3 qiyin; mc bitta raqam, 33–35 "223", oçiq "23" = a, b). Darajalar ekspert bahosi (yeçiliş yöliga qarab), rasmiy emas. `LEVEL_P` (kutilgan yeçiliş ulişi 0,73 / 0,5 / 0,27) → `raschB(p) = ln((1-p)/p)` (≈ −1, 0, +1 logit) → `pointsOfB(b)` = 1,3 / 2,2 / 3,2 ball (rasmiy namunadagi qiymatlar). `unitW()` endi şu ballni beradi; xom maksimum: 24-mock 132,8, 15-mock 141,4, Mock 14 133,8; 75 ga keltiriladi. Foydalanuvçi mocklarida daraja raqamga qarab (`lvOf`). Sarlavha ostida daraja va ball (`#qLevel`), javobdan keyin "+X ball".
+    Haqiqiy p (barça qatnaşçilar yeçgan ulişi) ma'lum bölsa, faqat `LEVEL_P`/`LV` örniga har topşiriq uçun p qöyiladi.
+
 ## Qilinmagan işlar
 
 1. 15-mock va Mock 14 uçun yeçişlar (`ex`).
