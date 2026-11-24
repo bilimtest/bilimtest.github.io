@@ -64,6 +64,9 @@ cd mock-oyini && python3 -m http.server 8000
 8. 390px da 33–35 qatoridagi "F" tugmasi yangi qatorga tuşardi — `.mrow` oralığı 6px, yorliq 28px.
 9. Tekşirildi (Playwright, 390 va 1280px): uçala qurilgan test "Hammasi" rejimida kalitdagi javoblar bilan 100%, har rejimda birinçi savol; yuklangan Mock 14 — 43/43 topildi, saqlaş, qayta yuklaş, 100% ötiş, öçiriş; konsolda xato yöq.
 
+10. **Mavzular böyiça** (2026-11-24): har bir qurilgan savolga `q.tp` (mavzular massivi) — `TOPICS` (16 ta mavzu) va `TP` (har test uçun savollar tartibida, `a+b` = ikki mavzu). Menyuda "3. Mavzular böyiça": diagnostika (har mavzudan 2 ta tasodifiy savol, 32 ta), mavzu böyiça mashq (uçala mockdan, `q._t` = qaysi test), eng zaif mavzu yuqorida turadigan röyxat. Statistika `localStorage.tstat = {mavzu: {n, r: oxirgi 10 natija 0..1}}`; foiz = oxirgi 10 natija örtaçasi; <50% "Bilmaysiz", <80% "Qisman", qolgani "Bilasiz". Natija ekranida şu urinişning mavzular jadvali. Foydalanuvçi qöşgan mocklarda mavzu yöq.
+11. claude.ai da şaxsiy havola: https://claude.ai/artifact/AjZZKWpvrQxQ7e32E15KWP (`<html>/<head>/<body>` siz nusxa + 129 rasm). `confirm()/alert()` u yerda işlamaydi — öçiriş tasdiqi sahifaning özida.
+
 ## Qilinmagan işlar
 
 1. 15-mock va Mock 14 uçun yeçişlar (`ex`).
@@ -83,6 +86,8 @@ cd mock-oyini && python3 -m http.server 8000
 - Asosiy saytning `sw.js` (scope `/`) `/mock-oyini/` ni ham boşqaradi: `.png` rasmlar `bilimtest-img-v1` keşiga tuşadi. Rasmni almaştirsangiz, fayl nomini yoki keşni yangilaş kerak bölişi mumkin.
 
 ## Keyingi ustuvorliklar
+
+0. Mavzular: foydalanuvçi qöşgan mockda kalit formasiga mavzu tanlaş qöşiş; "statistikani tozalaş" tugmasi.
 
 1. Haqiqiy telefonda (iOS Safari) IndexedDB Blob saqlaş va PDF qirqişni tekşiriş.
 2. pdf.js ni offline uçun lokal nusxa yoki SW keşi.
