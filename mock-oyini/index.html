@@ -380,6 +380,19 @@ Object.keys(TP).forEach(function(k){
   if(a.length!==TESTS[k].qs.length) console.warn("TP uzunligi mos emas:",k,a.length);
   TESTS[k].qs.forEach(function(q,i){q.tp=(a[i]||"").split("+").filter(function(t){return TOPICS[t];});});
 });
+/* Aralaş mock: har bir raqam (1, 2, …, 33–35, …, 45) joyida qoladi, lekin shu raqamli savol
+   tasodifiy mockdan olinadi. Har boşlaşda yangidan tuziladi (testQs). */
+TESTS.mix={name:"Aralaş mock",meta:"har bir raqam tasodifiy mockdan, har safar yangi",mix:true,qs:[]};
+function mixQs(){
+  var keys=Object.keys(TESTS).filter(function(k){return !TESTS[k].mix;});
+  TESTS.mix.qs=TESTS.m24.qs.map(function(base){
+    var cand=[];
+    keys.forEach(function(k){TESTS[k].qs.forEach(function(q){if(q.n===base.n)cand.push({k:k,q:q});});});
+    var c=cand[Math.floor(Math.random()*cand.length)],copy=Object.assign({},c.q);copy._t=c.k;return copy;
+  });
+  return TESTS.mix.qs;
+}
+function testQs(k){return TESTS[k].mix?mixQs().slice():TESTS[k].qs.slice();}
 
 function pad(n){return (n<10?"0":"")+n;}
 function imgName(q){return q.img||("q"+pad(q.n));}
@@ -483,14 +496,14 @@ function start(list,opt){
   show("play");renderQ();
 }
 function buildList(){
-  var qs=TESTS[S.test].qs.slice();
+  var qs=testQs(S.test);
   if(S.mode==="closed") qs=qs.filter(function(q){return q.type!=="open";});
   if(S.mode==="open") qs=qs.filter(function(q){return q.type==="open";});
   if(S.mode==="rand"){for(var i=qs.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=qs[i];qs[i]=qs[j];qs[j]=t;}qs=qs.slice(0,10);}
   return qs;
 }
 $("startBtn").onclick=function(){
-  if(S.mode==="exam")start(TESTS[S.test].qs.slice(),{exam:true});
+  if(S.mode==="exam")start(testQs(S.test),{exam:true});
   else start(buildList());
 };
 
@@ -733,7 +746,7 @@ function level(p){return p===null?["new","Hali işlanmagan"]:p<50?["bad","Bilmay
 /* barça qurilgan testlardan şu mavzudagi savollar (q._t — qaysi testdan) */
 function topicPool(t){
   var out=[];
-  Object.keys(TESTS).forEach(function(k){(TESTS[k].qs||[]).forEach(function(q){if(q.tp&&q.tp.indexOf(t)>=0){var c=Object.assign({},q);c._t=k;out.push(c);}});});
+  Object.keys(TESTS).forEach(function(k){if(TESTS[k].mix)return;(TESTS[k].qs||[]).forEach(function(q){if(q.tp&&q.tp.indexOf(t)>=0){var c=Object.assign({},q);c._t=k;out.push(c);}});});
   return out;
 }
 function shuffle(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}return a;}
@@ -1056,6 +1069,7 @@ $("saveMock").onclick=function(){
 };
 
 Object.keys(TESTS).forEach(function(k){TESTS[k].count=countOf(TESTS[k]);});
+TESTS.mix.count=45;
 renderTests();
 renderTopics();
 loadUserMocks();
