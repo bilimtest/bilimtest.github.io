@@ -149,8 +149,9 @@ summary{cursor:pointer;color:var(--accent);font-weight:500}
         <button class="btn" data-mode="closed" type="button">Yopiq testlar (1–35)</button>
         <button class="btn" data-mode="open" type="button">Oçiq topşiriqlar (36–45)</button>
         <button class="btn" data-mode="rand" type="button">Tasodifiy 10 ta</button>
+        <button class="btn" data-mode="exam" type="button" style="grid-column:1/-1">Sertifikat imtihoni: 45 topşiriq, 150 daqiqa, javoblar oxirida</button>
       </div>
-      <p class="legend">Ball: yopiq test 10, moslaştiriş va oçiq topşiriqning har bir qismi 4–6 ball. Ketma-ket 3 ta töğri javobdan keyin har biriga +2 seriya bonusi.</p>
+      <p class="legend">Ball Milliy sertifikat şkalasida (75 dan). Darajalar: A+ 70, A 65, B+ 60, B 55, C+ 50, C 46; 46 dan kam bölsa sertifikat berilmaydi. Har bir yopiq test, moslaştirişning har bir qatori va oçiq topşiriqning har bir qismi teng hisoblanadi, şuning uçun natija taxminiy: haqiqiy imtihonda topşiriq bali qiyinligiga qarab Rasch modeli bilan aniqlanadi.</p>
       <button class="btn primary" id="startBtn" type="button">Boşlaş</button>
     </div>
 
@@ -166,8 +167,8 @@ summary{cursor:pointer;color:var(--accent);font-weight:500}
     <div class="bar">
       <button class="btn" id="menuBtn" type="button">← Menyu</button>
       <div class="stats">
-        <div class="stat"><b id="sScore">0</b><span>Ball</span></div>
-        <div class="stat"><b id="sStreak">0</b><span>Seriya</span></div>
+        <div class="stat"><b id="sScore">0</b><span id="sScoreLab">Ball (75 dan)</span></div>
+        <div class="stat"><b id="sStreak">0</b><span id="sStreakLab">Seriya</span></div>
       </div>
     </div>
     <div class="progress" aria-hidden="true"><i id="prog"></i></div>
@@ -188,6 +189,23 @@ summary{cursor:pointer;color:var(--accent);font-weight:500}
       <div id="feedback"></div>
       <div class="row" id="navRow" hidden>
         <button class="btn primary" id="nextBtn" type="button">Keyingi savol</button>
+      </div>
+      <div class="col" id="examNav" hidden>
+        <div class="row">
+          <button class="btn" id="prevQ" type="button">← Oldingi</button>
+          <button class="btn primary" id="nextQ" type="button">Keyingi →</button>
+          <button class="btn" id="endBtn" type="button">Imtihonni yakunlaş</button>
+        </div>
+        <div class="fb r" id="endAsk" hidden>
+          <div class="head" id="endAskText">Imtihon yakunlansinmi?</div>
+          <div class="row">
+            <button class="btn primary" id="endYes" type="button">Ha, yakunlaş</button>
+            <button class="btn" id="endNo" type="button">Davom ettiriş</button>
+          </div>
+        </div>
+        <h3>Javoblar varağı</h3>
+        <p class="legend" style="margin:0">Raqamni bosib istalgan topşiriqqa ötiş mumkin. Belgilangan raqamlarga javob berilgan.</p>
+        <div class="keys" id="sheet"></div>
       </div>
     </div>
   </section>
@@ -230,9 +248,10 @@ summary{cursor:pointer;color:var(--accent);font-weight:500}
     <div class="card" style="display:flex;flex-direction:column;gap:14px">
       <h2 id="rTitle">Natija</h2>
       <div class="big" id="rScore">0</div>
+      <div class="row" id="rGrade"></div>
       <div class="res">
         <div class="stat"><b id="rRight">0</b><span>Töğri javoblar</span></div>
-        <div class="stat"><b id="rPct">0%</b><span>Ballar ulişi</span></div>
+        <div class="stat"><b id="rPct">0%</b><span>Xom ball</span></div>
         <div class="stat"><b id="rBest">0</b><span>Eng uzun seriya</span></div>
       </div>
       <div id="missWrap" style="display:flex;flex-direction:column;gap:8px">
@@ -435,7 +454,17 @@ Array.prototype.forEach.call(document.querySelectorAll("#modes .btn"),function(b
   b.onclick=function(){S.mode=b.dataset.mode;Array.prototype.forEach.call(document.querySelectorAll("#modes .btn"),function(x){x.classList.toggle("sel",x===b);});};
 });
 
-function qMax(q){return q.type==="mc"?10:12;}
+/* ---------- baholaş (Milliy sertifikat şkalasi) ----------
+   Har bir birlik (yopiq test, moslaştiriş qatori, oçiq topşiriq qismi) vazni.
+   Rasmiy vaznlar qiyinlikka bog'liq (Rasch); ular topilsa, faqat şu funksiyani almaştiring. */
+function unitW(q,i){return 1;}
+function qMax(q){var n=q.type==="mc"?1:q.type==="match"?3:q.parts.length,t=0;for(var i=0;i<n;i++)t+=unitW(q,i);return t;}
+var CERT_MAX=75, GRADES=[[70,"A+"],[65,"A"],[60,"B+"],[55,"B"],[50,"C+"],[46,"C"]];
+function to75(raw,max){return max?raw/max*CERT_MAX:0;}
+function fmt1(x){return (Math.round(x*10)/10).toString().replace(".",",");}
+function gradeOf(b){for(var i=0;i<GRADES.length;i++)if(b>=GRADES[i][0])return GRADES[i][1];return null;}
+/* topşiriqlar to'liq testmi (45 ta: 32 yopiq + 33–35 + 10 oçiq) */
+function isFullList(list){return list.reduce(function(a,q){return a+(q.type==="match"?3:1);},0)===45;}
 function show(id){["home","play","result","add"].forEach(function(s){$(s).hidden=(s!==id);});window.scrollTo(0,0);}
 
 /* opt: {title, rebuild} — mavzu va diagnostika rejimlari uçun */
@@ -443,7 +472,12 @@ function start(list,opt){
   opt=opt||{};S.title=opt.title||null;S.rebuild=opt.rebuild||null;S.ts={};
   S.list=list;S.idx=0;S.score=0;S.streak=0;S.bestStreak=0;S.right=0;S.missed=[];
   S.max=list.reduce(function(a,q){return a+qMax(q);},0);
+  stopTimer();S.exam=!!opt.exam;S.ans=list.map(function(){return null;});
   $("sScore").textContent="0";$("sStreak").textContent="0";
+  $("sScoreLab").textContent=S.exam?"Javob berildi":"Ball (75 dan)";
+  $("sStreakLab").textContent=S.exam?"Qolgan vaqt":"Seriya";
+  if(S.exam){S.deadline=Date.now()+150*60000;tick();S.timer=setInterval(tick,1000);$("sScore").textContent="0 / "+list.length;}
+  $("examNav").hidden=!S.exam;$("endAsk").hidden=true;
   show("play");renderQ();
 }
 function buildList(){
@@ -453,7 +487,10 @@ function buildList(){
   if(S.mode==="rand"){for(var i=qs.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=qs[i];qs[i]=qs[j];qs[j]=t;}qs=qs.slice(0,10);}
   return qs;
 }
-$("startBtn").onclick=function(){start(buildList());};
+$("startBtn").onclick=function(){
+  if(S.mode==="exam")start(TESTS[S.test].qs.slice(),{exam:true});
+  else start(buildList());
+};
 
 function applyZoom(){
   var img=$("qImg"); if(!img.naturalWidth) return;
@@ -472,23 +509,26 @@ function renderQ(){
   $("qImg").src=imgOf(S.test,q);
   $("qImg").alt=TESTS[q._t||S.test].name+", "+q.n+"-topşiriq";
   $("feedback").innerHTML="";$("navRow").hidden=true;
+  if(S.exam){$("prevQ").disabled=S.idx===0;$("nextQ").disabled=S.idx+1>=S.list.length;renderSheet();}
   $("nextBtn").textContent=S.idx+1<S.list.length?"Keyingi savol":"Natijani köriş";
   var A=$("answerArea");A.innerHTML="";
   if(q.type==="mc"){
     var g=document.createElement("div");g.className="answers";
-    "ABCD".split("").forEach(function(L){var b=document.createElement("button");b.type="button";b.className="btn";b.textContent=L;b.dataset.l=L;b.onclick=function(){answerMC(L);};g.appendChild(b);});
+    "ABCD".split("").forEach(function(L){var b=document.createElement("button");b.type="button";b.className="btn";b.textContent=L;b.dataset.l=L;b.onclick=function(){S.exam?examMC(L):answerMC(L);};g.appendChild(b);});
     A.appendChild(g);
+    if(S.exam&&S.ans[S.idx])examMC(S.ans[S.idx]);
   } else if(q.type==="match"){
     var w=document.createElement("div");w.className="match";
     ["33","34","35"].forEach(function(lab,pi){
       var r=document.createElement("div");r.className="mrow";r.innerHTML='<span class="lab">'+lab+'.</span>';
       "ABCDEF".split("").forEach(function(L){var c=document.createElement("button");c.type="button";c.className="chip";c.textContent=L;c.dataset.p=pi;c.dataset.l=L;
-        c.onclick=function(){if(S.answered)return;Array.prototype.forEach.call(r.querySelectorAll(".chip"),function(x){x.classList.toggle("sel",x===c);});$("mErr").textContent="";};r.appendChild(c);});
+        c.onclick=function(){if(S.answered)return;Array.prototype.forEach.call(r.querySelectorAll(".chip"),function(x){x.classList.toggle("sel",x===c);});$("mErr").textContent="";if(S.exam)examMatch();};r.appendChild(c);});
       w.appendChild(r);
     });
     var e=document.createElement("div");e.className="err";e.id="mErr";w.appendChild(e);
-    var cb=document.createElement("button");cb.type="button";cb.className="btn primary";cb.textContent="Tekşiriş";cb.onclick=answerMatch;w.appendChild(cb);
+    var cb=document.createElement("button");cb.type="button";cb.className="btn primary";cb.textContent="Tekşiriş";cb.onclick=answerMatch;cb.hidden=S.exam;w.appendChild(cb);
     A.appendChild(w);
+    if(S.exam&&S.ans[S.idx])S.ans[S.idx].forEach(function(L,pi){if(!L)return;var c=w.querySelector('.chip[data-p="'+pi+'"][data-l="'+L+'"]');if(c)c.classList.add("sel");});
   } else {
     var o=document.createElement("div");o.className="open";
     q.parts.forEach(function(p,pi){
@@ -503,13 +543,14 @@ function renderQ(){
       b.onclick=function(){insertKey(k[1]);};keys.appendChild(b);
     });
     o.appendChild(keys);
-    var cb2=document.createElement("button");cb2.type="button";cb2.className="btn primary";cb2.textContent="Tekşiriş";cb2.onclick=answerOpen;o.appendChild(cb2);
+    var cb2=document.createElement("button");cb2.type="button";cb2.className="btn primary";cb2.textContent="Tekşiriş";cb2.onclick=answerOpen;cb2.hidden=S.exam;o.appendChild(cb2);
     A.appendChild(o);
     lastInput=null;
     Array.prototype.forEach.call(o.querySelectorAll("input"),function(inp,pi){
       inp.addEventListener("focus",function(){lastInput=inp;});
-      inp.addEventListener("input",function(){$("er"+pi).textContent="";});
-      inp.addEventListener("keydown",function(ev){if(ev.key==="Enter"){ev.preventDefault();answerOpen();}});
+      inp.addEventListener("input",function(){$("er"+pi).textContent="";if(S.exam)examOpen();});
+      inp.addEventListener("keydown",function(ev){if(ev.key==="Enter"){ev.preventDefault();if(S.exam)$("nextQ").click();else answerOpen();}});
+      if(S.exam&&S.ans[S.idx])inp.value=S.ans[S.idx][pi]||"";
     });
   }
 }
@@ -518,16 +559,17 @@ function insertKey(v,inp){
   inp=inp||lastInput||document.getElementById("in0"); if(!inp||inp.readOnly) return;
   var s=inp.selectionStart==null?inp.value.length:inp.selectionStart,e=inp.selectionEnd==null?s:inp.selectionEnd;
   inp.value=inp.value.slice(0,s)+v+inp.value.slice(e);inp.focus();inp.setSelectionRange(s+v.length,s+v.length);
+  if(S.exam&&inp.id.charAt(0)==="i")examOpen();
 }
 
 function finishQ(gained,full,html){
   S.answered=true;
   recordTopics(S.list[S.idx],gained/qMax(S.list[S.idx]));
-  if(full){S.streak++;S.right++;if(S.streak>=3)gained+=2;}
+  if(full){S.streak++;S.right++;}
   else{S.streak=0;S.missed.push(S.list[S.idx]);}
   S.bestStreak=Math.max(S.bestStreak,S.streak);
   S.score+=gained;
-  $("sScore").textContent=S.score;$("sStreak").textContent=S.streak;
+  $("sScore").textContent=fmt1(to75(S.score,S.max));$("sStreak").textContent=S.streak;
   $("feedback").innerHTML=html;$("navRow").hidden=false;$("nextBtn").focus({preventScroll:true});
 }
 function exHtml(q){
@@ -538,19 +580,19 @@ function exHtml(q){
 function answerMC(L){
   if(S.answered)return;var q=S.list[S.idx],ok=L===q.a;
   Array.prototype.forEach.call(document.querySelectorAll(".answers .btn"),function(b){if(b.dataset.l===q.a)b.classList.add("ok");else if(b.dataset.l===L)b.classList.add("no");});
-  finishQ(ok?10:0,ok,'<div class="fb '+(ok?"g":"r")+'"><div class="head">'+(ok?"Töğri! +10 ball":"Xato. Töğri javob: "+q.a)+(ok&&S.streak>=2?" · seriya bonusi +2":"")+'</div>'+exHtml(q)+'</div>');
+  finishQ(ok?qMax(q):0,ok,'<div class="fb '+(ok?"g":"r")+'"><div class="head">'+(ok?"Töğri!":"Xato. Töğri javob: "+q.a)+'</div>'+exHtml(q)+'</div>');
 }
 function answerMatch(){
   if(S.answered)return;var q=S.list[S.idx],picks=[];
   for(var pi=0;pi<3;pi++){var s=document.querySelector('.chip.sel[data-p="'+pi+'"]');picks.push(s?s.dataset.l:null);}
   if(picks.indexOf(null)>=0){$("mErr").textContent="Har bir qatorda (33, 34, 35) bitta harf tanlang.";return;}
-  var good=0;
+  var good=0,g=0;
   picks.forEach(function(L,pi){
     Array.prototype.forEach.call(document.querySelectorAll('.chip[data-p="'+pi+'"]'),function(c){if(c.dataset.l===q.parts[pi])c.classList.add("ok");else if(c.dataset.l===L)c.classList.add("no");});
-    if(L===q.parts[pi])good++;
+    if(L===q.parts[pi]){good++;g+=unitW(q,pi);}
   });
   var full=good===3;
-  finishQ(good*4,full,'<div class="fb '+(full?"g":"r")+'"><div class="head">'+(full?"Hammasi töğri! +12 ball":good+" / 3 töğri, +"+good*4+" ball. Töğrisi: 33 → "+q.parts[0]+", 34 → "+q.parts[1]+", 35 → "+q.parts[2])+'</div>'+exHtml(q)+'</div>');
+  finishQ(g,full,'<div class="fb '+(full?"g":"r")+'"><div class="head">'+(full?"Hammasi töğri!":good+" / 3 töğri. Töğrisi: 33 → "+q.parts[0]+", 34 → "+q.parts[1]+", 35 → "+q.parts[2])+'</div>'+exHtml(q)+'</div>');
 }
 function answerOpen(){
   if(S.answered)return;var q=S.list[S.idx],vals=[],bad=false;
@@ -561,15 +603,15 @@ function answerOpen(){
     vals.push(v);
   });
   if(bad)return;
-  var good=0,lines=[];
+  var good=0,g=0,lines=[];
   q.parts.forEach(function(p,pi){
     var ok=matches(vals[pi],p.vals),inp=$("in"+pi);
     inp.classList.add(ok?"ok":"no");inp.readOnly=true;
-    if(ok)good++;
+    if(ok){good++;g+=unitW(q,pi);}
     lines.push(p.label+") "+(ok?"töğri":"xato, töğrisi: "+p.show));
   });
   var full=good===q.parts.length;
-  finishQ(good*6,full,'<div class="fb '+(full?"g":"r")+'"><div class="head">'+(full?"Ikkalasi ham töğri! +12 ball":good+" / 2 töğri, +"+good*6+" ball")+'</div><div class="ex">'+lines.join("<br>")+'</div>'+exHtml(q)+'</div>');
+  finishQ(g,full,'<div class="fb '+(full?"g":"r")+'"><div class="head">'+(full?"Ikkalasi ham töğri!":good+" / 2 töğri")+'</div><div class="ex">'+lines.join("<br>")+'</div>'+exHtml(q)+'</div>');
 }
 
 $("nextBtn").onclick=function(){
@@ -579,7 +621,8 @@ $("nextBtn").onclick=function(){
 document.addEventListener("keydown",function(ev){
   if($("play").hidden)return;
   var q=S.list[S.idx]; if(!q)return;
-  if(!S.answered&&q.type==="mc"){var k=ev.key.toUpperCase();if("ABCD".indexOf(k)>=0&&k.length===1){answerMC(k);}}
+  if(document.activeElement&&document.activeElement.tagName==="INPUT")return;
+  if((S.exam||!S.answered)&&q.type==="mc"){var k=ev.key.toUpperCase();if("ABCD".indexOf(k)>=0&&k.length===1){S.exam?examMC(k):answerMC(k);}}
   else if(S.answered&&ev.key==="Enter"&&document.activeElement.tagName!=="INPUT"){ev.preventDefault();$("nextBtn").click();}
 });
 
@@ -589,22 +632,84 @@ function finish(){
   if(pct>100)pct=100;
   $("rTitle").textContent=(S.title||TESTS[S.test].name)+" · natija";
   renderSessionTopics();
-  $("rScore").textContent=S.score+" / "+S.max+" ball";
+  var b75=to75(S.score,S.max),full45=isFullList(S.list);
+  $("rScore").textContent=fmt1(b75)+" / "+CERT_MAX+" ball";
+  var gr=gradeOf(b75),gw=$("rGrade");
+  if(!full45)gw.innerHTML='<span class="legend">Daraja faqat 45 topşiriqli to\'liq test uçun hisoblanadi. Bu ball şu topşiriqlar ulişiga qarab 75 ga keltirilgan.</span>';
+  else gw.innerHTML=(gr?'<span class="pill '+(b75>=60?"good":"mid")+'">Daraja: '+gr+'</span>':'<span class="pill bad">Sertifikat berilmaydi: 46 balldan kam</span>')+'<span class="legend">Taxminiy: har bir birlik teng hisoblangan.</span>';
   $("rRight").textContent=S.right+" / "+S.list.length;
-  $("rPct").textContent=pct+"%";
+  $("rPct").textContent=fmt1(S.score)+" / "+fmt1(S.max);
   $("rBest").textContent=S.bestStreak;
   var ml=$("missList");ml.innerHTML="";
   S.missed.forEach(function(q){var s=document.createElement("span");s.textContent=(q._t?TESTS[q._t].name+", ":"")+q.n;ml.appendChild(s);});
   $("missWrap").hidden=!S.missed.length;
   $("retryBtn").hidden=!S.missed.length;
-  if(!S.title&&S.mode==="all"&&S.list.length===TESTS[S.test].qs.length){var b=store.get("best_"+S.test,0);if(pct>b)store.set("best_"+S.test,pct);}
+  if(!S.title&&(S.mode==="all"||S.mode==="exam")&&S.list.length===TESTS[S.test].qs.length){var b=store.get("best_"+S.test,0);if(pct>b)store.set("best_"+S.test,pct);}
   show("result");
 }
 $("retryBtn").onclick=function(){var m=S.missed.slice();start(m,{title:S.title?S.title+" · xatolar":null});};
-$("againBtn").onclick=function(){if(S.rebuild)start(S.rebuild(),{title:S.title,rebuild:S.rebuild});else start(buildList());};
+$("againBtn").onclick=function(){if(S.rebuild)start(S.rebuild(),{title:S.title,rebuild:S.rebuild});else $("startBtn").onclick();};
 $("homeBtn").onclick=function(){goHome();};
-$("menuBtn").onclick=function(){goHome();};
-function goHome(){renderTests();renderTopics();show("home");}
+$("menuBtn").onclick=function(){if(S.exam){askEnd("Imtihon tugamagan. Menyuga çiqiş uçun avval uni yakunlang.");return;}goHome();};
+function goHome(){stopTimer();S.exam=false;renderTests();renderTopics();show("home");}
+
+/* ---------- Sertifikat imtihoni: javoblar oxirida tekşiriladi ---------- */
+function stopTimer(){if(S.timer){clearInterval(S.timer);S.timer=null;}}
+function tick(){
+  var left=Math.max(0,S.deadline-Date.now()),m=Math.floor(left/60000),sec=Math.floor(left%60000/1000);
+  $("sStreak").textContent=m+":"+(sec<10?"0":"")+sec;
+  if(left<=0){stopTimer();gradeExam();}
+}
+function answeredCount(){return S.ans.filter(function(a){return a&&(typeof a==="string"||a.some(function(x){return x;}));}).length;}
+function examSaved(){$("sScore").textContent=answeredCount()+" / "+S.list.length;renderSheet();}
+function examMC(L){
+  S.ans[S.idx]=L;
+  Array.prototype.forEach.call(document.querySelectorAll(".answers .btn"),function(b){b.classList.toggle("sel",b.dataset.l===L);});
+  examSaved();
+}
+function examMatch(){
+  var a=[0,1,2].map(function(pi){var c=document.querySelector('.chip.sel[data-p="'+pi+'"]');return c?c.dataset.l:null;});
+  S.ans[S.idx]=a;examSaved();
+}
+function examOpen(){
+  var q=S.list[S.idx];S.ans[S.idx]=q.parts.map(function(p,pi){var i=$("in"+pi);return i?i.value.trim():"";});
+  q.parts.forEach(function(p,pi){var v=S.ans[S.idx][pi],e=$("er"+pi);if(!e)return;e.textContent="";if(v){try{evalExpr(v);}catch(x){e.textContent="Bu ifoda tuşunilmadi: tekşirişda xato hisoblanadi.";}}});
+  examSaved();
+}
+function renderSheet(){
+  var box=$("sheet");box.innerHTML="";
+  S.list.forEach(function(q,i){
+    var b=document.createElement("button");b.type="button";b.className="btn";b.textContent=typeof q.n==="number"?q.n:"33–35";
+    var a=S.ans[i],done=a&&(typeof a==="string"||a.some(function(x){return x;}));
+    if(i===S.idx){b.classList.add("primary");b.setAttribute("aria-current","true");}
+    else if(done)b.classList.add("sel");
+    b.setAttribute("aria-label",b.textContent+"-topşiriq"+(done?", javob berilgan":""));
+    b.onclick=function(){S.idx=i;renderQ();window.scrollTo(0,0);};
+    box.appendChild(b);
+  });
+}
+$("prevQ").onclick=function(){if(S.idx>0){S.idx--;renderQ();window.scrollTo(0,0);}};
+$("nextQ").onclick=function(){if(S.idx+1<S.list.length){S.idx++;renderQ();window.scrollTo(0,0);}};
+function askEnd(text){var n=S.list.length-answeredCount();$("endAskText").textContent=text+(n?" Javobsiz topşiriqlar: "+n+" ta.":"");$("endAsk").hidden=false;$("endYes").focus();}
+$("endBtn").onclick=function(){askEnd("Imtihon yakunlansinmi? Keyin javoblarni özgartirib bölmaydi.");};
+$("endNo").onclick=function(){$("endAsk").hidden=true;};
+$("endYes").onclick=function(){gradeExam();};
+/* barça javoblarni tekşiradi, mavzu statistikasini yozadi va natijani körsatadi */
+function gradeExam(){
+  stopTimer();
+  S.list.forEach(function(q,i){
+    var a=S.ans[i],g=0,good=0,n=q.type==="mc"?1:q.type==="match"?3:q.parts.length;
+    if(q.type==="mc"){if(a===q.a){g=unitW(q,0);good=1;}}
+    else if(q.type==="match"){(a||[]).forEach(function(L,pi){if(L&&L===q.parts[pi]){g+=unitW(q,pi);good++;}});}
+    else q.parts.forEach(function(p,pi){var v=a&&a[pi];try{if(v&&matches(v,p.vals)){g+=unitW(q,pi);good++;}}catch(e){}});
+    recordTopics(q,g/qMax(q));
+    S.score+=g;
+    if(good===n){S.right++;S.streak++;}else{S.streak=0;S.missed.push(q);}
+    S.bestStreak=Math.max(S.bestStreak,S.streak);
+  });
+  S.exam=false;$("examNav").hidden=true;
+  finish();
+}
 
 /* ---------- mavzular: statistika, mashq, diagnostika ---------- */
 /* localStorage "tstat": {mavzu: {n: jami urinişlar, r: oxirgi 10 ta natija (0..1)}} */

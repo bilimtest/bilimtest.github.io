@@ -67,6 +67,9 @@ cd mock-oyini && python3 -m http.server 8000
 10. **Mavzular böyiça** (2026-11-24): har bir qurilgan savolga `q.tp` (mavzular massivi) — `TOPICS` (16 ta mavzu) va `TP` (har test uçun savollar tartibida, `a+b` = ikki mavzu). Menyuda "3. Mavzular böyiça": diagnostika (har mavzudan 2 ta tasodifiy savol, 32 ta), mavzu böyiça mashq (uçala mockdan, `q._t` = qaysi test), eng zaif mavzu yuqorida turadigan röyxat. Statistika `localStorage.tstat = {mavzu: {n, r: oxirgi 10 natija 0..1}}`; foiz = oxirgi 10 natija örtaçasi; <50% "Bilmaysiz", <80% "Qisman", qolgani "Bilasiz". Natija ekranida şu urinişning mavzular jadvali. Foydalanuvçi qöşgan mocklarda mavzu yöq.
 11. claude.ai da şaxsiy havola: https://claude.ai/artifact/AjZZKWpvrQxQ7e32E15KWP (`<html>/<head>/<body>` siz nusxa + 129 rasm). `confirm()/alert()` u yerda işlamaydi — öçiriş tasdiqi sahifaning özida.
 
+12. **Milliy sertifikat baholaşi** (2026-11-24): ball endi 75 ballik şkalada. `unitW(q,i)` — har birlik vazni (hozir hammasi 1: 32 yopiq + 3 moslaştiriş + 20 oçiq qism = 55 xom ball), `to75()`, `gradeOf()` (A+ 70, A 65, B+ 60, B 55, C+ 50, C 46, <46 sertifikat yöq). Seriya bonusi baldan olib taşlandi (seriya faqat körsatkiç). Daraja faqat 45 topşiriqli to'liq testda.
+13. **Sertifikat imtihoni rejimi**: 45 topşiriq, 150 daqiqa taymer, javoblar `S.ans` da saqlanadi, javob varaği (istalgan raqamga ötiş), oldingi/keyingi, yakunlaşni sahifa içida tasdiqlaş, vaqt tugasa avtomatik `gradeExam()`. Natija va mavzu statistikasi oxirida.
+
 ## Qilinmagan işlar
 
 1. 15-mock va Mock 14 uçun yeçişlar (`ex`).
@@ -86,6 +89,8 @@ cd mock-oyini && python3 -m http.server 8000
 - Asosiy saytning `sw.js` (scope `/`) `/mock-oyini/` ni ham boşqaradi: `.png` rasmlar `bilimtest-img-v1` keşiga tuşadi. Rasmni almaştirsangiz, fayl nomini yoki keşni yangilaş kerak bölişi mumkin.
 
 ## Keyingi ustuvorliklar
+
+-1. **Rasmiy vaznlar.** Har topşiriqning rasmiy bali uzbmb.uz dagi namunaviy testda (`/upload/file/pdf/milliytest/matem.pdf`, "1. [1,3 ball]" körinişida). Bu sessiyadan sayt yopiq edi. Uning uçun `bilimtest.github.io` nomli şaxsiy muhit (uzbmb.uz ruxsati bilan) yaratildi — keyingi sessiyani şu muhitda oçib, vaznlarni `unitW()` ga kiriting. Mock testlar rasmiy test emas, şuning uçun vaznlarni raqam böyiça (1–45) olish taxminiy bölib qoladi.
 
 0. Mavzular: foydalanuvçi qöşgan mockda kalit formasiga mavzu tanlaş qöşiş; "statistikani tozalaş" tugmasi.
 
