@@ -151,7 +151,7 @@ summary{cursor:pointer;color:var(--accent);font-weight:500}
         <button class="btn" data-mode="rand" type="button">Tasodifiy 10 ta</button>
         <button class="btn" data-mode="exam" type="button" style="grid-column:1/-1">Sertifikat imtihoni: 45 topşiriq, 150 daqiqa, javoblar oxirida</button>
       </div>
-      <p class="legend">Ball Milliy sertifikat şkalasida (75 dan). Darajalar: A+ 70, A 65, B+ 60, B 55, C+ 50, C 46; 46 dan kam bölsa sertifikat berilmaydi. Har bir topşiriq qiyinligiga qarab baholanadi (Rasch modeli): oson 1,3, örta 2,2, qiyin 3,2 ball; oçiq topşiriqda a) va b) alohida. Qiyinlik darajalari ekspert bahosi, şuning uçun natija taxminiy.</p>
+      <p class="legend">Ball — töğri yeçilgan topşiriqlar ballari yiğindisi (algebra + geometriya), to'liq mock 100 ball. Topşiriq bali qiyinligiga qarab (Rasch modeli): oson, örta va qiyin topşiriqlar nisbati 1,3 : 2,2 : 3,2; oçiq topşiriqda a) va b) alohida. Darajalar: A+ 70, A 65, B+ 60, B 55, C+ 50, C 46; 46 dan kam bölsa sertifikat berilmaydi. Qiyinlik ekspert bahosi, şuning uçun natija taxminiy.</p>
       <button class="btn primary" id="startBtn" type="button">Boşlaş</button>
     </div>
 
@@ -167,7 +167,7 @@ summary{cursor:pointer;color:var(--accent);font-weight:500}
     <div class="bar">
       <button class="btn" id="menuBtn" type="button">← Menyu</button>
       <div class="stats">
-        <div class="stat"><b id="sScore">0</b><span id="sScoreLab">Ball (75 dan)</span></div>
+        <div class="stat"><b id="sScore">0</b><span id="sScoreLab">Ball · daraja</span></div>
         <div class="stat"><b id="sStreak">0</b><span id="sStreakLab">Seriya</span></div>
       </div>
     </div>
@@ -252,6 +252,10 @@ summary{cursor:pointer;color:var(--accent);font-weight:500}
       <div class="res">
         <div class="stat"><b id="rRight">0</b><span>Töğri javoblar</span></div>
         <div class="stat"><b id="rPct">0%</b><span>Xom ball</span></div>
+        <div class="stat"><b id="rAlg">0</b><span>Algebra</span></div>
+        <div class="stat"><b id="rGeo">0</b><span>Geometriya</span></div>
+        <div class="stat"><b id="rFoiz">0%</b><span>Foiz (ball / 65)</span></div>
+        <div class="stat"><b id="rDtm">–</b><span>DTM 1-blok / 2-blok</span></div>
         <div class="stat"><b id="rBest">0</b><span>Eng uzun seriya</span></div>
       </div>
       <div id="missWrap" style="display:flex;flex-direction:column;gap:8px">
@@ -408,6 +412,21 @@ function lvOf(q,i){
   return i===0?2:3;
 }
 function unitPts(q,i){return pointsOfB(raschB(LEVEL_P[lvOf(q,i)]));}
+/* Ball şkalasi: töğri yeçilgan topşiriqlar ballari yiğindisi, to'liq mock = 100.
+   (24-mock natijalari: ball = algebra + geometriya, eng yuqorisi 84,13.)
+   Nisbat 1,3 : 2,2 : 3,2 saqlanadi, har mock uçun 100 ga keltiriladi. */
+var SCALE={};
+function scaleOf(k){
+  if(!SCALE[k]){var t=0;TESTS[k].qs.forEach(function(q){for(var i=0;i<unitsOf(q);i++)t+=unitPts(q,i);});SCALE[k]=t?100/t:1;}
+  return SCALE[k];
+}
+Object.keys(TESTS).forEach(function(k){if(!TESTS[k].mix)TESTS[k].qs.forEach(function(q){q.src=k;});});
+/* algebra yoki geometriya: birinçi mavzusi böyiça; mavzusi yöq (foydalanuvçi mocki) — raqamiga qarab */
+var GEO={plan:1,stereo:1,koord:1};
+function isGeo(q){
+  if(q.tp&&q.tp.length)return !!GEO[q.tp[0]];
+  return (q.n>=24&&q.n<=30)||q.n==="33–35"||(q.n>=41&&q.n<=44);
+}
 
 /* Aralaş mock: har bir raqam (1, 2, …, 33–35, …, 45) joyida qoladi, lekin shu raqamli savol
    tasodifiy mockdan olinadi. Har boşlaşda yangidan tuziladi (testQs). */
@@ -475,9 +494,9 @@ function renderTests(){
   Object.keys(TESTS).forEach(function(k){
     var T=TESTS[k],b=document.createElement("button");
     b.type="button";b.className="test";b.setAttribute("aria-pressed",S.test===k?"true":"false");
-    /* best75_: 75 ballik eng yaxşi baho; eski best_ (foiz) bölsa undan hisoblanadi */
-    var best=store.get("best75_"+k,null),old=store.get("best_"+k,null);
-    if(best===null&&old!==null)best=old*CERT_MAX/100;
+    /* bestb_: eng yaxşi ball (100 ballik); eski best_ (foiz) bölsa, u ballga teng */
+    var best=store.get("bestb_"+k,null),old=store.get("best_"+k,null);
+    if(best===null&&old!==null)best=old;
     b.innerHTML='<span class="t">'+esc(T.name)+'</span><span class="m">'+esc(T.meta?T.meta+' · ':'')+T.count+' topşiriq</span>'+(best!==null?'<span class="best">Eng yaxşi natija: '+fmt1(best)+' ball · '+(gradeOf(best)||"46 dan kam")+'</span>':'');
     b.onclick=function(){S.test=k;renderTests();};
     if(!T.user){box.appendChild(b);return;}
@@ -501,7 +520,7 @@ Array.prototype.forEach.call(document.querySelectorAll("#modes .btn"),function(b
 /* ---------- baholaş (Milliy sertifikat şkalasi) ----------
    Har bir birlik (yopiq test, moslaştiriş qatori, oçiq topşiriq qismi) vazni.
    Rasmiy vaznlar qiyinlikka bog'liq (Rasch); ular topilsa, faqat şu funksiyani almaştiring. */
-function unitW(q,i){return unitPts(q,i);}
+function unitW(q,i){return unitPts(q,i)*(q.src&&TESTS[q.src]?scaleOf(q.src):1);}
 function unitsOf(q){return q.type==="mc"?1:q.type==="match"?3:q.parts.length;}
 /* sarlavha uçun: "Örta · 2,2 ball" yoki "a) Örta 2,2 · b) Qiyin 3,2 ball" */
 function levelText(q){
@@ -510,8 +529,12 @@ function levelText(q){
   return lab.map(function(l,i){return l+" "+fmt1(unitW(q,i));}).join(" · ")+" ball";
 }
 function qMax(q){var n=q.type==="mc"?1:q.type==="match"?3:q.parts.length,t=0;for(var i=0;i<n;i++)t+=unitW(q,i);return t;}
-var CERT_MAX=75, GRADES=[[70,"A+"],[65,"A"],[60,"B+"],[55,"B"],[50,"C+"],[46,"C"]];
-function to75(raw,max){return max?raw/max*CERT_MAX:0;}
+var CERT_MAX=100, GRADES=[[70,"A+"],[65,"A"],[60,"B+"],[55,"B"],[50,"C+"],[46,"C"]];
+/* to'liq mockda xom ball = sertifikat bali; qisman röyxatda 100 ga keltiriladi */
+function toBall(raw,max){return max?raw/max*CERT_MAX:0;}
+/* 24-mock natijalari jadvalidan (178 qator, xatolik < 0,01): foiz = ball/65 (≤ 100%),
+   DTM 1-blok = 93·foiz + 11, 2-blok = 63·foiz + 11; 46 dan kam bölsa hisoblanmaydi */
+function certFoiz(b){return Math.min(1,b/65);}
 function fmt1(x){return (Math.round(x*10)/10).toString().replace(".",",");}
 function gradeOf(b){for(var i=0;i<GRADES.length;i++)if(b>=GRADES[i][0])return GRADES[i][1];return null;}
 /* topşiriqlar to'liq testmi (45 ta: 32 yopiq + 33–35 + 10 oçiq) */
@@ -523,7 +546,7 @@ function start(list,opt){
   opt=opt||{};S.title=opt.title||null;S.rebuild=opt.rebuild||null;S.ts={};
   S.list=list;S.idx=0;S.score=0;S.streak=0;S.bestStreak=0;S.right=0;S.missed=[];
   S.max=list.reduce(function(a,q){return a+qMax(q);},0);
-  stopTimer();S.exam=!!opt.exam;S.ans=list.map(function(){return null;});S.doneMax=0;
+  stopTimer();S.exam=!!opt.exam;S.ans=list.map(function(){return null;});S.doneMax=0;S.alg=0;S.geo=0;
   $("sScore").textContent="0";$("sStreak").textContent="0";
   $("sScoreLab").textContent=S.exam?"Javob berildi":"Ball · daraja";
   $("sStreakLab").textContent=S.exam?"Qolgan vaqt":"Seriya";
@@ -621,8 +644,9 @@ function finishQ(gained,full,html){
   else{S.streak=0;S.missed.push(S.list[S.idx]);}
   S.bestStreak=Math.max(S.bestStreak,S.streak);
   S.score+=gained;S.doneMax+=qMax(S.list[S.idx]);
-  /* şu paytgaça javob berilgan savollar böyiça 75 ga keltirilgan ball va daraja */
-  var live=to75(S.score,S.doneMax);
+  if(isGeo(S.list[S.idx]))S.geo+=gained;else S.alg+=gained;
+  /* şu paytgaça javob berilgan savollar böyiça 100 ga keltirilgan ball va daraja */
+  var live=toBall(S.score,S.doneMax);
   $("sScore").textContent=fmt1(live);$("sScoreLab").textContent="Ball · "+(gradeOf(live)||"<46");$("sStreak").textContent=S.streak;
   $("feedback").innerHTML=html;$("navRow").hidden=false;$("nextBtn").focus({preventScroll:true});
 }
@@ -686,20 +710,24 @@ function finish(){
   if(pct>100)pct=100;
   $("rTitle").textContent=(S.title||TESTS[S.test].name)+" · natija";
   renderSessionTopics();
-  var b75=to75(S.score,S.max),full45=isFullList(S.list);
-  $("rScore").textContent=fmt1(b75)+" / "+CERT_MAX+" ball";
-  var gr=gradeOf(b75),gw=$("rGrade");
-  gw.innerHTML=(gr?'<span class="pill '+(b75>=60?"good":"mid")+'">'+(full45?"Daraja: ":"Taxminiy daraja: ")+gr+'</span>':'<span class="pill bad">Sertifikat berilmaydi: 46 balldan kam</span>')+
-    '<span class="legend">'+(full45?"Taxminiy: topşiriq qiyinligi rasmiy emas, ekspert bahosi.":"Faqat "+S.list.length+" ta savol böyiça. Aniq baho uçun to'liq testni yoki “Sertifikat imtihoni” ni işlang.")+'</span>';
+  var bb=toBall(S.score,S.max),full45=isFullList(S.list);
+  $("rScore").textContent=fmt1(bb)+" ball";
+  $("rAlg").textContent=fmt1(toBall(S.alg,S.max));$("rGeo").textContent=fmt1(toBall(S.geo,S.max));
+  var f=certFoiz(bb);$("rFoiz").textContent=fmt1(f*100)+"%";
+  $("rDtm").textContent=bb>=46?fmt1(93*f+11)+" / "+fmt1(63*f+11):"–";
+  var gr=gradeOf(bb),gw=$("rGrade");
+  gw.innerHTML=(gr?'<span class="pill '+(bb>=60?"good":"mid")+'">'+(full45?"Daraja: ":"Taxminiy daraja: ")+gr+'</span>':'<span class="pill bad">Sertifikat berilmaydi: 46 balldan kam</span>')+
+    '<span class="legend">'+(full45?"Taxminiy: topşiriqlar qiyinligi ekspert bahosi, haqiqiy imtihonda barça qatnaşçilar javobidan hisoblanadi.":"Faqat "+S.list.length+" ta savol böyiça. Aniq baho uçun to'liq testni yoki “Sertifikat imtihoni” ni işlang.")+'</span>';
   $("rRight").textContent=S.right+" / "+S.list.length;
   $("rPct").textContent=fmt1(S.score)+" / "+fmt1(S.max);
+  $("rPct").nextElementSibling.textContent=full45?"Olingan / mumkin":"Xom ball";
   $("rBest").textContent=S.bestStreak;
   var ml=$("missList");ml.innerHTML="";
   S.missed.forEach(function(q){var s=document.createElement("span");s.textContent=(q._t?TESTS[q._t].name+", ":"")+q.n;ml.appendChild(s);});
   $("missWrap").hidden=!S.missed.length;
   $("retryBtn").hidden=!S.missed.length;
   if(!S.title&&(S.mode==="all"||S.mode==="exam")&&S.list.length===TESTS[S.test].qs.length){var b=store.get("best_"+S.test,0);if(pct>b)store.set("best_"+S.test,pct);
-    var b2=store.get("best75_"+S.test,null);if(b2===null||b75>b2)store.set("best75_"+S.test,Math.round(b75*10)/10);}
+    var b2=store.get("bestb_"+S.test,null);if(b2===null||bb>b2)store.set("bestb_"+S.test,Math.round(bb*10)/10);}
   show("result");
 }
 $("retryBtn").onclick=function(){var m=S.missed.slice();start(m,{title:S.title?S.title+" · xatolar":null});};
@@ -758,7 +786,7 @@ function gradeExam(){
     else if(q.type==="match"){(a||[]).forEach(function(L,pi){if(L&&L===q.parts[pi]){g+=unitW(q,pi);good++;}});}
     else q.parts.forEach(function(p,pi){var v=a&&a[pi];try{if(v&&matches(v,p.vals)){g+=unitW(q,pi);good++;}}catch(e){}});
     recordTopics(q,g/qMax(q));
-    S.score+=g;
+    S.score+=g;if(isGeo(q))S.geo+=g;else S.alg+=g;
     if(good===n){S.right++;S.streak++;}else{S.streak=0;S.missed.push(q);}
     S.bestStreak=Math.max(S.bestStreak,S.streak);
   });
@@ -853,7 +881,7 @@ function userTest(rec){
 }
 function countOf(T){return T.qs.reduce(function(a,q){return a+(q.type==="match"?3:1);},0);}
 function addUserTest(rec){
-  try{var T=userTest(rec);T.count=countOf(T);TESTS["u"+rec.id]=T;return "u"+rec.id;}
+  try{var T=userTest(rec);T.count=countOf(T);TESTS["u"+rec.id]=T;T.qs.forEach(function(q){q.src="u"+rec.id;});return "u"+rec.id;}
   catch(e){console.warn("Saqlangan mockni öqib bölmadi:",rec&&rec.name,e);return null;}
 }
 function loadUserMocks(){
@@ -870,7 +898,7 @@ function deleteUserMock(k){
   var T=TESTS[k];
   IDB.del(T.id).then(function(){
     Object.keys(T.imgs).forEach(function(n){URL.revokeObjectURL(T.imgs[n]);});
-    delete TESTS[k];store.del("best_"+k);store.del("best75_"+k);renderTests();
+    delete TESTS[k];store.del("best_"+k);store.del("best75_"+k);store.del("bestb_"+k);renderTests();
   }).catch(function(e){console.warn(e);$("dbErr").textContent="Öçirib bölmadi: brauzer xotirasiga yozib bölmadi.";$("dbErr").hidden=false;});
 }
 

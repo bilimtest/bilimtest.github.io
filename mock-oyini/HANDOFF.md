@@ -75,6 +75,9 @@ cd mock-oyini && python3 -m http.server 8000
 15. **Rasch böyiça ballar** (2026-11-24): `LV` — har bir birlikning qiyinlik darajasi (1 oson, 2 örta, 3 qiyin; mc bitta raqam, 33–35 "223", oçiq "23" = a, b). Darajalar ekspert bahosi (yeçiliş yöliga qarab), rasmiy emas. `LEVEL_P` (kutilgan yeçiliş ulişi 0,73 / 0,5 / 0,27) → `raschB(p) = ln((1-p)/p)` (≈ −1, 0, +1 logit) → `pointsOfB(b)` = 1,3 / 2,2 / 3,2 ball (rasmiy namunadagi qiymatlar). `unitW()` endi şu ballni beradi; xom maksimum: 24-mock 132,8, 15-mock 141,4, Mock 14 133,8; 75 ga keltiriladi. Foydalanuvçi mocklarida daraja raqamga qarab (`lvOf`). Sarlavha ostida daraja va ball (`#qLevel`), javobdan keyin "+X ball".
     Haqiqiy p (barça qatnaşçilar yeçgan ulişi) ma'lum bölsa, faqat `LEVEL_P`/`LV` örniga har topşiriq uçun p qöyiladi.
 
+16. **100 ballik şkala** (2026-11-24): foydalanuvçi yuborgan "24-MOCK natijalari" (318 qatnaşçi) asosida tüzatildi. 75 ballik çegara xato edi: eng yuqori natija 84,13. Jadvaldan aniqlangan va 178 qatorda tekşirilgan (xatolik < 0,01): ball = algebra + geometriya; foiz = min(100%, ball/65); DTM 1-blok = 93·foiz + 11; 2-blok = 63·foiz + 11 (46 dan kam bölsa "–"); darajalar A+ ≥70, A ≥65, B+ ≥60, B ≥55, C+ ≥50, C ≥46, aks holda NC.
+    Kodda: `scaleOf(k)` — mock ballari yiğindisi 100 bölişi uçun koeffitsiyent (nisbat 1,3 : 2,2 : 3,2 saqlanadi), `q.src` — savol qaysi mockdan, `isGeo(q)` — geometriya (plan, stereo, koord), `toBall()`, `certFoiz()`. Natija ekranida algebra, geometriya, foiz, DTM 1/2-blok. Eng yaxşi natija `bestb_<test>`.
+
 ## Qilinmagan işlar
 
 1. 15-mock va Mock 14 uçun yeçişlar (`ex`).
