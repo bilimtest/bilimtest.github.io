@@ -433,8 +433,10 @@ function renderTests(){
   Object.keys(TESTS).forEach(function(k){
     var T=TESTS[k],b=document.createElement("button");
     b.type="button";b.className="test";b.setAttribute("aria-pressed",S.test===k?"true":"false");
-    var best=store.get("best_"+k,null);
-    b.innerHTML='<span class="t">'+esc(T.name)+'</span><span class="m">'+esc(T.meta?T.meta+' · ':'')+T.count+' topşiriq</span>'+(best!==null?'<span class="best">Eng yaxşi natija: '+best+'%</span>':'');
+    /* best75_: 75 ballik eng yaxşi baho; eski best_ (foiz) bölsa undan hisoblanadi */
+    var best=store.get("best75_"+k,null),old=store.get("best_"+k,null);
+    if(best===null&&old!==null)best=old*CERT_MAX/100;
+    b.innerHTML='<span class="t">'+esc(T.name)+'</span><span class="m">'+esc(T.meta?T.meta+' · ':'')+T.count+' topşiriq</span>'+(best!==null?'<span class="best">Eng yaxşi natija: '+fmt1(best)+' ball · '+(gradeOf(best)||"46 dan kam")+'</span>':'');
     b.onclick=function(){S.test=k;renderTests();};
     if(!T.user){box.appendChild(b);return;}
     var cell=document.createElement("div");cell.className="tcell";cell.appendChild(b);
@@ -472,9 +474,9 @@ function start(list,opt){
   opt=opt||{};S.title=opt.title||null;S.rebuild=opt.rebuild||null;S.ts={};
   S.list=list;S.idx=0;S.score=0;S.streak=0;S.bestStreak=0;S.right=0;S.missed=[];
   S.max=list.reduce(function(a,q){return a+qMax(q);},0);
-  stopTimer();S.exam=!!opt.exam;S.ans=list.map(function(){return null;});
+  stopTimer();S.exam=!!opt.exam;S.ans=list.map(function(){return null;});S.doneMax=0;
   $("sScore").textContent="0";$("sStreak").textContent="0";
-  $("sScoreLab").textContent=S.exam?"Javob berildi":"Ball (75 dan)";
+  $("sScoreLab").textContent=S.exam?"Javob berildi":"Ball · daraja";
   $("sStreakLab").textContent=S.exam?"Qolgan vaqt":"Seriya";
   if(S.exam){S.deadline=Date.now()+150*60000;tick();S.timer=setInterval(tick,1000);$("sScore").textContent="0 / "+list.length;}
   $("examNav").hidden=!S.exam;$("endAsk").hidden=true;
@@ -568,8 +570,10 @@ function finishQ(gained,full,html){
   if(full){S.streak++;S.right++;}
   else{S.streak=0;S.missed.push(S.list[S.idx]);}
   S.bestStreak=Math.max(S.bestStreak,S.streak);
-  S.score+=gained;
-  $("sScore").textContent=fmt1(to75(S.score,S.max));$("sStreak").textContent=S.streak;
+  S.score+=gained;S.doneMax+=qMax(S.list[S.idx]);
+  /* şu paytgaça javob berilgan savollar böyiça 75 ga keltirilgan ball va daraja */
+  var live=to75(S.score,S.doneMax);
+  $("sScore").textContent=fmt1(live);$("sScoreLab").textContent="Ball · "+(gradeOf(live)||"<46");$("sStreak").textContent=S.streak;
   $("feedback").innerHTML=html;$("navRow").hidden=false;$("nextBtn").focus({preventScroll:true});
 }
 function exHtml(q){
@@ -635,8 +639,8 @@ function finish(){
   var b75=to75(S.score,S.max),full45=isFullList(S.list);
   $("rScore").textContent=fmt1(b75)+" / "+CERT_MAX+" ball";
   var gr=gradeOf(b75),gw=$("rGrade");
-  if(!full45)gw.innerHTML='<span class="legend">Daraja faqat 45 topşiriqli to\'liq test uçun hisoblanadi. Bu ball şu topşiriqlar ulişiga qarab 75 ga keltirilgan.</span>';
-  else gw.innerHTML=(gr?'<span class="pill '+(b75>=60?"good":"mid")+'">Daraja: '+gr+'</span>':'<span class="pill bad">Sertifikat berilmaydi: 46 balldan kam</span>')+'<span class="legend">Taxminiy: har bir birlik teng hisoblangan.</span>';
+  gw.innerHTML=(gr?'<span class="pill '+(b75>=60?"good":"mid")+'">'+(full45?"Daraja: ":"Taxminiy daraja: ")+gr+'</span>':'<span class="pill bad">Sertifikat berilmaydi: 46 balldan kam</span>')+
+    '<span class="legend">'+(full45?"Taxminiy: har bir birlik teng hisoblangan.":"Faqat "+S.list.length+" ta savol böyiça. Aniq baho uçun to'liq testni yoki “Sertifikat imtihoni” ni işlang.")+'</span>';
   $("rRight").textContent=S.right+" / "+S.list.length;
   $("rPct").textContent=fmt1(S.score)+" / "+fmt1(S.max);
   $("rBest").textContent=S.bestStreak;
@@ -644,7 +648,8 @@ function finish(){
   S.missed.forEach(function(q){var s=document.createElement("span");s.textContent=(q._t?TESTS[q._t].name+", ":"")+q.n;ml.appendChild(s);});
   $("missWrap").hidden=!S.missed.length;
   $("retryBtn").hidden=!S.missed.length;
-  if(!S.title&&(S.mode==="all"||S.mode==="exam")&&S.list.length===TESTS[S.test].qs.length){var b=store.get("best_"+S.test,0);if(pct>b)store.set("best_"+S.test,pct);}
+  if(!S.title&&(S.mode==="all"||S.mode==="exam")&&S.list.length===TESTS[S.test].qs.length){var b=store.get("best_"+S.test,0);if(pct>b)store.set("best_"+S.test,pct);
+    var b2=store.get("best75_"+S.test,null);if(b2===null||b75>b2)store.set("best75_"+S.test,Math.round(b75*10)/10);}
   show("result");
 }
 $("retryBtn").onclick=function(){var m=S.missed.slice();start(m,{title:S.title?S.title+" · xatolar":null});};
@@ -815,7 +820,7 @@ function deleteUserMock(k){
   var T=TESTS[k];
   IDB.del(T.id).then(function(){
     Object.keys(T.imgs).forEach(function(n){URL.revokeObjectURL(T.imgs[n]);});
-    delete TESTS[k];store.del("best_"+k);renderTests();
+    delete TESTS[k];store.del("best_"+k);store.del("best75_"+k);renderTests();
   }).catch(function(e){console.warn(e);$("dbErr").textContent="Öçirib bölmadi: brauzer xotirasiga yozib bölmadi.";$("dbErr").hidden=false;});
 }
 
